@@ -1,5 +1,13 @@
 # Agent Instructions (Nexus)
 
+## “Land the plane” (definition)
+Before handing off, you must:
+1) `bun test` is green
+2) `bd sync`
+3) `git status` is clean
+4) commit any handoff state changes (esp. `AGENTS.md`)
+5) if a remote exists: `git push` (don’t strand work locally)
+
 This repo uses **bd** (beads) for tasks.
 
 ## Repo Policy
