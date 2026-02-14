@@ -17,7 +17,7 @@ function run(cmd: string[], cwd: string) {
   };
 }
 
-test("config mode > emits claude skill without pack.json", () => {
+test("config mode > emits claude skill without pack.json", async () => {
   const tmp = mkdtempSync("/tmp/nexus-config-mode-");
   try {
     const repoRoot = join(tmp, "repo");
@@ -38,13 +38,11 @@ test("config mode > emits claude skill without pack.json", () => {
     const cfgPath = join(tmp, "config.json");
     writeFileSync(cfgPath, JSON.stringify(cfg));
 
-    const r = run(["bun", "src/index.ts", "--config", cfgPath], "/home/imrane/code/try/2026-02-14-nexus");
+    const r = run([process.execPath, "src/index.ts", "--config", cfgPath], "/home/imrane/code/try/2026-02-14-nexus");
     expect(r.code).toBe(0);
 
-    const emitted = Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
-    return emitted.then((t) => {
-      expect(t).toContain("name: humanizer");
-    });
+    const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
+    expect(t).toContain("name: humanizer");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
