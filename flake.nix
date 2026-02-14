@@ -12,13 +12,13 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        packages.default = pkgs.writeShellScriptBin "nexus" ''
-          if [ ! -f pack.json ]; then
-            echo "❌ No pack.json found in current directory" >&2
-            exit 1
-          fi
-          ${pkgs.bun}/bin/bun ${self}/src/index.ts
-        '';
+        packages = {
+          default = pkgs.callPackage ./package.nix {};
+          nexus = pkgs.callPackage ./package.nix {};
+        };
+
+        # Home-manager module for global installation
+        homeManagerModules.default = import ./modules/home-manager.nix;
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [

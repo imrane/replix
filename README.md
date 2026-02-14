@@ -2,7 +2,24 @@
 
 **Auto-inject agent skills and MCP servers into Claude Code, Codex, and OpenCode.**
 
-Nexus reads a `pack.json` in your repo, enumerates available skills/MCP servers, and emits the enabled ones to the correct locations (`.claude/skills/`, `.mcp.json`, etc.). It runs automatically when you enter a Nix devShell.
+Nexus reads a `pack.json` in your repo, enumerates available skills/MCP servers, and emits the enabled ones to the correct locations (`.claude/skills/`, `.mcp.json`, etc.).
+
+**Install once in dotfiles → Works everywhere.**
+
+See [**GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for recommended installation.
+
+---
+
+## Quick Start
+
+**Recommended: Install globally via dotfiles (one-time setup)**
+
+See [**docs/GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for:
+- Home Manager integration
+- Flake registry setup
+- Auto-run on `cd` into project directories
+
+**After global install:** Just add `pack.json` to any project and Nexus auto-activates.
 
 ---
 
