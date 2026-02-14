@@ -2,11 +2,33 @@
 
 **Auto-inject agent skills and MCP servers into Claude Code, Codex, and OpenCode.**
 
-Nexus reads a `pack.json` in your repo, enumerates available skills/MCP servers, and emits the enabled ones to the correct locations (`.claude/skills/`, `.mcp.json`, etc.).
+⚠️ **Status:** v1.0 MVP complete. v2.0 architecture (dotfiles-based) in progress.
 
-**Install once in dotfiles → Works everywhere.**
+See [**STATUS.md**](STATUS.md) and [**ARCHITECTURE_PLAN.md**](ARCHITECTURE_PLAN.md) for roadmap.
 
-See [**GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for recommended installation.
+---
+
+## Vision (v2.0 - In Development)
+
+**Skills defined once in dotfiles. Projects just enable.**
+
+```nix
+# User dotfiles (once)
+programs.nexus.skills.humanizer.source = "github:blader/humanizer";
+
+# Project flake (just enable)
+nexus.lib.inject { skills = ["humanizer"]; }
+```
+
+No local config files. No skill duplication. Fully portable.
+
+---
+
+## Current (v1.0 - Temporary)
+
+Uses `pack.json` in project repos. **Will be deprecated.**
+
+See [**GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for current usage (don't build workflows around this).
 
 ---
 
