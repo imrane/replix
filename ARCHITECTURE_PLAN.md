@@ -1,5 +1,11 @@
 # Architecture Plan: Dotfiles-Based Design
 
+**See [docs/PRD.md](docs/PRD.md) for complete specification.**
+
+---
+
+# Architecture Plan: Dotfiles-Based Design
+
 ## Current Issues
 
 1. **pack.json is project-local** → clutters repos, config duplication

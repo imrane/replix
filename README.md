@@ -1,34 +1,71 @@
-# Nexus - Agent Skill/MCP Config Manager
+# Nexus - Dotfiles-First AI Toolchain Injection
 
 **Auto-inject agent skills and MCP servers into Claude Code, Codex, and OpenCode.**
 
-⚠️ **Status:** v1.0 MVP complete. v2.0 architecture (dotfiles-based) in progress.
+⚠️ **Status:** v1.0 MVP complete. v2.0 architecture (dotfiles-based) specified in PRD.
 
-See [**STATUS.md**](STATUS.md) and [**ARCHITECTURE_PLAN.md**](ARCHITECTURE_PLAN.md) for roadmap.
+📘 **Read the PRD:** [**docs/PRD.md**](docs/PRD.md)
 
 ---
 
-## Vision (v2.0 - In Development)
+## Vision (v2.0 - Specified, Ready for Implementation)
 
 **Skills defined once in dotfiles. Projects just enable.**
 
-```nix
-# User dotfiles (once)
-programs.nexus.skills.humanizer.source = "github:blader/humanizer";
+### User Dotfiles (Once)
 
-# Project flake (just enable)
-nexus.lib.inject { skills = ["humanizer"]; }
+```nix
+# ~/.config/home-manager/flake.nix
+{
+  inputs.nexus.url = "github:imrane/nexus";
+  imports = [ nexus.homeManagerModules.default ];
+  
+  programs.nexus = {
+    enable = true;
+    skills.humanizer.source = "github:blader/humanizer";
+    skills.repo-status.source = "path:~/.config/nexus/skills/repo-status";
+  };
+}
 ```
 
-No local config files. No skill duplication. Fully portable.
+### Project (Enable Only)
+
+```nix
+# ~/my-project/flake.nix
+{
+  inputs.nexus.url = "github:imrane/nexus";
+  
+  outputs = { nexus, ... }:
+    nexus.lib.mkRepo {
+      system = "x86_64-linux";
+      clients = [ "claude" "mcp" ];
+      enable = {
+        skills = [ "humanizer" "repo-status" ];
+      };
+    };
+}
+```
+
+```bash
+nix develop
+# → .claude/skills/humanizer/ auto-generated (no local config needed)
+```
+
+**Benefits:**
+- ✅ No local config files
+- ✅ Skills portable across all projects
+- ✅ Override per-project via flake inputs
+- ✅ Fully declarative
+
+See **[docs/PRD.md](docs/PRD.md)** for complete specification.
 
 ---
 
 ## Current (v1.0 - Temporary)
 
-Uses `pack.json` in project repos. **Will be deprecated.**
+Uses `pack.json` in project repos. **Will be deprecated in v2.0.**
 
-See [**GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for current usage (don't build workflows around this).
+See [**STATUS.md**](STATUS.md) for implementation roadmap.
 
 ---
 
