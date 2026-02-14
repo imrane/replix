@@ -1,6 +1,6 @@
 # SQLite databases
-*.db
-*.db?*
+# Boss wants the canonical beads DB committed for portability.
+# We still ignore transient SQLite sidecars.
 *.db-journal
 *.db-wal
 *.db-shm
