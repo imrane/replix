@@ -1,21 +1,7 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-
-function run(cmd: string[], cwd: string) {
-  const p = Bun.spawnSync({
-    cmd,
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-  });
-  return {
-    code: p.exitCode,
-    out: new TextDecoder().decode(p.stdout),
-    err: new TextDecoder().decode(p.stderr),
-  };
-}
+import { runNexus } from "../src/runNexus";
 
 test("config mode > emits claude skill without pack.json", async () => {
   const tmp = mkdtempSync("/tmp/nexus-config-mode-");
@@ -38,8 +24,7 @@ test("config mode > emits claude skill without pack.json", async () => {
     const cfgPath = join(tmp, "config.json");
     writeFileSync(cfgPath, JSON.stringify(cfg));
 
-    const r = run([process.execPath, "src/index.ts", "--config", cfgPath], "/home/imrane/code/try/2026-02-14-nexus");
-    expect(r.code).toBe(0);
+    await runNexus({ cwd: repoRoot, configPath: cfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("name: humanizer");
