@@ -12,6 +12,14 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        packages.default = pkgs.writeShellScriptBin "nexus" ''
+          if [ ! -f pack.json ]; then
+            echo "❌ No pack.json found in current directory" >&2
+            exit 1
+          fi
+          ${pkgs.bun}/bin/bun ${self}/src/index.ts
+        '';
+
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             bun
