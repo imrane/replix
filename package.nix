@@ -2,13 +2,14 @@
 , stdenv
 , bun
 , makeWrapper
+, src ? ./.
 }:
 
 stdenv.mkDerivation {
   pname = "nexus";
   version = "0.1.0";
 
-  src = ./.;
+  inherit src;
 
   nativeBuildInputs = [ makeWrapper ];
 
