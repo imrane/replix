@@ -15,14 +15,18 @@
 let
   lib = pkgs.lib;
 
+  # Supported forms:
+  # - github:owner/repo@<rev>
+  # - github:owner/repo@<rev>#sub/dir
   parseGithub = src:
     let
-      m = builtins.match "github:([^/]+)/([^#]+)(#(.*))?" src;
+      m = builtins.match "github:([^/]+)/([^@#]+)@([0-9a-f]+)(#(.*))?" src;
     in
       if m == null then null else {
         owner = builtins.elemAt m 0;
         repo = builtins.elemAt m 1;
-        subpath = builtins.elemAt m 3; # may be null
+        rev = builtins.elemAt m 2;
+        subpath = builtins.elemAt m 4; # may be null
       };
 
   resolveSource = src:
@@ -30,10 +34,11 @@ let
       lib.removePrefix "path:" src
     else if lib.hasPrefix "github:" src then
       let g = parseGithub src; in
-      if g == null then throw "nexus.mkRepo: invalid github source: ${src}" else
+      if g == null then throw "nexus.mkRepo: invalid github source (must be github:owner/repo@<rev>[#subpath]): ${src}" else
       let
         fetched = builtins.fetchGit {
           url = "https://github.com/${g.owner}/${g.repo}.git";
+          rev = g.rev;
         };
       in
         if g.subpath == null then fetched else "${fetched}/${g.subpath}"
