@@ -34,7 +34,18 @@ let
       lib.removePrefix "path:" src
     else if lib.hasPrefix "github:" src then
       let g = parseGithub src; in
-      if g == null then throw "nexus.mkRepo: invalid github source (must be github:owner/repo@<rev>[#subpath]): ${src}" else
+      if g == null then
+        throw ''
+          nexus.mkRepo: invalid github source: ${src}
+
+          Expected pinned form (required in pure evaluation):
+            github:owner/repo@<rev>
+            github:owner/repo@<rev>#sub/dir
+
+          Example:
+            github:blader/humanizer@c78047bd4300e5a995d37ae8c7684aa2d53326cd
+        ''
+      else
       let
         fetched = builtins.fetchGit {
           url = "https://github.com/${g.owner}/${g.repo}.git";

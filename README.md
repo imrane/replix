@@ -33,7 +33,8 @@ Nexus auto-injects configuration into the correct locations:
     enable = true;
     
     skills = {
-      humanizer.source = "github:blader/humanizer";
+      # GitHub sources must be pinned (pure eval): github:owner/repo@<rev>
+      humanizer.source = "github:blader/humanizer@<rev>";
       repo-status.source = "path:~/.config/nexus/skills/repo-status";
     };
     
@@ -136,7 +137,8 @@ Returns: `pkgs.mkShell` with injection in `shellHook`.
 ```nix
 programs.nexus.skills = {
   # GitHub repo
-  humanizer.source = "github:blader/humanizer";
+  # GitHub sources must be pinned: github:owner/repo@<rev>
+  humanizer.source = "github:blader/humanizer@<rev>";
   
   # Local path
   repo-status.source = "path:~/.config/nexus/skills/repo-status";
