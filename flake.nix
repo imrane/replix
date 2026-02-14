@@ -18,11 +18,19 @@
           src = ./.;
           filter = path: type:
             let p = toString path; in
-            !(pkgs.lib.hasInfix "/.beads/" p
-              || pkgs.lib.hasSuffix "/.beads" p
+            !(
+              # Keep .beads in-repo, but exclude daemon/runtime artifacts that break flakes
+              pkgs.lib.hasSuffix "/.beads/bd.sock" p
+              || pkgs.lib.hasSuffix "/.beads/daemon.pid" p
+              || pkgs.lib.hasSuffix "/.beads/daemon.lock" p
+              || pkgs.lib.hasSuffix "/.beads/daemon.log" p
+              || pkgs.lib.hasSuffix "/.beads/.jsonl.lock" p
+
+              # Common non-source artifacts
               || pkgs.lib.hasInfix "/result" p
               || pkgs.lib.hasInfix "/node_modules/" p
-              || pkgs.lib.hasInfix "/.direnv/" p);
+              || pkgs.lib.hasInfix "/.direnv/" p
+            );
         };
       in
       {
