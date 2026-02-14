@@ -20,7 +20,12 @@
 
           shellHook = ''
             echo "🔧 Nexus devShell"
-            echo "Run: bun test"
+            if [ -f pack.json ]; then
+              echo "📦 Running nexus..."
+              bun run src/index.ts
+            else
+              echo "ℹ️  No pack.json found in current directory"
+            fi
           '';
         };
 

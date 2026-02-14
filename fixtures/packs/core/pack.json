@@ -1,5 +1,9 @@
 {
   "id": "core",
   "version": "1.0.0",
-  "imports": []
+  "imports": [],
+  "enable": {
+    "skills": ["repo-status"],
+    "mcp": []
+  }
 }

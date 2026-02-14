@@ -9,6 +9,7 @@ export type PackJson = {
   id: string;
   version: string;
   imports: PackImportPointer[];
+  enable?: unknown;
 };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -45,5 +46,5 @@ export function parsePackJson(input: unknown): PackJson {
     return { id: pid, src, rev, path };
   });
 
-  return { id, version, imports: parsedImports };
+  return { id, version, imports: parsedImports, enable: input.enable };
 }
