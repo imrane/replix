@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeCommands, packSkillByItemId } from "./resolver/coreItems";
+import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
 import { parseEnableSpec } from "./enable";
 import { compileGraph, type AvailableItems } from "./graph";
 import { formatId } from "./canonicalId";
@@ -39,6 +40,13 @@ async function loadConfig(configPath: string): Promise<NexusConfigV1> {
   return parseNexusConfig(json);
 }
 
+function sourcePathFromDotfiles(source: string): string {
+  if (!source.startsWith("path:")) {
+    throw new Error(`unsupported dotfiles source (only path: supported for now): ${source}`);
+  }
+  return source.slice("path:".length);
+}
+
 export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void> {
   // Mode A: config-driven (no pack.json required)
   if (configPath) {
@@ -49,13 +57,17 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
 
     const enableSpec = parseEnableSpec(cfg.enable);
 
-    const availableSkills = new Map(
-      Object.keys(cfg.sources.skills).map((itemId) => [itemId, { kind: "skill" as const, itemId }])
-    );
+    const dotfiles = await loadDotfilesRegistryFromEnv();
+
+    const availableSkillIds = new Set<string>([...Object.keys(cfg.sources.skills), ...dotfiles.skills.keys()]);
+    const availableSkills = new Map([...availableSkillIds].sort().map((itemId) => [itemId, { kind: "skill" as const, itemId }]));
+
+    const availableMcpIds = new Set<string>([...dotfiles.mcp.keys()]);
+    const availableMcp = new Map([...availableMcpIds].sort().map((name) => [name, { kind: "mcp" as const, name }]));
 
     const available: AvailableItems = {
       skills: availableSkills,
-      mcp: new Map(),
+      mcp: availableMcp,
     };
 
     const graph = compileGraph({ available, enable: enableSpec });
@@ -75,8 +87,12 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     console.log("📦 Nexus: emitting outputs...");
 
     const claudeSkills: ClaudeSkillInput[] = graph.skills.map((node) => {
-      const srcDir = cfg.sources.skills[node.item.itemId]?.path;
-      if (!srcDir) throw new Error(`missing config.sources.skills.${node.item.itemId}.path`);
+      const fromCfg = cfg.sources.skills[node.item.itemId]?.path;
+      const fromDotfiles = dotfiles.skills.get(node.item.itemId)?.source;
+
+      const srcDir = fromCfg ?? (fromDotfiles ? sourcePathFromDotfiles(fromDotfiles) : null);
+      if (!srcDir) throw new Error(`missing skill source for: ${node.item.itemId}`);
+
       return {
         id: formatId({ pack: "config", imp: "skills", item: node.id }),
         itemId: node.item.itemId,
@@ -90,9 +106,26 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       join(claudeSkillsRoot, s.itemId, "SKILL.md"),
     ]);
     desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
+    if (cfg.clients.includes("mcp")) desiredPaths.push(join(repoRoot, ".mcp.json"));
 
     await cleanupOwnedOnly({ repoRoot, desiredPaths });
-    await emitClaude({ repoRoot, skills: claudeSkills });
+
+    if (cfg.clients.includes("claude")) {
+      await emitClaude({ repoRoot, skills: claudeSkills });
+    }
+
+    if (cfg.clients.includes("mcp")) {
+      const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
+        const server = dotfiles.mcp.get(node.item.name);
+        if (!server) throw new Error(`missing mcp server def in dotfiles: ${node.item.name}`);
+        return {
+          id: formatId({ pack: "config", imp: "mcp", item: node.id }),
+          name: node.item.name,
+          server,
+        };
+      });
+      await emitMcp({ repoRoot, servers: mcpInputs });
+    }
 
     await writeStateHash(repoRoot, desiredHash);
     console.log("✅ Nexus: done");

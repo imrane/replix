@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { runNexus } from "../src/runNexus";
 
 test("config mode > emits claude skill without pack.json", async () => {
+  process.env.NEXUS_DOTFILES_CONFIG_JSON = "";
   const tmp = mkdtempSync("/tmp/nexus-config-mode-");
   try {
     const repoRoot = join(tmp, "repo");
