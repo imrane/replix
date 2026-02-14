@@ -7,13 +7,13 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    (flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
         # Important: flakes imported via `path:` will choke on unix sockets (e.g. .beads/bd.sock).
-        # While that fetch-time issue is best avoided by consuming via `git+file://...`, we also
-        # ensure our builds/tests use a cleaned source tree (no runtime artifacts).
+        # Best practice: consume via `git+file://...` or GitHub.
+        # Also ensure our builds/tests use a cleaned source tree (no runtime artifacts).
         cleanSrc = pkgs.lib.cleanSourceWith {
           src = ./.;
           filter = path: type:
@@ -71,5 +71,9 @@
           '';
         };
       }
-    );
+    ))
+    // {
+      # Top-level library API (v2 direction). Consumers pass pkgs/system/nexusPackage.
+      lib = import ./lib;
+    };
 }

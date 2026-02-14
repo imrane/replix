@@ -13,6 +13,7 @@ import { emitMcp, type McpServerInput } from "./emitters/mcp";
 import { emitCodex } from "./emitters/codex";
 import { emitOpenCode, type OpenCodeCommandInput } from "./emitters/opencode";
 import { cleanupOwnedOnly } from "./cleanup";
+import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 
 async function findPackRoot(start: string): Promise<string | null> {
   let current = start;
@@ -29,8 +30,83 @@ async function findPackRoot(start: string): Promise<string | null> {
   }
 }
 
+function readArgValue(flag: string): string | null {
+  const idx = process.argv.indexOf(flag);
+  if (idx === -1) return null;
+  const v = process.argv[idx + 1];
+  return typeof v === "string" ? v : null;
+}
+
+async function loadConfig(configPath: string): Promise<NexusConfigV1> {
+  const raw = await Bun.file(configPath).text();
+  const json = JSON.parse(raw);
+  return parseNexusConfig(json);
+}
+
 async function main() {
   const cwd = process.cwd();
+  const configPath = readArgValue("--config");
+
+  // Mode A (v2 direction): config-driven (no pack.json required)
+  if (configPath) {
+    const cfg = await loadConfig(configPath);
+    const repoRoot = cfg.repoRoot ?? cwd;
+
+    console.log("🔧 Nexus: loading config...");
+
+    const enableSpec = parseEnableSpec(cfg.enable);
+
+    const availableSkills = new Map(
+      Object.keys(cfg.sources.skills).map((itemId) => [itemId, { kind: "skill" as const, itemId }])
+    );
+
+    const available: AvailableItems = {
+      skills: availableSkills,
+      mcp: new Map(),
+    };
+
+    const graph = compileGraph({ available, enable: enableSpec });
+
+    const desiredHash = computeStateHash({
+      packs: [{ id: "config", rev: "v1" }],
+      enable: enableSpec,
+      clients: cfg.clients,
+      layout: "config",
+    });
+
+    if (await shouldSkipEmit(repoRoot, desiredHash)) {
+      console.log("✅ Nexus: no changes (state hash matches), skipping emit");
+      return;
+    }
+
+    console.log("📦 Nexus: emitting outputs...");
+
+    const claudeSkills: ClaudeSkillInput[] = graph.skills.map((node) => {
+      const srcDir = cfg.sources.skills[node.item.itemId]?.path;
+      if (!srcDir) throw new Error(`missing config.sources.skills.${node.item.itemId}.path`);
+      return {
+        id: formatId({ pack: "config", imp: "skills", item: node.id }),
+        itemId: node.item.itemId,
+        srcDir,
+      };
+    });
+
+    const claudeSkillsRoot = join(repoRoot, ".claude", "skills");
+    const desiredPaths = claudeSkills.flatMap((s) => [
+      join(claudeSkillsRoot, s.itemId),
+      join(claudeSkillsRoot, s.itemId, "SKILL.md"),
+    ]);
+    desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
+
+    await cleanupOwnedOnly({ repoRoot, desiredPaths });
+    await emitClaude({ repoRoot, skills: claudeSkills });
+
+    await writeStateHash(repoRoot, desiredHash);
+    console.log("✅ Nexus: done");
+    return;
+  }
+
+  // Mode B (v1): pack.json-driven
   const packRoot = await findPackRoot(cwd);
   if (!packRoot) {
     console.error("❌ No pack.json found (searched up from current directory)");
