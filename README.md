@@ -12,14 +12,39 @@ See [**GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for recommended installation.
 
 ## Quick Start
 
-**Recommended: Install globally via dotfiles (one-time setup)**
+**🎯 Goal:** Install once → Works everywhere
 
-See [**docs/GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for:
-- Home Manager integration
-- Flake registry setup
-- Auto-run on `cd` into project directories
+See [**QUICK_REFERENCE.md**](docs/QUICK_REFERENCE.md) for TL;DR version.
 
-**After global install:** Just add `pack.json` to any project and Nexus auto-activates.
+### Recommended Setup (One-Time)
+
+**Add to your dotfiles' `home.nix`:**
+
+```nix
+{
+  inputs.nexus.url = "path:/home/imrane/code/try/2026-02-14-nexus";
+  
+  # In your home-manager config:
+  imports = [ nexus.homeManagerModules.default ];
+  
+  programs.nexus = {
+    enable = true;
+    autoRun = true;  # Auto-inject when cd into pack.json dirs
+  };
+}
+```
+
+**Then:** `home-manager switch`
+
+**Now in any project:**
+
+```bash
+cd ~/my-project
+echo '{"id":"my-project","version":"1.0.0","imports":[],"enable":{"skills":[],"mcp":[]}}' > pack.json
+# Nexus auto-runs, skills injected
+```
+
+See [**docs/GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for complete installation options.
 
 ---
 
