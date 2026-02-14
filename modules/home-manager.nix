@@ -19,10 +19,60 @@ in {
       default = true;
       description = "Automatically run nexus when entering directories with pack.json";
     };
+
+    # v2 direction: dotfiles registry (skills + MCP servers)
+    skills = mkOption {
+      type = types.attrsOf (types.submodule ({ ... }: {
+        options = {
+          source = mkOption {
+            type = types.str;
+            description = "Skill source (path:... or pinned github:owner/repo@rev[#subdir])";
+          };
+          description = mkOption { type = types.nullOr types.str; default = null; };
+          tags = mkOption { type = types.listOf types.str; default = []; };
+        };
+      }));
+      default = {};
+      description = "Global skill registry (dotfiles-first).";
+    };
+
+    mcp = mkOption {
+      type = types.attrsOf (types.submodule ({ ... }: {
+        options = {
+          command = mkOption { type = types.str; };
+          args = mkOption { type = types.listOf types.str; default = []; };
+          env = mkOption { type = types.attrsOf types.str; default = {}; };
+        };
+      }));
+      default = {};
+      description = "Global MCP server registry (dotfiles-first).";
+    };
+
+    registryPath = mkOption {
+      type = types.str;
+      default = "${config.xdg.configHome}/nexus/registry.json";
+      description = "Path to the generated dotfiles registry JSON.";
+    };
   };
 
   config = mkIf cfg.enable {
     home.packages = [ cfg.package ];
+
+    # Export dotfiles registry JSON + env var for runtime resolution.
+    home.file."${cfg.registryPath}".text = builtins.toJSON {
+      skills = mapAttrs (_: v: {
+        source = v.source;
+        description = v.description;
+        tags = v.tags;
+      }) cfg.skills;
+      mcp = mapAttrs (_: v: {
+        command = v.command;
+        args = v.args;
+        env = v.env;
+      }) cfg.mcp;
+    };
+
+    home.sessionVariables.NEXUS_DOTFILES_CONFIG_JSON = cfg.registryPath;
 
     # Add shell hook for auto-activation
     programs.bash.initExtra = mkIf cfg.autoRun ''

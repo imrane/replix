@@ -8,7 +8,7 @@
 { system
 , clients ? [ "claude" "mcp" "codex" "opencode" ]
 , enable ? { skills = []; mcp = []; }
-, skills ? {}            # attrset: { humanizer.source = "github:blader/humanizer"; }
+, skills ? {}            # Optional overrides for skills. If omitted, skills resolve from dotfiles registry at runtime.
 , repoRoot ? null        # optional; defaults to $PWD at runtime
 }:
 
@@ -58,18 +58,20 @@ let
 
   enabledSkills = enable.skills or [];
 
-  resolvedSkills = lib.listToAttrs (map (name:
-    let
-      entry = skills.${name} or null;
-      src = if entry == null then null else (entry.source or null);
-    in
-      if src == null then throw "nexus.mkRepo: enabled skill '${name}' has no definition in skills.*.source" else {
-        inherit name;
-        value = {
-          path = resolveSource src;
-        };
-      }
-  ) enabledSkills);
+  # Only include skills that have explicit overrides in this repo.
+  # Anything missing here can still resolve from the user's dotfiles registry (runtime).
+  resolvedSkills = lib.listToAttrs (
+    lib.filter (x: x != null) (map (name:
+      let
+        entry = skills.${name} or null;
+        src = if entry == null then null else (entry.source or null);
+      in
+        if src == null then null else {
+          inherit name;
+          value = { path = resolveSource src; };
+        }
+    ) enabledSkills)
+  );
 
   configJson = builtins.toJSON {
     version = 1;
