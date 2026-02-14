@@ -1,0 +1,12 @@
+{
+  "skills": {
+    "humanizer": { "source": "path:/tmp/nexus-skills/humanizer" },
+    "repo-status": { "source": "path:/tmp/nexus-skills/repo-status" }
+  },
+  "mcp": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
+    }
+  }
+}
