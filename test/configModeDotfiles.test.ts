@@ -36,7 +36,7 @@ test("config mode (v2) > resolves skills+mcp from dotfiles registry", async () =
       clients: ["claude", "mcp"],
       enable: { skills: ["humanizer"], mcp: ["filesystem"] },
       // v2: no local sources required
-      sources: { skills: {}, mcp: {} },
+      overrides: { skills: {}, mcp: {} },
     };
 
     const nexusCfgPath = join(tmp, "nexus.json");

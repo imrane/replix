@@ -78,7 +78,7 @@ let
     repoRoot = repoRoot; # if null, nexus uses cwd
     clients = clients;
     enable = enable;
-    sources = {
+    overrides = {
       skills = resolvedSkills;
       mcp = {};
     };

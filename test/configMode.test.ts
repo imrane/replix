@@ -19,7 +19,7 @@ test("config mode > emits claude skill without pack.json", async () => {
       repoRoot,
       clients: ["claude"],
       enable: { skills: ["humanizer"], mcp: [] },
-      sources: { skills: { humanizer: { path: skillRoot } }, mcp: {} },
+      overrides: { skills: { humanizer: { path: skillRoot } }, mcp: {} },
     };
 
     const cfgPath = join(tmp, "config.json");

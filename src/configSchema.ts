@@ -1,3 +1,8 @@
+export type NexusOverridesV1 = {
+  skills: Record<string, { path: string }>;
+  mcp: Record<string, unknown>;
+};
+
 export type NexusConfigV1 = {
   version: 1;
   repoRoot: string | null;
@@ -6,10 +11,9 @@ export type NexusConfigV1 = {
     skills: string[];
     mcp: string[];
   };
-  sources: {
-    skills: Record<string, { path: string }>;
-    mcp: Record<string, unknown>;
-  };
+  // v1 used `sources.*`; v2 naming is `overrides.*` (repo-local only).
+  // parseNexusConfig accepts either, but returns normalized `overrides`.
+  overrides: NexusOverridesV1;
 };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -41,28 +45,34 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     throw new Error("config.enable.mcp must be string[]");
   }
 
-  const sources = input.sources;
-  if (!isRecord(sources)) throw new Error("config.sources must be an object");
-  const srcSkills = sources.skills;
-  if (!isRecord(srcSkills)) throw new Error("config.sources.skills must be an object");
+  const overridesRaw = (input as any).overrides ?? (input as any).sources;
+  if (!isRecord(overridesRaw)) {
+    throw new Error(
+      "config.overrides must be an object (or legacy config.sources). " +
+        "Overrides are repo-local paths only; dotfiles registry is loaded via NEXUS_DOTFILES_CONFIG_JSON.",
+    );
+  }
 
-  for (const [k, v] of Object.entries(srcSkills)) {
-    if (!isRecord(v) || typeof v.path !== "string") {
-      throw new Error(`config.sources.skills.${k} must be { path: string }`);
+  const overrideSkills = (overridesRaw as any).skills;
+  if (!isRecord(overrideSkills)) throw new Error("config.overrides.skills must be an object");
+
+  for (const [k, v] of Object.entries(overrideSkills)) {
+    if (!isRecord(v) || typeof (v as any).path !== "string") {
+      throw new Error(`config.overrides.skills.${k} must be { path: string }`);
     }
   }
 
-  const srcMcp = sources.mcp;
-  if (!isRecord(srcMcp)) throw new Error("config.sources.mcp must be an object");
+  const overrideMcp = (overridesRaw as any).mcp;
+  if (!isRecord(overrideMcp)) throw new Error("config.overrides.mcp must be an object");
 
   return {
     version: 1,
     repoRoot,
     clients,
     enable: { skills, mcp },
-    sources: {
-      skills: srcSkills as Record<string, { path: string }>,
-      mcp: srcMcp,
+    overrides: {
+      skills: overrideSkills as Record<string, { path: string }>,
+      mcp: overrideMcp,
     },
   };
 }

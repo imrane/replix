@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeCommands, packSkillByItemId } from "./resolver/coreItems";
 import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
+import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
 import { parseEnableSpec } from "./enable";
 import { compileGraph, type AvailableItems } from "./graph";
 import { formatId } from "./canonicalId";
@@ -40,11 +41,8 @@ async function loadConfig(configPath: string): Promise<NexusConfigV1> {
   return parseNexusConfig(json);
 }
 
-function sourcePathFromDotfiles(source: string): string {
-  if (!source.startsWith("path:")) {
-    throw new Error(`unsupported dotfiles source (only path: supported for now): ${source}`);
-  }
-  return source.slice("path:".length);
+async function sourcePathFromDotfiles(source: string): Promise<string> {
+  return resolveDotfilesSourceToPath(source);
 }
 
 export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void> {
@@ -59,7 +57,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
 
     const dotfiles = await loadDotfilesRegistryFromEnv();
 
-    const availableSkillIds = new Set<string>([...Object.keys(cfg.sources.skills), ...dotfiles.skills.keys()]);
+    const availableSkillIds = new Set<string>([...Object.keys(cfg.overrides.skills), ...dotfiles.skills.keys()]);
     const availableSkills = new Map([...availableSkillIds].sort().map((itemId) => [itemId, { kind: "skill" as const, itemId }]));
 
     const availableMcpIds = new Set<string>([...dotfiles.mcp.keys()]);
@@ -86,19 +84,21 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
 
     console.log("📦 Nexus: emitting outputs...");
 
-    const claudeSkills: ClaudeSkillInput[] = graph.skills.map((node) => {
-      const fromCfg = cfg.sources.skills[node.item.itemId]?.path;
-      const fromDotfiles = dotfiles.skills.get(node.item.itemId)?.source;
+    const claudeSkills: ClaudeSkillInput[] = await Promise.all(
+      graph.skills.map(async (node) => {
+        const fromCfg = cfg.overrides.skills[node.item.itemId]?.path;
+        const fromDotfiles = dotfiles.skills.get(node.item.itemId)?.source;
 
-      const srcDir = fromCfg ?? (fromDotfiles ? sourcePathFromDotfiles(fromDotfiles) : null);
-      if (!srcDir) throw new Error(`missing skill source for: ${node.item.itemId}`);
+        const srcDir = fromCfg ?? (fromDotfiles ? await sourcePathFromDotfiles(fromDotfiles) : null);
+        if (!srcDir) throw new Error(`missing skill source for: ${node.item.itemId}`);
 
-      return {
-        id: formatId({ pack: "config", imp: "skills", item: node.id }),
-        itemId: node.item.itemId,
-        srcDir,
-      };
-    });
+        return {
+          id: formatId({ pack: "config", imp: "skills", item: node.id }),
+          itemId: node.item.itemId,
+          srcDir,
+        };
+      }),
+    );
 
     const claudeSkillsRoot = join(repoRoot, ".claude", "skills");
     const desiredPaths = claudeSkills.flatMap((s) => [
