@@ -1,243 +1,335 @@
 # Nexus - Dotfiles-First AI Toolchain Injection
 
-**Auto-inject agent skills and MCP servers into Claude Code, Codex, and OpenCode.**
-
-⚠️ **Status:** v1.0 MVP complete. v2.0 architecture (dotfiles-based) specified in PRD.
-
-📘 **Read the PRD:** [**docs/PRD.md**](docs/PRD.md)
+**Declarative, repo-scoped injection of AI skills and MCP servers for Claude Code, Codex, and OpenCode.**
 
 ---
 
-## Vision (v2.0 - Specified, Ready for Implementation)
+## What It Does
 
-**Skills defined once in dotfiles. Projects just enable.**
+**Define skills once in dotfiles. Enable per-project via `mkRepo`.**
 
-### User Dotfiles (Once)
+Nexus auto-injects configuration into the correct locations:
+- `.claude/skills/` - Agent skills
+- `.mcp.json` - MCP servers
+- `.codex/config.toml` - Codex config
+- `.opencode/` - OpenCode commands
+
+**No local config files needed in projects.**
+
+---
+
+## Quick Start
+
+### 1. Define Skills in Dotfiles (Once)
 
 ```nix
-# ~/.config/home-manager/flake.nix
+# ~/.config/home-manager/nexus.nix
 {
   inputs.nexus.url = "github:imrane/nexus";
+  
   imports = [ nexus.homeManagerModules.default ];
   
   programs.nexus = {
     enable = true;
-    skills.humanizer.source = "github:blader/humanizer";
-    skills.repo-status.source = "path:~/.config/nexus/skills/repo-status";
+    
+    skills = {
+      humanizer.source = "github:blader/humanizer";
+      repo-status.source = "path:~/.config/nexus/skills/repo-status";
+    };
+    
+    mcp = {
+      filesystem = {
+        command = "npx";
+        args = ["-y" "@modelcontextprotocol/server-filesystem" "/home"];
+      };
+    };
   };
 }
 ```
 
-### Project (Enable Only)
+After `home-manager switch`, skills are available to all projects.
+
+### 2. Enable in Project (No Config Files)
 
 ```nix
 # ~/my-project/flake.nix
 {
   inputs.nexus.url = "github:imrane/nexus";
   
-  outputs = { nexus, ... }:
-    nexus.lib.mkRepo {
+  outputs = { nixpkgs, nexus, ... }:
+    let
       system = "x86_64-linux";
-      clients = [ "claude" "mcp" ];
-      enable = {
-        skills = [ "humanizer" "repo-status" ];
+      pkgs = nixpkgs.legacyPackages.${system};
+    in {
+      devShells.${system}.default = nexus.lib.mkRepo {
+        inherit system;
+        clients = [ "claude" "mcp" ];
+        enable = {
+          skills = [ "humanizer" "repo-status" ];
+          mcp = [ "filesystem" ];
+        };
       };
     };
 }
 ```
 
-```bash
-nix develop
-# → .claude/skills/humanizer/ auto-generated (no local config needed)
-```
-
-**Benefits:**
-- ✅ No local config files
-- ✅ Skills portable across all projects
-- ✅ Override per-project via flake inputs
-- ✅ Fully declarative
-
-See **[docs/PRD.md](docs/PRD.md)** for complete specification.
-
----
-
-## Current (v1.0 - Temporary)
-
-Uses `pack.json` in project repos. **Will be deprecated in v2.0.**
-
-See [**STATUS.md**](STATUS.md) for implementation roadmap.
-
----
-
-## Quick Start
-
-**🎯 Goal:** Install once → Works everywhere
-
-See [**QUICK_REFERENCE.md**](docs/QUICK_REFERENCE.md) for TL;DR version.
-
-### Recommended Setup (One-Time)
-
-**Add to your dotfiles' `home.nix`:**
-
-```nix
-{
-  inputs.nexus.url = "path:/home/imrane/code/try/2026-02-14-nexus";
-  
-  # In your home-manager config:
-  imports = [ nexus.homeManagerModules.default ];
-  
-  programs.nexus = {
-    enable = true;
-    autoRun = true;  # Auto-inject when cd into pack.json dirs
-  };
-}
-```
-
-**Then:** `home-manager switch`
-
-**Now in any project:**
+### 3. Use It
 
 ```bash
 cd ~/my-project
-echo '{"id":"my-project","version":"1.0.0","imports":[],"enable":{"skills":[],"mcp":[]}}' > pack.json
-# Nexus auto-runs, skills injected
+nix develop
+# → .claude/skills/humanizer/ auto-generated
+# → .mcp.json written
+# → No local config files needed
+
+claude  # Skills auto-loaded
 ```
 
-See [**docs/GLOBAL_SETUP.md**](docs/GLOBAL_SETUP.md) for complete installation options.
+---
+
+## Benefits
+
+✅ **No local config** - Projects stay clean  
+✅ **Define once** - Skills portable across all projects  
+✅ **Override per-project** - Pull custom skills as flake inputs  
+✅ **Fully declarative** - Nix-based, reproducible  
+✅ **Idempotent** - Only writes when changed  
+✅ **Safe cleanup** - Removes stale skills automatically
 
 ---
 
-## What It Does
+## Architecture
 
-- **Auto-emits skills** → `.claude/skills/<skill-name>/SKILL.md`
-- **Auto-emits MCP servers** → `.mcp.json`
-- **Auto-emits Codex config** → `.codex/config.toml`
-- **Auto-emits OpenCode commands** → `.opencode/commands/`
-- **Idempotent** → Only writes when `pack.json` or enabled items change
-- **Cleanup** → Removes stale skills when you disable them
+### Core API: `mkRepo`
 
----
-
-## Usage (In Your Repo)
-
-### 1. Add `pack.json` to your repo
-
-```json
-{
-  "id": "my-pack",
-  "version": "1.0.0",
-  "imports": [],
-  "enable": {
-    "skills": ["repo-status"],
-    "mcp": ["filesystem"]
-  }
+```nix
+nexus.lib.mkRepo {
+  system = "x86_64-linux";
+  
+  # Which tools to emit config for
+  clients = [ "claude" "mcp" "codex" "opencode" ];
+  
+  # Enable from dotfiles
+  enable = {
+    skills = [ "humanizer" "repo-status" ];
+    mcp = [ "filesystem" "github" ];
+  };
+  
+  # Optional: override specific skills
+  overrides = {
+    skills.custom = customSkillFlake;
+  };
+  
+  # Optional: layout mode
+  layout = "direct";  # or "generated"
+  
+  # Optional: cleanup strategy
+  cleanup = "owned-only";  # or "full"
 }
 ```
 
-### 2. Create skill directories
+Returns: `pkgs.mkShell` with injection in `shellHook`.
 
-```bash
-mkdir -p skills/repo-status
-# Add SKILL.md here
+### Skill Sources
+
+**User dotfiles:**
+```nix
+programs.nexus.skills = {
+  # GitHub repo
+  humanizer.source = "github:blader/humanizer";
+  
+  # Local path
+  repo-status.source = "path:~/.config/nexus/skills/repo-status";
+  
+  # From a skill pack
+  code-review.source = "github:someone/skills-pack#code-review";
+};
 ```
 
-### 3. (Optional) Add MCP servers
-
-```bash
-mkdir -p mcp
-# Create mcp/servers.json
-```
-
-### 4. Import Nexus in your flake
-
+**Project override:**
 ```nix
 {
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nexus.url = "path:/home/imrane/code/try/2026-02-14-nexus";
-  };
-
-  outputs = { self, nixpkgs, nexus }:
-    # ...
-    devShells.default = pkgs.mkShell {
-      packages = [ pkgs.bun ];
-      
-      shellHook = ''
-        # Run nexus to inject skills/MCP
-        ${nexus.packages.${system}.default}/bin/nexus
-      '';
+  inputs.custom.url = "github:someone/custom-skill";
+  
+  outputs = { nexus, custom, ... }:
+    nexus.lib.mkRepo {
+      enable.skills = [ "humanizer" "custom" ];
+      overrides.skills.custom = custom;
     };
 }
 ```
 
-**Or run manually:**
+---
+
+## Pack System (For Publishers)
+
+**`pack.json` is ONLY for publishable skill packs** (not for projects).
+
+### Creating a Skill Pack
+
+```
+my-skills-pack/
+├── pack.json              # Required for packs
+├── skills/
+│   ├── humanizer/
+│   │   └── SKILL.md
+│   └── repo-status/
+│       └── SKILL.md
+└── mcp/
+    └── servers.json
+```
+
+**pack.json:**
+```json
+{
+  "id": "my-skills-pack",
+  "version": "1.0.0",
+  "imports": []
+}
+```
+
+### Publishing
 
 ```bash
-bun /path/to/nexus/src/index.ts
+git init
+git add -A
+git commit -m "Initial skill pack"
+git remote add origin git@github.com:you/my-skills-pack.git
+git push -u origin main
 ```
+
+### Using Published Packs
+
+**In user dotfiles:**
+```nix
+programs.nexus.packs = [
+  { source = "github:you/my-skills-pack"; }
+];
+
+# Then enable individual skills
+programs.nexus.enable.skills = [
+  "my-skills-pack:humanizer"
+  "my-skills-pack:repo-status"
+];
+```
+
+**Or reference directly:**
+```nix
+programs.nexus.skills.humanizer.source = "github:you/my-skills-pack#humanizer";
+```
+
+---
+
+## Clients
+
+### Claude Code
+
+**Emits:**
+- `.claude/skills/<skill-name>/SKILL.md`
+- `.claude/skills/.nexus-managed` (ownership marker)
+
+**Marker:**
+```json
+{"__generated_by": "nexus"}
+```
+
+### MCP
+
+**Emits:**
+- `.mcp.json`
+
+**Format:**
+```json
+{
+  "__generated_by": "nexus",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
+    }
+  }
+}
+```
+
+### Codex
+
+**Emits:**
+- `.codex/config.toml`
+
+**Header:**
+```toml
+# generated by nexus
+```
+
+### OpenCode
+
+**Emits:**
+- `.opencode/commands/`
+- `.opencode/.nexus-managed` (ownership marker)
 
 ---
 
 ## How It Works
 
-1. **Loads `pack.json`** from current directory
-2. **Enumerates available items**:
-   - Skills: `skills/*/SKILL.md`
-   - MCP servers: `mcp/servers.json`
-   - OpenCode commands: `opencode/commands/*.md`
-3. **Compiles canonical graph** (only enabled items)
-4. **Computes state hash** (pack id + version + enabled list)
-5. **Checks `.claude/.nexus-state`**:
-   - If hash matches → skip emit (no-op)
-   - If hash differs → emit all outputs
-6. **Emits outputs**:
-   - `.claude/skills/<skill>/` (copies `skills/<skill>/*`)
-   - `.mcp.json` (MCP server definitions)
-   - `.codex/config.toml` (Codex config)
-   - `.opencode/commands/` (OpenCode command files)
-7. **Writes state hash** to `.claude/.nexus-state`
+1. **Read dotfiles config** - Load skill definitions from `programs.nexus`
+2. **Resolve enable list** - Match enabled items to skill sources
+3. **Fetch skills** - Clone/cache from github:, path:, etc.
+4. **Compile canonical graph** - Merge all enabled skills/MCP
+5. **Compute state hash** - Hash of enabled items + sources
+6. **Check if changed** - Compare to `.claude/.nexus-state`
+7. **Emit outputs** - Write `.claude/skills/`, `.mcp.json`, etc.
+8. **Write state** - Save hash for next run (idempotency)
 
 ---
 
-## Pack Structure
+## State & Idempotency
 
-```
-your-repo/
-├── pack.json              # Nexus config
-├── skills/                # Skill definitions
-│   ├── repo-status/
-│   │   └── SKILL.md
-│   └── humanizer/
-│       └── SKILL.md
-├── mcp/                   # MCP server definitions
-│   └── servers.json
-├── opencode/              # OpenCode commands (optional)
-│   └── commands/
-│       └── hello.md
-└── .claude/               # EMITTED by Nexus (do not edit)
-    ├── skills/
-    │   ├── repo-status/
-    │   │   └── SKILL.md
-    │   └── .nexus-managed
-    └── .nexus-state       # State hash (idempotency)
-```
+**State hash includes:**
+- Skill/MCP IDs
+- Source URLs/revisions
+- Enable lists
+- Clients
+
+**Stored in:**
+- `.claude/.nexus-state`
+
+**Behavior:**
+- Hash matches → Skip emit (no-op)
+- Hash differs → Re-emit all outputs
+- Missing state → First run, emit everything
+
+---
+
+## Cleanup
+
+**Owned-only (default):**
+- Only removes files Nexus previously generated
+- Checks ownership markers (`.nexus-managed`, `__generated_by`)
+
+**Full (optional):**
+- Removes entire managed directories
+- Use with caution
 
 ---
 
 ## Development
 
-**Run tests:**
+### Run Tests
+
 ```bash
 bun test
 ```
 
-**Test with a pack:**
+**Current:** 36 tests passing
+
+### Build Package
+
 ```bash
-cd fixtures/packs/core
-bun ~/code/try/2026-02-14-nexus/src/index.ts
+nix build
 ```
 
-**Nix checks:**
+### Run Checks
+
 ```bash
 nix flake check
 ```
@@ -246,28 +338,54 @@ nix flake check
 
 ## Implementation Status
 
-✅ **MVP Complete** (36 tests passing)
+⚠️ **v1.0 MVP Complete** (pack.json-based, will be deprecated)
 
-- Core parsing/validation (canonical IDs, pack schema, enable spec)
-- Graph compiler (enable validation + collision detection)
-- All emitters (Claude, MCP, Codex, OpenCode)
-- State hash + idempotent behavior
-- Cleanup (owned-only, respects markers)
-- CLI with auto-activation via Nix shellHook
-- Integration tests (missing enabled, collisions, state no-op)
+📘 **v2.0 PRD Complete** - Ready for implementation
+
+See **[PRD.md](PRD.md)** for complete v2.0 specification.
+
+See **[AGENTS.md](AGENTS.md)** for implementation state.
 
 ---
 
-## Next Steps (Post-MVP)
+## Project Structure
 
-- Package as standalone Nix package
-- Support git-based pack imports
-- Add remote pack registry
-- Multi-pack merging
+```
+nexus/
+├── README.md              # This file
+├── PRD.md                 # v2.0 specification
+├── AGENTS.md              # Implementation state
+├── src/                   # TypeScript source
+├── test/                  # Bun tests (36 passing)
+├── modules/               # Nix modules
+│   └── home-manager.nix   # Home-manager integration
+├── flake.nix              # Nix flake
+└── fixtures/              # Test fixtures
+    └── packs/core/        # Golden test pack
+```
+
+---
+
+## Contributing
+
+**Hard Rule:** Only 3 markdown files allowed:
+1. `README.md` - User-facing overview
+2. `PRD.md` - Product requirements
+3. `AGENTS.md` - Implementation state
+
+**All other notes → Use `bd` (beads) issues.**
+
+No TODO.md, STATUS.md, ARCHITECTURE.md, or docs/ sprawl.
+
+---
+
+## License
+
+MIT
 
 ---
 
 **Created:** 2026-02-14  
-**Location:** `~/code/try/2026-02-14-nexus`  
+**Repo:** https://github.com/imrane/nexus  
 **Stack:** Bun + TypeScript + Nix  
-**Tests:** 36 passing
+**Tests:** 36 passing (v1.0 MVP)
