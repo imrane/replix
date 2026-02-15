@@ -322,7 +322,13 @@ programs.nexus.skills.humanizer.source = "github:you/my-skills-pack#humanizer";
 bun test
 ```
 
-**Current:** 36 tests passing
+Optional local guard before pushing:
+
+```bash
+./scripts/install-githooks.sh
+```
+
+CI runs the same tests on every PR.
 
 ### Build Package
 
