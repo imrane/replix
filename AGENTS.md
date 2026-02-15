@@ -213,37 +213,34 @@ nix flake check
 
 ## Git State
 
-- ✅ Clean working tree
 - ✅ Remote configured (`origin`)
-- ✅ All v1 work committed
-- ✅ PRD committed
+- ✅ v2 templating + source-spec work pushed to `main`
+- ⚠️ `.beads` sync currently unreliable (SQLite malformed on `bd sync --flush-only`)
 
 ---
 
 ## Next Agent Tasks
 
-**For v2.0 implementation, start with:**
-1. Read PRD.md fully
-2. Create bd issues for each phase
-3. Start Phase 1: Config source refactor
-4. Preserve v1 tests while refactoring
-5. Add v2 tests as you go
+**Next ready issues (after completed `uim`, `1sz`, `6ch`):**
+1. `2026-02-14-nexus-dyd` — mkRepo surface layout/cleanup/strictEnv options
+2. `2026-02-14-nexus-xsf` — golden tests for v2 config-mode/mkRepo outputs
+3. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
 
 **Remember:**
-- No new markdown files (use bd for notes)
+- No new markdown files (use bd for notes when healthy)
 - Keep AGENTS.md updated with progress
-- Land the plane before handing off
+- Land the plane before handoff
 
 ---
 
 ## Notes
 
-- bd daemon may be stale (old path from ~/src/tries)
-- Can ignore bd errors, use git only if needed
-- v1 is fully functional, don't break it while building v2
+- `bd sync --flush-only` fails with: `sqlite3: database disk image is malformed` (daemon/direct mode both impacted)
+- Continue delivery with git as source of truth until beads storage is repaired
+- v1 remains functional while v2 refactors continue
 - PRD.md is the source of truth for v2
 
 ---
 
-**Last updated:** 2026-02-15 15:26 UTC  
-**Status:** Ready for v2.0 implementation
+**Last updated:** 2026-02-15 16:22 UTC  
+**Status:** v2 in progress; latest work landed and pushed
