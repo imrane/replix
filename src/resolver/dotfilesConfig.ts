@@ -2,6 +2,7 @@ export type DotfilesSkillDef = {
   source: string;
   description?: string;
   tags?: string[];
+  allowUnpinned?: boolean;
 };
 
 export type DotfilesMcpDef = {

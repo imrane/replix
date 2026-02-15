@@ -30,6 +30,7 @@ in {
           };
           description = mkOption { type = types.nullOr types.str; default = null; };
           tags = mkOption { type = types.listOf types.str; default = []; };
+          allowUnpinned = mkOption { type = types.bool; default = false; };
         };
       }));
       default = {};
@@ -76,6 +77,7 @@ in {
         source = v.source;
         description = v.description;
         tags = v.tags;
+        allowUnpinned = v.allowUnpinned;
       }) cfg.skills;
       mcp = mapAttrs (_: v: {
         command = v.command;

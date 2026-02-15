@@ -42,8 +42,8 @@ async function loadConfig(configPath: string): Promise<NexusConfigV1> {
   return parseNexusConfig(json);
 }
 
-async function sourcePathFromDotfiles(source: string): Promise<string> {
-  return resolveDotfilesSourceToPath(source);
+async function sourcePathFromDotfiles(source: string, allowUnpinned?: boolean): Promise<string> {
+  return resolveDotfilesSourceToPath(source, { allowUnpinned });
 }
 
 export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void> {
@@ -88,9 +88,12 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     const claudeSkills: ClaudeSkillInput[] = await Promise.all(
       graph.skills.map(async (node) => {
         const fromCfg = cfg.overrides.skills[node.item.itemId]?.path;
-        const fromDotfiles = dotfiles.skills.get(node.item.itemId)?.source;
+        const dotfilesSkill = dotfiles.skills.get(node.item.itemId);
+        const fromDotfiles = dotfilesSkill?.source;
 
-        const srcDir = fromCfg ?? (fromDotfiles ? await sourcePathFromDotfiles(fromDotfiles) : null);
+        const srcDir =
+          fromCfg ??
+          (fromDotfiles ? await sourcePathFromDotfiles(fromDotfiles, dotfilesSkill?.allowUnpinned) : null);
         if (!srcDir) throw new Error(`missing skill source for: ${node.item.itemId}`);
 
         return {
