@@ -83,7 +83,7 @@ nix flake check
 - `modules/home-manager.nix` - Home-manager module (v1)
 - `flake.nix` - Exports package + module
 
-**Tests:** 36 passing
+**Tests:** 43 passing
 - Unit tests for all components
 - Golden tests (fixtures/packs/core)
 - Integration tests (missing enabled, collisions, state no-op)
@@ -193,11 +193,17 @@ mcp/
 
 ## Testing
 
-**Current (v1):**
+**Local:**
 ```bash
-bun test           # 36 passing
-nix flake check    # Passes
+bun test
+nix flake check
 ```
+
+**CI (GitHub Actions):**
+- Runs `bun test` on PRs + pushes to `main`
+- Installs Nix on the runner (tests include `nix develop` smoke)
+- Emits JUnit + publishes annotations via `dorny/test-reporter`
+- Manual trigger enabled (`workflow_dispatch`)
 
 **Test structure:**
 - `test/*.test.ts` - Unit + integration tests
@@ -208,7 +214,7 @@ nix flake check    # Passes
 ## Git State
 
 - ✅ Clean working tree
-- ⚠️ No remote configured (local commits only)
+- ✅ Remote configured (`origin`)
 - ✅ All v1 work committed
 - ✅ PRD committed
 
@@ -239,5 +245,5 @@ nix flake check    # Passes
 
 ---
 
-**Last updated:** 2026-02-14 20:13 UTC  
+**Last updated:** 2026-02-15 15:26 UTC  
 **Status:** Ready for v2.0 implementation
