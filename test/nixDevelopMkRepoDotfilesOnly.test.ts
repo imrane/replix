@@ -94,7 +94,9 @@ test(
           "nix-command flakes",
           "-c",
           "bash",
-          "-lc",
+          "--noprofile",
+          "--norc",
+          "-c",
           "test -f .claude/skills/humanizer/SKILL.md && grep -q 'hello from nix' .claude/skills/humanizer/SKILL.md",
         ],
         {

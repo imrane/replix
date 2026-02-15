@@ -240,9 +240,10 @@ nix flake check
 - v1 remains functional while v2 refactors continue.
 - `2026-02-14-nexus-dyd` completed: mkRepo/config now expose `layout`, `cleanup`, and `strictEnv`; runtime supports `layout=generated` emit root and `cleanup=full` mode; tests added.
 - `2026-02-14-nexus-xsf` completed: added v2 golden fixtures + tests for config-mode direct/generated outputs (including state files) with deterministic snapshots.
+- nix smoke test hardening: switched nested shell call to `bash --noprofile --norc -c` in `test/nixDevelopMkRepoDotfilesOnly.test.ts` to avoid profile-induced flakiness; behavior unchanged and suite remains green (56/56).
 - PRD.md is the source of truth for v2.
 
 ---
 
-**Last updated:** 2026-02-15 16:53 UTC  
-**Status:** v2 in progress; Beads sync healthy, `dyd` + `xsf` landed locally with tests passing
+**Last updated:** 2026-02-15 18:06 UTC  
+**Status:** v2 in progress; Beads sync healthy, nix smoke shell hardened, full test suite passing
