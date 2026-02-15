@@ -6,6 +6,7 @@ export type StateHashInput = {
   enable: EnableSpec;
   clients: string[];
   layout: string;
+  extra?: unknown;
 };
 
 function stable(obj: any): any {

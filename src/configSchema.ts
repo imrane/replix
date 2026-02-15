@@ -3,14 +3,17 @@ export type NexusOverridesV1 = {
   mcp: Record<string, unknown>;
 };
 
+export type NexusEnableV1 = {
+  skills: string[];
+  mcp: string[];
+  clients?: Record<string, { files?: string[] }>;
+};
+
 export type NexusConfigV1 = {
   version: 1;
   repoRoot: string | null;
   clients: string[];
-  enable: {
-    skills: string[];
-    mcp: string[];
-  };
+  enable: NexusEnableV1;
   vars: Record<string, string>;
   strictEnv?: boolean;
   layout?: "direct" | "generated";
@@ -22,6 +25,13 @@ export type NexusConfigV1 = {
 
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+
+function assertStringArray(x: unknown, name: string): string[] {
+  if (!Array.isArray(x) || !x.every((v) => typeof v === "string")) {
+    throw new Error(`${name} must be string[]`);
+  }
+  return x as string[];
 }
 
 export function parseNexusConfig(input: unknown): NexusConfigV1 {
@@ -40,13 +50,21 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
 
   const enable = input.enable;
   if (!isRecord(enable)) throw new Error("config.enable must be an object");
-  const skills = enable.skills;
-  const mcp = enable.mcp;
-  if (!Array.isArray(skills) || !skills.every((s) => typeof s === "string")) {
-    throw new Error("config.enable.skills must be string[]");
+  const skills = assertStringArray(enable.skills, "config.enable.skills");
+  const mcp = assertStringArray(enable.mcp, "config.enable.mcp");
+
+  const enableClientsRaw = (enable as any).clients;
+  if (!(enableClientsRaw === undefined || isRecord(enableClientsRaw))) {
+    throw new Error("config.enable.clients must be an object");
   }
-  if (!Array.isArray(mcp) || !mcp.every((s) => typeof s === "string")) {
-    throw new Error("config.enable.mcp must be string[]");
+  const enableClients: Record<string, { files?: string[] }> = {};
+  for (const [client, v] of Object.entries(enableClientsRaw ?? {})) {
+    if (!isRecord(v)) throw new Error(`config.enable.clients.${client} must be an object`);
+    const filesRaw = (v as any).files;
+    if (!(filesRaw === undefined || (Array.isArray(filesRaw) && filesRaw.every((f) => typeof f === "string")))) {
+      throw new Error(`config.enable.clients.${client}.files must be string[]`);
+    }
+    enableClients[client] = { files: filesRaw as string[] | undefined };
   }
 
   const overridesRaw = (input as any).overrides ?? (input as any).sources;
@@ -98,7 +116,7 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     version: 1,
     repoRoot,
     clients,
-    enable: { skills, mcp },
+    enable: { skills, mcp, clients: enableClients },
     vars,
     strictEnv: strictEnvRaw,
     layout: layoutRaw,

@@ -1,7 +1,8 @@
-import { join } from "node:path";
+import { cp, mkdir, readFile, rm, stat, writeFile, chmod } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeCommands, packSkillByItemId } from "./resolver/coreItems";
-import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
+import { loadDotfilesRegistryFromEnv, type DotfilesClientFileDef } from "./resolver/dotfilesConfig";
 import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
 import { parseEnableSpec } from "./enable";
 import { compileGraph, type AvailableItems } from "./graph";
@@ -20,6 +21,14 @@ export type RunNexusArgs = {
   cwd: string;
   configPath?: string | null;
 };
+
+type ClientFileInjection = {
+  client: string;
+  relPath: string;
+  def: DotfilesClientFileDef;
+};
+
+const CUSTOM_FILES_MANIFEST = join(".nexus", "custom-files-owned.json");
 
 async function findPackRoot(start: string): Promise<string | null> {
   let current = start;
@@ -44,6 +53,77 @@ async function loadConfig(configPath: string): Promise<NexusConfigV1> {
 
 async function sourcePathFromDotfiles(source: string, allowUnpinned?: boolean): Promise<string> {
   return resolveDotfilesSourceToPath(source, { allowUnpinned });
+}
+
+async function readCustomFilesManifest(repoRoot: string): Promise<string[]> {
+  try {
+    const raw = await readFile(join(repoRoot, CUSTOM_FILES_MANIFEST), "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.paths) ? parsed.paths.filter((p) => typeof p === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeCustomFilesManifest(repoRoot: string, relPaths: string[]): Promise<void> {
+  const out = join(repoRoot, CUSTOM_FILES_MANIFEST);
+  await mkdir(dirname(out), { recursive: true });
+  await writeFile(out, JSON.stringify({ paths: [...new Set(relPaths)].sort() }, null, 2) + "\n", "utf8");
+}
+
+async function cleanupStaleCustomFiles(repoRoot: string, desiredRelPaths: string[]): Promise<void> {
+  const prev = await readCustomFilesManifest(repoRoot);
+  const desired = new Set(desiredRelPaths.map((p) => p.replace(/^\/+/, "")));
+  for (const rel of prev) {
+    const normalized = rel.replace(/^\/+/, "");
+    if (desired.has(normalized)) continue;
+    await rm(join(repoRoot, normalized), { recursive: true, force: true });
+  }
+}
+
+async function emitClientFile(repoRoot: string, inj: ClientFileInjection): Promise<void> {
+  const outPath = join(repoRoot, inj.relPath);
+  await mkdir(dirname(outPath), { recursive: true });
+
+  if (typeof inj.def.text === "string") {
+    await writeFile(outPath, inj.def.text, "utf8");
+  } else if (typeof inj.def.source === "string") {
+    const srcPath = await sourcePathFromDotfiles(inj.def.source, inj.def.allowUnpinned);
+    const srcStat = await stat(srcPath);
+    if (srcStat.isDirectory()) {
+      await rm(outPath, { recursive: true, force: true });
+      await mkdir(outPath, { recursive: true });
+      await cp(srcPath, outPath, { recursive: true, force: true });
+    } else {
+      await cp(srcPath, outPath, { force: true });
+    }
+  } else {
+    throw new Error(`client file ${inj.client}:${inj.relPath} must define one of text|source`);
+  }
+
+  if (inj.def.mode) {
+    await chmod(outPath, Number.parseInt(inj.def.mode, 8));
+  } else if (inj.def.executable) {
+    await chmod(outPath, 0o755);
+  }
+}
+
+function resolveClientFileInjections(cfg: NexusConfigV1, dotfiles: Awaited<ReturnType<typeof loadDotfilesRegistryFromEnv>>): ClientFileInjection[] {
+  const out: ClientFileInjection[] = [];
+
+  for (const client of cfg.clients) {
+    const defs = dotfiles.clients.get(client)?.files ?? {};
+    const definedPaths = Object.keys(defs).sort();
+    const enabledPaths = cfg.enable.clients?.[client]?.files ?? definedPaths;
+
+    for (const relPath of enabledPaths) {
+      const def = defs[relPath];
+      if (!def) throw new Error(`missing client file def in dotfiles: ${client}.${relPath}`);
+      out.push({ client, relPath, def });
+    }
+  }
+
+  return out;
 }
 
 const PACK_MODE_DEPRECATION_WARNING = [
@@ -79,12 +159,23 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     };
 
     const graph = compileGraph({ available, enable: enableSpec });
+    const clientFileInjections = resolveClientFileInjections(cfg, dotfiles);
 
     const desiredHash = computeStateHash({
       packs: [{ id: "config", rev: "v1" }],
       enable: enableSpec,
       clients: cfg.clients,
       layout: `config:${layout}`,
+      extra: {
+        clientFiles: clientFileInjections.map((inj) => ({
+          client: inj.client,
+          path: inj.relPath,
+          text: inj.def.text,
+          source: inj.def.source,
+          mode: inj.def.mode,
+          executable: inj.def.executable,
+        })),
+      },
     });
 
     if (await shouldSkipEmit(emitRoot, desiredHash)) {
@@ -120,11 +211,13 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     ]);
     desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
     if (graph.mcp.length > 0) desiredPaths.push(join(emitRoot, ".mcp.json"));
+    for (const inj of clientFileInjections) desiredPaths.push(join(emitRoot, inj.relPath));
 
     if (cleanupMode === "full") {
       await cleanupFull(emitRoot);
     } else {
       await cleanupOwnedOnly({ repoRoot: emitRoot, desiredPaths });
+      await cleanupStaleCustomFiles(emitRoot, clientFileInjections.map((inj) => inj.relPath));
     }
 
     if (cfg.clients.includes("claude")) {
@@ -159,6 +252,11 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       });
       await emitMcp({ repoRoot: emitRoot, servers: mcpInputs });
     }
+
+    for (const inj of clientFileInjections) {
+      await emitClientFile(emitRoot, inj);
+    }
+    await writeCustomFilesManifest(emitRoot, clientFileInjections.map((inj) => inj.relPath));
 
     await writeStateHash(emitRoot, desiredHash);
     console.log("✅ Nexus: done");

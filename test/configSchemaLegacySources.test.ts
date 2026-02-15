@@ -18,7 +18,15 @@ test("config schema > accepts layout + cleanup enums", () => {
     version: 1,
     repoRoot: null,
     clients: ["claude"],
-    enable: { skills: [], mcp: [] },
+    enable: {
+      skills: [],
+      mcp: [],
+      clients: {
+        claude: {
+          files: [".claude/commands/review.md"],
+        },
+      },
+    },
     overrides: { skills: {}, mcp: {} },
     layout: "generated",
     cleanup: "full",
@@ -26,4 +34,5 @@ test("config schema > accepts layout + cleanup enums", () => {
 
   expect(cfg.layout).toBe("generated");
   expect(cfg.cleanup).toBe("full");
+  expect(cfg.enable.clients?.claude?.files).toEqual([".claude/commands/review.md"]);
 });

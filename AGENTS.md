@@ -115,7 +115,7 @@ programs.nexus = {
 ```nix
 nexus.lib.mkRepo {
   system = "x86_64-linux";
-  clients = [ "claude" "mcp" ];
+  clients = [ "claude" ];
   enable.skills = [ "humanizer" ];
 }
 ```

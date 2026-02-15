@@ -1,5 +1,8 @@
 # Nexus - Dotfiles-First AI Toolchain Injection
 
+[![CI](https://github.com/imrane/nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/imrane/nexus/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/imrane/nexus/graph/badge.svg)](https://codecov.io/gh/imrane/nexus)
+
 **Declarative, repo-scoped injection of AI skills and MCP servers for Claude Code, Codex, and OpenCode.**
 
 ---
