@@ -221,29 +221,32 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Next ready issues (after completed `uim`, `1sz`, `6ch`, `dyd`, `xsf`):**
-1. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
-2. `2026-02-14-nexus-6q5` — docs plan within 3-markdown rule
-3. `2026-02-14-nexus-ayq` — Claude parity: commands/hooks/agents
+**Current priority queue (spec-first):**
+1. `2026-02-14-nexus-5tp` — OpenCode spec conformance audit + path fix (upstream appears singular `command/agent`; Nexus currently emits plural + extra surfaces)
+2. `2026-02-14-nexus-zjl` — Claude Code artifact spec audit (commands/hooks/agents/settings)
+3. `2026-02-14-nexus-7op` — Codex artifact/config spec audit
+4. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
+5. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
+
+**Recently closed:**
+- `2026-02-14-nexus-pry` (Codecov upload + README badge)
+- `2026-02-14-nexus-rrq` (per-client custom injection)
+- `2026-02-14-nexus-0qi` (OpenCode parity slice landed, pending strict conformance audit)
 
 **Remember:**
 - No new markdown files (use bd for notes when healthy)
-- Keep AGENTS.md updated with progress
+- Keep AGENTS.md concise + current
 - Land the plane before handoff
 
 ---
 
 ## Notes
 
-- Beads incident (resolved): `bd sync --flush-only` previously failed with `sqlite3: database disk image is malformed`.
-- Fix applied: backed up `.beads`, ran `bd doctor --fix` (cleaned merge artifacts), re-ran sync, then committed repaired Beads state.
-- v1 remains functional while v2 refactors continue.
-- `2026-02-14-nexus-dyd` completed: mkRepo/config now expose `layout`, `cleanup`, and `strictEnv`; runtime supports `layout=generated` emit root and `cleanup=full` mode; tests added.
-- `2026-02-14-nexus-xsf` completed: added v2 golden fixtures + tests for config-mode direct/generated outputs (including state files) with deterministic snapshots.
-- nix smoke test hardening: switched nested shell call to `bash --noprofile --norc -c` in `test/nixDevelopMkRepoDotfilesOnly.test.ts` to avoid profile-induced flakiness; behavior unchanged and suite remains green (56/56).
-- PRD.md is the source of truth for v2.
+- Spec audit triggered after shipping `0qi`: likely drift vs upstream OpenCode conventions; treat parity work as provisional until `5tp` lands.
+- New plan is spec-first across all clients, then automation to prevent future drift.
+- PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-15 18:06 UTC  
-**Status:** v2 in progress; Beads sync healthy, nix smoke shell hardened, full test suite passing
+**Last updated:** 2026-02-15 22:16 UTC  
+**Status:** v2 in progress; core parity slices shipped, now entering spec-audit + automation phase
