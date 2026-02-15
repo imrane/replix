@@ -1,7 +1,9 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export type OpenCodeAssetKind = "commands" | "agents" | "hooks" | "rules";
+// Upstream opencode uses singular dirs: .opencode/command and .opencode/agent.
+// We keep hooks/rules as Nexus extensions for now.
+export type OpenCodeAssetKind = "command" | "agent" | "hooks" | "rules";
 
 export type OpenCodeAssetInput = {
   id: string;

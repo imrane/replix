@@ -222,11 +222,12 @@ nix flake check
 ## Next Agent Tasks
 
 **Current priority queue (spec-first):**
-1. `2026-02-14-nexus-5tp` — OpenCode spec conformance audit + path fix (upstream appears singular `command/agent`; Nexus currently emits plural + extra surfaces)
-2. `2026-02-14-nexus-zjl` — Claude Code artifact spec audit (commands/hooks/agents/settings)
-3. `2026-02-14-nexus-7op` — Codex artifact/config spec audit
-4. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
-5. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
+1. `2026-02-14-nexus-zjl` — Claude Code artifact spec audit (commands/hooks/agents/settings)
+2. `2026-02-14-nexus-7op` — Codex artifact/config spec audit
+3. `2026-02-14-nexus-3co` — Codex skills surface + shim adapter audit (canonical → codex)
+4. `2026-02-14-nexus-d38` — CI: gated client smoke tests
+5. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
+6. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
 
 **Recently closed:**
 - `2026-02-14-nexus-pry` (Codecov upload + README badge)
@@ -240,13 +241,15 @@ nix flake check
 
 ---
 
-## Notes
+## Notes (decisions)
 
-- Spec audit triggered after shipping `0qi`: likely drift vs upstream OpenCode conventions; treat parity work as provisional until `5tp` lands.
-- New plan is spec-first across all clients, then automation to prevent future drift.
-- PRD.md remains source of truth for v2 goals.
+- **OpenCode path alignment (2026-02-15):** upstream `anomalyco/opencode` uses `.opencode/command` + `.opencode/agent` (singular). Nexus now emits/loads these canonical dirs and keeps `commands/agents` as *read-only aliases* for backward compatibility. Rationale: match upstream by default while not breaking existing packs.
+- **Codex scope decision (2026-02-15):** keep Nexus core Codex support as **repo `.codex/config.toml` only**. Codex has a separate skills surface (`.agents/skills` and `.codex/skills`) with different metadata expectations; we’ll treat this as a future client-plugin concern. For now, use **per-client custom files** to drop Codex-specific artifacts when needed.
+- **Testing decision:** keep fast, deterministic golden/schema/cleanup/state tests as the always-on suite; add **gated client smoke tests** (env-var opt-in) when non-interactive validation exists and no auth is required.
+
+PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-15 22:16 UTC  
-**Status:** v2 in progress; core parity slices shipped, now entering spec-audit + automation phase
+**Last updated:** 2026-02-15 23:37 UTC  
+**Status:** v2 in progress; OpenCode paths aligned; Codex kept config-only; entering spec-audit + automation phase

@@ -52,10 +52,10 @@ describe("golden: core pack", () => {
     const skillOut = readFileSync(join(repoRoot, ".claude", "skills", "repo-status", "SKILL.md"), "utf8");
     expect(skillOut).toContain("Test skill fixture");
 
-    const cmdOut = readFileSync(join(repoRoot, ".opencode", "commands", "hello.md"), "utf8");
+    const cmdOut = readFileSync(join(repoRoot, ".opencode", "command", "hello.md"), "utf8");
     expect(cmdOut).toContain("Test command fixture");
 
-    const agentOut = readFileSync(join(repoRoot, ".opencode", "agents", "planner.md"), "utf8");
+    const agentOut = readFileSync(join(repoRoot, ".opencode", "agent", "planner.md"), "utf8");
     expect(agentOut).toContain("Test agent fixture");
 
     const hookOut = readFileSync(join(repoRoot, ".opencode", "hooks", "pre-commit.sh"), "utf8");

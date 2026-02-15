@@ -7,7 +7,9 @@ export type ResolvedMcpServer = {
   server: { command: string; args?: string[]; env?: Record<string, string> };
 };
 
-export type OpenCodeAssetKind = "commands" | "agents" | "hooks" | "rules";
+// Upstream opencode uses singular dirs: opencode/command and opencode/agent.
+// Keep legacy plural dir support as aliases when loading packs.
+export type OpenCodeAssetKind = "command" | "agent" | "hooks" | "rules";
 
 export type ResolvedOpenCodeAsset = {
   kind: OpenCodeAssetKind;
@@ -18,9 +20,9 @@ export type ResolvedOpenCodeAsset = {
 async function loadDirFiles(
   root: string,
   kind: OpenCodeAssetKind,
-  opts?: { markdownOnly?: boolean },
+  opts?: { markdownOnly?: boolean; dirName?: string },
 ): Promise<ResolvedOpenCodeAsset[]> {
-  const dir = join(root, "opencode", kind);
+  const dir = join(root, "opencode", opts?.dirName ?? kind);
   try {
     const entries = await readdir(dir, { withFileTypes: true });
     return entries
@@ -48,14 +50,32 @@ export async function loadPackMcpServers(packRoot: string): Promise<ResolvedMcpS
 }
 
 export async function loadPackOpenCodeAssets(packRoot: string): Promise<ResolvedOpenCodeAsset[]> {
-  const [commands, agents, hooks, rules] = await Promise.all([
-    loadDirFiles(packRoot, "commands", { markdownOnly: true }),
-    loadDirFiles(packRoot, "agents", { markdownOnly: true }),
+  // canonical
+  const [command, agent, hooks, rules] = await Promise.all([
+    loadDirFiles(packRoot, "command", { markdownOnly: true }),
+    loadDirFiles(packRoot, "agent", { markdownOnly: true }),
     loadDirFiles(packRoot, "hooks"),
     loadDirFiles(packRoot, "rules", { markdownOnly: true }),
   ]);
 
-  return [...commands, ...agents, ...hooks, ...rules].sort((a, b) => {
+  // legacy aliases (plural dirs)
+  const [legacyCommands, legacyAgents] = await Promise.all([
+    loadDirFiles(packRoot, "command", { markdownOnly: true, dirName: "commands" }),
+    loadDirFiles(packRoot, "agent", { markdownOnly: true, dirName: "agents" }),
+  ]);
+
+  const all = [...command, ...agent, ...hooks, ...rules, ...legacyCommands, ...legacyAgents];
+
+  // de-dupe if both canonical + legacy exist with same fileName.
+  const seen = new Set<string>();
+  const deduped = all.filter((a) => {
+    const k = `${a.kind}/${a.fileName}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  return deduped.sort((a, b) => {
     if (a.kind === b.kind) return a.fileName.localeCompare(b.fileName);
     return a.kind.localeCompare(b.kind);
   });

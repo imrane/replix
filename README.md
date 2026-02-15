@@ -14,8 +14,8 @@
 Nexus auto-injects configuration into the correct locations:
 - `.claude/skills/` - Agent skills
 - `.mcp.json` - MCP servers
-- `.codex/config.toml` - Codex config
-- `.opencode/` - OpenCode commands
+- `.codex/config.toml` - Codex repo config
+- `.opencode/` - OpenCode repo artifacts
 
 **No local config files needed in projects.**
 
@@ -263,8 +263,10 @@ MCP is a protocol consumed by clients (Claude/Codex/OpenCode), not a client itse
 
 ### Codex
 
-**Emits:**
+**Emits (repo-scoped):**
 - `.codex/config.toml`
+
+Codex loads repo config from `.codex/config.toml` (see OpenAI docs: https://developers.openai.com/codex/config-reference).
 
 **Header:**
 ```toml
@@ -274,7 +276,10 @@ MCP is a protocol consumed by clients (Claude/Codex/OpenCode), not a client itse
 ### OpenCode
 
 **Emits:**
-- `.opencode/commands/`
+- `.opencode/command/`
+- `.opencode/agent/`
+- `.opencode/hooks/`
+- `.opencode/rules/`
 - `.opencode/.nexus-managed` (ownership marker)
 
 ---

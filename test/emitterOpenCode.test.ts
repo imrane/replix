@@ -5,16 +5,16 @@ import { join } from "node:path";
 import { emitOpenCode } from "../src/emitters/opencode";
 
 describe("opencode emitter", () => {
-  it("writes commands/agents/hooks/rules and .nexus-managed marker", async () => {
+  it("writes command/agent/hooks/rules and .nexus-managed marker (upstream-aligned dirs)", async () => {
     const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
     const src = mkdtempSync(join(tmpdir(), "nexus-opencode-"));
-    mkdirSync(join(src, "opencode", "commands"), { recursive: true });
-    mkdirSync(join(src, "opencode", "agents"), { recursive: true });
+    mkdirSync(join(src, "opencode", "command"), { recursive: true });
+    mkdirSync(join(src, "opencode", "agent"), { recursive: true });
     mkdirSync(join(src, "opencode", "hooks"), { recursive: true });
     mkdirSync(join(src, "opencode", "rules"), { recursive: true });
 
-    writeFileSync(join(src, "opencode", "commands", "hello.md"), "# hello\n");
-    writeFileSync(join(src, "opencode", "agents", "planner.md"), "# planner\n");
+    writeFileSync(join(src, "opencode", "command", "hello.md"), "# hello\n");
+    writeFileSync(join(src, "opencode", "agent", "planner.md"), "# planner\n");
     writeFileSync(join(src, "opencode", "hooks", "pre-commit.sh"), "echo hi\n");
     writeFileSync(join(src, "opencode", "rules", "style.md"), "# style\n");
 
@@ -22,16 +22,16 @@ describe("opencode emitter", () => {
       repoRoot,
       assets: [
         {
-          id: "core/commands:hello",
-          kind: "commands",
+          id: "core/command:hello",
+          kind: "command",
           fileName: "hello.md",
-          srcPath: join(src, "opencode", "commands", "hello.md"),
+          srcPath: join(src, "opencode", "command", "hello.md"),
         },
         {
-          id: "core/agents:planner",
-          kind: "agents",
+          id: "core/agent:planner",
+          kind: "agent",
           fileName: "planner.md",
-          srcPath: join(src, "opencode", "agents", "planner.md"),
+          srcPath: join(src, "opencode", "agent", "planner.md"),
         },
         {
           id: "core/hooks:pre-commit.sh",
@@ -49,8 +49,8 @@ describe("opencode emitter", () => {
     });
 
     expect(existsSync(join(repoRoot, ".opencode", ".nexus-managed"))).toBeTrue();
-    expect(readFileSync(join(repoRoot, ".opencode", "commands", "hello.md"), "utf8")).toContain("hello");
-    expect(readFileSync(join(repoRoot, ".opencode", "agents", "planner.md"), "utf8")).toContain("planner");
+    expect(readFileSync(join(repoRoot, ".opencode", "command", "hello.md"), "utf8")).toContain("hello");
+    expect(readFileSync(join(repoRoot, ".opencode", "agent", "planner.md"), "utf8")).toContain("planner");
     expect(readFileSync(join(repoRoot, ".opencode", "hooks", "pre-commit.sh"), "utf8")).toContain("echo hi");
     expect(readFileSync(join(repoRoot, ".opencode", "rules", "style.md"), "utf8")).toContain("style");
   });

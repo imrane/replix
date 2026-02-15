@@ -81,6 +81,5 @@ export async function cleanupFull(repoRoot: string): Promise<void> {
   await rm(join(repoRoot, ".claude", "skills"), { recursive: true, force: true });
   await rm(join(repoRoot, ".mcp.json"), { force: true });
   await rm(join(repoRoot, ".codex", "config.toml"), { force: true });
-  await rm(join(repoRoot, ".opencode", "commands"), { recursive: true, force: true });
-  await rm(join(repoRoot, ".opencode", ".nexus-managed"), { force: true });
+  await rm(join(repoRoot, ".opencode"), { recursive: true, force: true });
 }
