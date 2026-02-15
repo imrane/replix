@@ -23,10 +23,17 @@ export type DotfilesClientDef = {
   files?: Record<string, DotfilesClientFileDef>;
 };
 
+export type DotfilesClaudeDef = {
+  commands?: Record<string, DotfilesClientFileDef>;
+  hooks?: Record<string, DotfilesClientFileDef>;
+  agents?: Record<string, DotfilesClientFileDef>;
+};
+
 export type DotfilesConfig = {
   skills?: Record<string, DotfilesSkillDef>;
   mcp?: Record<string, DotfilesMcpDef>;
   clients?: Record<string, DotfilesClientDef>;
+  claude?: DotfilesClaudeDef;
   vars?: Record<string, string>;
   strictEnv?: boolean;
 };
@@ -45,6 +52,27 @@ export async function loadDotfilesConfigFromPath(path: string): Promise<Dotfiles
   return json;
 }
 
+function toClaudeClientFiles(cfg: DotfilesConfig): Record<string, DotfilesClientFileDef> {
+  const out: Record<string, DotfilesClientFileDef> = { ...(cfg.clients?.claude?.files ?? {}) };
+
+  const sections: Array<["commands" | "hooks" | "agents", string]> = [
+    ["commands", ".claude/commands"],
+    ["hooks", ".claude/hooks"],
+    ["agents", ".claude/agents"],
+  ];
+
+  for (const [section, base] of sections) {
+    const defs = cfg.claude?.[section] ?? {};
+    for (const [name, def] of Object.entries(defs)) {
+      const rel = `${base}/${name}`.replace(/\/+/g, "/").replace(/^\/+/, "");
+      if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
+      out[rel] = def;
+    }
+  }
+
+  return out;
+}
+
 export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
   const p = process.env.NEXUS_DOTFILES_CONFIG_JSON;
   if (!p) {
@@ -54,7 +82,19 @@ export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
 
   const skills = new Map(Object.entries(cfg.skills ?? {}).sort((a, b) => a[0].localeCompare(b[0])));
   const mcp = new Map(Object.entries(cfg.mcp ?? {}).sort((a, b) => a[0].localeCompare(b[0])));
-  const clients = new Map(Object.entries(cfg.clients ?? {}).sort((a, b) => a[0].localeCompare(b[0])));
+
+  const clientObj: Record<string, DotfilesClientDef> = { ...(cfg.clients ?? {}) };
+  const claudeFiles = toClaudeClientFiles(cfg);
+  if (Object.keys(claudeFiles).length > 0) {
+    clientObj.claude = {
+      ...(clientObj.claude ?? {}),
+      files: {
+        ...(clientObj.claude?.files ?? {}),
+        ...claudeFiles,
+      },
+    };
+  }
+  const clients = new Map(Object.entries(clientObj).sort((a, b) => a[0].localeCompare(b[0])));
 
   return {
     skills,
