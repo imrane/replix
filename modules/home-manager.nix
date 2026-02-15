@@ -48,6 +48,18 @@ in {
       description = "Global MCP server registry (dotfiles-first).";
     };
 
+    vars = mkOption {
+      type = types.attrsOf types.str;
+      default = {};
+      description = "Dotfiles defaults for templating variables used in emitted config.";
+    };
+
+    strictEnv = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Fail on missing template vars when true; otherwise substitute empty strings.";
+    };
+
     registryPath = mkOption {
       type = types.str;
       default = "${config.xdg.configHome}/nexus/registry.json";
@@ -70,6 +82,8 @@ in {
         args = v.args;
         env = v.env;
       }) cfg.mcp;
+      vars = cfg.vars;
+      strictEnv = cfg.strictEnv;
     };
 
     home.sessionVariables.NEXUS_DOTFILES_CONFIG_JSON = cfg.registryPath;

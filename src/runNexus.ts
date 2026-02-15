@@ -14,6 +14,7 @@ import { emitCodex } from "./emitters/codex";
 import { emitOpenCode, type OpenCodeCommandInput } from "./emitters/opencode";
 import { cleanupOwnedOnly } from "./cleanup";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
+import { templateMcpServer } from "./templating";
 
 export type RunNexusArgs = {
   cwd: string;
@@ -115,13 +116,29 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     }
 
     if (cfg.clients.includes("mcp")) {
+      const processVars = Object.fromEntries(
+        Object.entries(process.env)
+          .filter(([, v]) => typeof v === "string")
+          .map(([k, v]) => [k, v as string]),
+      );
+      const mergedVars = {
+        ...processVars,
+        ...dotfiles.vars,
+        ...cfg.vars,
+      };
+      const strictEnv = cfg.strictEnv ?? dotfiles.strictEnv;
+
       const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
         const server = dotfiles.mcp.get(node.item.name);
         if (!server) throw new Error(`missing mcp server def in dotfiles: ${node.item.name}`);
         return {
           id: formatId({ pack: "config", imp: "mcp", item: node.id }),
           name: node.item.name,
-          server,
+          server: templateMcpServer(server, {
+            vars: mergedVars,
+            strictEnv,
+            projectRoot: repoRoot,
+          }),
         };
       });
       await emitMcp({ repoRoot, servers: mcpInputs });

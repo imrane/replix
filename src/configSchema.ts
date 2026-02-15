@@ -11,6 +11,8 @@ export type NexusConfigV1 = {
     skills: string[];
     mcp: string[];
   };
+  vars: Record<string, string>;
+  strictEnv?: boolean;
   // v1 used `sources.*`; v2 naming is `overrides.*` (repo-local only).
   // parseNexusConfig accepts either, but returns normalized `overrides`.
   overrides: NexusOverridesV1;
@@ -65,11 +67,28 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
   const overrideMcp = (overridesRaw as any).mcp;
   if (!isRecord(overrideMcp)) throw new Error("config.overrides.mcp must be an object");
 
+  const varsRaw = (input as any).vars;
+  if (!(varsRaw === undefined || isRecord(varsRaw))) {
+    throw new Error("config.vars must be an object");
+  }
+  const vars: Record<string, string> = {};
+  for (const [k, v] of Object.entries(varsRaw ?? {})) {
+    if (typeof v !== "string") throw new Error(`config.vars.${k} must be a string`);
+    vars[k] = v;
+  }
+
+  const strictEnvRaw = (input as any).strictEnv;
+  if (!(strictEnvRaw === undefined || typeof strictEnvRaw === "boolean")) {
+    throw new Error("config.strictEnv must be a boolean");
+  }
+
   return {
     version: 1,
     repoRoot,
     clients,
     enable: { skills, mcp },
+    vars,
+    strictEnv: strictEnvRaw,
     overrides: {
       skills: overrideSkills as Record<string, { path: string }>,
       mcp: overrideMcp,

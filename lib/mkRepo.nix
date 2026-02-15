@@ -9,6 +9,8 @@
 , clients ? [ "claude" "mcp" "codex" "opencode" ]
 , enable ? { skills = []; mcp = []; }
 , skills ? {}            # Optional overrides for skills. If omitted, skills resolve from dotfiles registry at runtime.
+, vars ? {}              # Optional per-project templating vars overrides.
+, strictEnv ? null       # Optional per-project strictEnv override. null -> dotfiles default.
 , repoRoot ? null        # optional; defaults to $PWD at runtime
 }:
 
@@ -73,16 +75,19 @@ let
     ) enabledSkills)
   );
 
-  configJson = builtins.toJSON {
+  configJson = builtins.toJSON ({
     version = 1;
     repoRoot = repoRoot; # if null, nexus uses cwd
     clients = clients;
     enable = enable;
+    vars = vars;
     overrides = {
       skills = resolvedSkills;
       mcp = {};
     };
-  };
+  } // lib.optionalAttrs (strictEnv != null) {
+    strictEnv = strictEnv;
+  });
 
   configFile = pkgs.writeText "nexus-config.json" configJson;
 
