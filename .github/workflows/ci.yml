@@ -23,11 +23,17 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      # Some tests run `nix develop` (mkRepo smoke). Ubuntu runners don't ship with nix.
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v14
+
       - name: Run tests (JUnit)
-        run: bun test --reporter=junit --reporter-outfile=test-results/junit.xml
+        run: |
+          mkdir -p test-results
+          bun test --reporter=junit --reporter-outfile=test-results/junit.xml
 
       - name: Publish test report
-        if: always()
+        if: always() && hashFiles('test-results/junit.xml') != ''
         uses: dorny/test-reporter@v1
         with:
           name: bun test
