@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadLocalPack } from "../src/resolver/localPack";
-import { loadPackMcpServers, loadPackOpenCodeCommands, packSkillByItemId } from "../src/resolver/coreItems";
+import { loadPackMcpServers, loadPackOpenCodeAssets, packSkillByItemId } from "../src/resolver/coreItems";
 import { emitClaude } from "../src/emitters/claude";
 import { emitMcp } from "../src/emitters/mcp";
 import { emitCodex } from "../src/emitters/codex";
@@ -18,7 +18,7 @@ describe("golden: core pack", () => {
     const pack = await loadLocalPack(FIX);
     const skill = packSkillByItemId(pack, "repo-status");
     const mcp = await loadPackMcpServers(FIX);
-    const cmds = await loadPackOpenCodeCommands(FIX);
+    const assets = await loadPackOpenCodeAssets(FIX);
 
     await emitClaude({
       repoRoot,
@@ -40,7 +40,7 @@ describe("golden: core pack", () => {
 
     await emitOpenCode({
       repoRoot,
-      commands: cmds.map((c) => ({ id: `core/commands:${c.fileName}`, fileName: c.fileName, srcPath: c.srcPath })),
+      assets: assets.map((a) => ({ id: `core/${a.kind}:${a.fileName}`, kind: a.kind, fileName: a.fileName, srcPath: a.srcPath })),
     });
 
     const mcpOut = readFileSync(join(repoRoot, ".mcp.json"), "utf8");
@@ -54,5 +54,14 @@ describe("golden: core pack", () => {
 
     const cmdOut = readFileSync(join(repoRoot, ".opencode", "commands", "hello.md"), "utf8");
     expect(cmdOut).toContain("Test command fixture");
+
+    const agentOut = readFileSync(join(repoRoot, ".opencode", "agents", "planner.md"), "utf8");
+    expect(agentOut).toContain("Test agent fixture");
+
+    const hookOut = readFileSync(join(repoRoot, ".opencode", "hooks", "pre-commit.sh"), "utf8");
+    expect(hookOut).toContain("pre-commit fixture");
+
+    const ruleOut = readFileSync(join(repoRoot, ".opencode", "rules", "style.md"), "utf8");
+    expect(ruleOut).toContain("Test rule fixture");
   });
 });

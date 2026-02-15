@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, rm, stat, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { loadLocalPack } from "./resolver/localPack";
-import { loadPackMcpServers, loadPackOpenCodeCommands, packSkillByItemId } from "./resolver/coreItems";
+import { loadPackMcpServers, loadPackOpenCodeAssets, packSkillByItemId } from "./resolver/coreItems";
 import { loadDotfilesRegistryFromEnv, type DotfilesClientFileDef } from "./resolver/dotfilesConfig";
 import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
 import { parseEnableSpec } from "./enable";
@@ -12,7 +12,7 @@ import { shouldSkipEmit, writeStateHash } from "./stateFile";
 import { emitClaude, type ClaudeSkillInput } from "./emitters/claude";
 import { emitMcp, type McpServerInput } from "./emitters/mcp";
 import { emitCodex } from "./emitters/codex";
-import { emitOpenCode, type OpenCodeCommandInput } from "./emitters/opencode";
+import { emitOpenCode, type OpenCodeAssetInput } from "./emitters/opencode";
 import { cleanupFull, cleanupOwnedOnly } from "./cleanup";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { templateMcpServer } from "./templating";
@@ -280,7 +280,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   const mcpServers = await loadPackMcpServers(packRoot);
   const availableMcp = new Map(mcpServers.map((m) => [m.name, { kind: "mcp" as const, name: m.name }]));
 
-  const openCodeCommands = await loadPackOpenCodeCommands(packRoot);
+  const openCodeAssets = await loadPackOpenCodeAssets(packRoot);
 
   const enableSpec = parseEnableSpec(pack.meta.enable ?? {});
 
@@ -322,6 +322,10 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
   desiredPaths.push(join(repoRoot, ".mcp.json"));
   desiredPaths.push(join(repoRoot, ".codex", "config.toml"));
+  desiredPaths.push(join(repoRoot, ".opencode", ".nexus-managed"));
+  for (const asset of openCodeAssets) {
+    desiredPaths.push(join(repoRoot, ".opencode", asset.kind, asset.fileName));
+  }
 
   await cleanupOwnedOnly({ repoRoot, desiredPaths });
   await emitClaude({ repoRoot, skills: claudeSkills });
@@ -339,12 +343,13 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
 
   await emitCodex({ repoRoot, configToml: `# nexus-managed\n[skills]\nenabled = true\n` });
 
-  const openCodeInputs: OpenCodeCommandInput[] = openCodeCommands.map((cmd) => ({
-    id: formatId({ pack: pack.meta.id, imp: "commands", item: cmd.fileName }),
-    fileName: cmd.fileName,
-    srcPath: cmd.srcPath,
+  const openCodeInputs: OpenCodeAssetInput[] = openCodeAssets.map((asset) => ({
+    id: formatId({ pack: pack.meta.id, imp: asset.kind, item: asset.fileName }),
+    kind: asset.kind,
+    fileName: asset.fileName,
+    srcPath: asset.srcPath,
   }));
-  await emitOpenCode({ repoRoot, commands: openCodeInputs });
+  await emitOpenCode({ repoRoot, assets: openCodeInputs });
 
   await writeStateHash(repoRoot, desiredHash);
   console.log("✅ Nexus: done");

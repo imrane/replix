@@ -1,0 +1,3 @@
+# style
+
+Test rule fixture.
