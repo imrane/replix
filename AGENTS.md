@@ -215,7 +215,7 @@ nix flake check
 
 - ✅ Remote configured (`origin`)
 - ✅ v2 templating + source-spec work pushed to `main`
-- ⚠️ `.beads` sync currently unreliable (SQLite malformed on `bd sync --flush-only`)
+- ✅ `.beads` sync repaired and committed (`bddcf55`)
 
 ---
 
@@ -235,12 +235,12 @@ nix flake check
 
 ## Notes
 
-- `bd sync --flush-only` fails with: `sqlite3: database disk image is malformed` (daemon/direct mode both impacted)
-- Continue delivery with git as source of truth until beads storage is repaired
-- v1 remains functional while v2 refactors continue
-- PRD.md is the source of truth for v2
+- Beads incident (resolved): `bd sync --flush-only` previously failed with `sqlite3: database disk image is malformed`.
+- Fix applied: backed up `.beads`, ran `bd doctor --fix` (cleaned merge artifacts), re-ran sync, then committed repaired Beads state.
+- v1 remains functional while v2 refactors continue.
+- PRD.md is the source of truth for v2.
 
 ---
 
-**Last updated:** 2026-02-15 16:22 UTC  
-**Status:** v2 in progress; latest work landed and pushed
+**Last updated:** 2026-02-15 16:27 UTC  
+**Status:** v2 in progress; Beads sync healthy, latest work landed and pushed
