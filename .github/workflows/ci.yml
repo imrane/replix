@@ -27,10 +27,16 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v14
 
-      - name: Run tests (JUnit)
+      - name: Run tests (JUnit + coverage)
         run: |
-          mkdir -p test-results
-          bun test --reporter=junit --reporter-outfile=test-results/junit.xml
+          mkdir -p test-results coverage
+          bun test \
+            --reporter=junit \
+            --reporter-outfile=test-results/junit.xml \
+            --coverage \
+            --coverage-reporter=text \
+            --coverage-reporter=lcov \
+            --coverage-dir=coverage
 
       - name: Publish test report
         if: always() && hashFiles('test-results/junit.xml') != ''
@@ -40,3 +46,10 @@ jobs:
           path: test-results/junit.xml
           reporter: java-junit
           fail-on-error: "false"
+
+      - name: Upload coverage artifact
+        if: always() && hashFiles('coverage/lcov.info') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info

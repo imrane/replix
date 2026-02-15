@@ -336,6 +336,18 @@ Optional local guard before pushing:
 
 CI runs the same tests on every PR.
 
+### Coverage
+
+```bash
+bun run test:coverage
+```
+
+Outputs:
+- Console coverage summary (text reporter)
+- `coverage/lcov.info` (LCOV artifact)
+
+In CI, the LCOV file is uploaded as artifact: `coverage-lcov`.
+
 ### Build Package
 
 ```bash
