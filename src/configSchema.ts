@@ -13,6 +13,8 @@ export type NexusConfigV1 = {
   };
   vars: Record<string, string>;
   strictEnv?: boolean;
+  layout?: "direct" | "generated";
+  cleanup?: "owned-only" | "full";
   // v1 used `sources.*`; v2 naming is `overrides.*` (repo-local only).
   // parseNexusConfig accepts either, but returns normalized `overrides`.
   overrides: NexusOverridesV1;
@@ -82,6 +84,16 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     throw new Error("config.strictEnv must be a boolean");
   }
 
+  const layoutRaw = (input as any).layout;
+  if (!(layoutRaw === undefined || layoutRaw === "direct" || layoutRaw === "generated")) {
+    throw new Error('config.layout must be "direct"|"generated"');
+  }
+
+  const cleanupRaw = (input as any).cleanup;
+  if (!(cleanupRaw === undefined || cleanupRaw === "owned-only" || cleanupRaw === "full")) {
+    throw new Error('config.cleanup must be "owned-only"|"full"');
+  }
+
   return {
     version: 1,
     repoRoot,
@@ -89,6 +101,8 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     enable: { skills, mcp },
     vars,
     strictEnv: strictEnvRaw,
+    layout: layoutRaw,
+    cleanup: cleanupRaw,
     overrides: {
       skills: overrideSkills as Record<string, { path: string }>,
       mcp: overrideMcp,

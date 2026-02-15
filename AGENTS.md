@@ -221,10 +221,10 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Next ready issues (after completed `uim`, `1sz`, `6ch`):**
-1. `2026-02-14-nexus-dyd` — mkRepo surface layout/cleanup/strictEnv options
-2. `2026-02-14-nexus-xsf` — golden tests for v2 config-mode/mkRepo outputs
-3. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
+**Next ready issues (after completed `uim`, `1sz`, `6ch`, `dyd`):**
+1. `2026-02-14-nexus-xsf` — golden tests for v2 config-mode/mkRepo outputs
+2. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
+3. `2026-02-14-nexus-6q5` — docs plan within 3-markdown rule
 
 **Remember:**
 - No new markdown files (use bd for notes when healthy)
@@ -238,9 +238,10 @@ nix flake check
 - Beads incident (resolved): `bd sync --flush-only` previously failed with `sqlite3: database disk image is malformed`.
 - Fix applied: backed up `.beads`, ran `bd doctor --fix` (cleaned merge artifacts), re-ran sync, then committed repaired Beads state.
 - v1 remains functional while v2 refactors continue.
+- `2026-02-14-nexus-dyd` completed: mkRepo/config now expose `layout`, `cleanup`, and `strictEnv`; runtime supports `layout=generated` emit root and `cleanup=full` mode; tests added.
 - PRD.md is the source of truth for v2.
 
 ---
 
-**Last updated:** 2026-02-15 16:27 UTC  
-**Status:** v2 in progress; Beads sync healthy, latest work landed and pushed
+**Last updated:** 2026-02-15 16:40 UTC  
+**Status:** v2 in progress; Beads sync healthy, `dyd` landed locally with tests passing

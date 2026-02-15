@@ -12,7 +12,7 @@ import { emitClaude, type ClaudeSkillInput } from "./emitters/claude";
 import { emitMcp, type McpServerInput } from "./emitters/mcp";
 import { emitCodex } from "./emitters/codex";
 import { emitOpenCode, type OpenCodeCommandInput } from "./emitters/opencode";
-import { cleanupOwnedOnly } from "./cleanup";
+import { cleanupFull, cleanupOwnedOnly } from "./cleanup";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { templateMcpServer } from "./templating";
 
@@ -51,6 +51,9 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   if (configPath) {
     const cfg = await loadConfig(configPath);
     const repoRoot = cfg.repoRoot ?? cwd;
+    const layout = cfg.layout ?? "direct";
+    const cleanupMode = cfg.cleanup ?? "owned-only";
+    const emitRoot = layout === "generated" ? join(repoRoot, ".nexus", "generated") : repoRoot;
 
     console.log("🔧 Nexus: loading config...");
 
@@ -75,10 +78,10 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       packs: [{ id: "config", rev: "v1" }],
       enable: enableSpec,
       clients: cfg.clients,
-      layout: "config",
+      layout: `config:${layout}`,
     });
 
-    if (await shouldSkipEmit(repoRoot, desiredHash)) {
+    if (await shouldSkipEmit(emitRoot, desiredHash)) {
       console.log("✅ Nexus: no changes (state hash matches), skipping emit");
       return;
     }
@@ -104,18 +107,22 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       }),
     );
 
-    const claudeSkillsRoot = join(repoRoot, ".claude", "skills");
+    const claudeSkillsRoot = join(emitRoot, ".claude", "skills");
     const desiredPaths = claudeSkills.flatMap((s) => [
       join(claudeSkillsRoot, s.itemId),
       join(claudeSkillsRoot, s.itemId, "SKILL.md"),
     ]);
     desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
-    if (cfg.clients.includes("mcp")) desiredPaths.push(join(repoRoot, ".mcp.json"));
+    if (cfg.clients.includes("mcp")) desiredPaths.push(join(emitRoot, ".mcp.json"));
 
-    await cleanupOwnedOnly({ repoRoot, desiredPaths });
+    if (cleanupMode === "full") {
+      await cleanupFull(emitRoot);
+    } else {
+      await cleanupOwnedOnly({ repoRoot: emitRoot, desiredPaths });
+    }
 
     if (cfg.clients.includes("claude")) {
-      await emitClaude({ repoRoot, skills: claudeSkills });
+      await emitClaude({ repoRoot: emitRoot, skills: claudeSkills });
     }
 
     if (cfg.clients.includes("mcp")) {
@@ -144,10 +151,10 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
           }),
         };
       });
-      await emitMcp({ repoRoot, servers: mcpInputs });
+      await emitMcp({ repoRoot: emitRoot, servers: mcpInputs });
     }
 
-    await writeStateHash(repoRoot, desiredHash);
+    await writeStateHash(emitRoot, desiredHash);
     console.log("✅ Nexus: done");
     return;
   }

@@ -11,6 +11,8 @@
 , skills ? {}            # Optional overrides for skills. If omitted, skills resolve from dotfiles registry at runtime.
 , vars ? {}              # Optional per-project templating vars overrides.
 , strictEnv ? null       # Optional per-project strictEnv override. null -> dotfiles default.
+, layout ? "direct"      # direct|generated
+, cleanup ? "owned-only" # owned-only|full
 , repoRoot ? null        # optional; defaults to $PWD at runtime
 }:
 
@@ -75,12 +77,22 @@ let
     ) enabledSkills)
   );
 
+  _ = if !(builtins.elem layout [ "direct" "generated" ]) then
+    throw "nexus.mkRepo: layout must be \"direct\" or \"generated\""
+  else null;
+
+  __ = if !(builtins.elem cleanup [ "owned-only" "full" ]) then
+    throw "nexus.mkRepo: cleanup must be \"owned-only\" or \"full\""
+  else null;
+
   configJson = builtins.toJSON ({
     version = 1;
     repoRoot = repoRoot; # if null, nexus uses cwd
     clients = clients;
     enable = enable;
     vars = vars;
+    layout = layout;
+    cleanup = cleanup;
     overrides = {
       skills = resolvedSkills;
       mcp = {};
