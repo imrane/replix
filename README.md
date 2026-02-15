@@ -352,9 +352,15 @@ nix flake check
 
 ## Implementation Status
 
-⚠️ **v1.0 MVP Complete** (pack.json-based, will be deprecated)
+⚠️ **v1.0 MVP Complete** (pack.json-based, now in deprecation mode)
 
 📘 **v2.0 in progress** - dotfiles config-mode, templating, layout/cleanup options, and v2 golden tests landed
+
+### Migration Timeline (Semver)
+
+- **v1.x**: pack.json mode remains as compatibility path, but emits deprecation warnings.
+- **v2.0.0**: pack.json mode removed; dotfiles + `mkRepo` config mode is required.
+- **Upgrade path**: migrate projects to `mkRepo` + dotfiles registry before taking v2.0.0.
 
 See **[PRD.md](PRD.md)** for complete v2.0 specification.
 

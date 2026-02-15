@@ -46,6 +46,12 @@ async function sourcePathFromDotfiles(source: string, allowUnpinned?: boolean): 
   return resolveDotfilesSourceToPath(source, { allowUnpinned });
 }
 
+const PACK_MODE_DEPRECATION_WARNING = [
+  "⚠️ [DEPRECATED] pack.json mode is legacy and will be removed in v2.0.0.",
+  "👉 Migrate to dotfiles + mkRepo config mode (NEXUS_DOTFILES_CONFIG_JSON + --config).",
+  "📅 Timeline: v1.x = compatibility mode with warnings; v2.0.0 = pack.json mode removed.",
+].join("\n");
+
 export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void> {
   // Mode A: config-driven (no pack.json required)
   if (configPath) {
@@ -167,6 +173,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
 
   const repoRoot = packRoot;
 
+  console.warn(PACK_MODE_DEPRECATION_WARNING);
   console.log("🔧 Nexus: loading pack...");
   const pack = await loadLocalPack(packRoot);
 
