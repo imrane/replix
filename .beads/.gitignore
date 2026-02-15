@@ -1,6 +1,6 @@
 # SQLite databases
-# Boss wants the canonical beads DB committed for portability.
-# We still ignore transient SQLite sidecars.
+*.db
+*.db?*
 *.db-journal
 *.db-wal
 *.db-shm
@@ -10,7 +10,6 @@ daemon.lock
 daemon.log
 daemon.pid
 bd.sock
-daemon-error
 sync-state.json
 last-touched
 
