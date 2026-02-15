@@ -221,10 +221,10 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Next ready issues (after completed `uim`, `1sz`, `6ch`, `dyd`):**
-1. `2026-02-14-nexus-xsf` — golden tests for v2 config-mode/mkRepo outputs
-2. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
-3. `2026-02-14-nexus-6q5` — docs plan within 3-markdown rule
+**Next ready issues (after completed `uim`, `1sz`, `6ch`, `dyd`, `xsf`):**
+1. `2026-02-14-nexus-192` — migration UX warning for pack.json mode
+2. `2026-02-14-nexus-6q5` — docs plan within 3-markdown rule
+3. `2026-02-14-nexus-ayq` — Claude parity: commands/hooks/agents
 
 **Remember:**
 - No new markdown files (use bd for notes when healthy)
@@ -239,9 +239,10 @@ nix flake check
 - Fix applied: backed up `.beads`, ran `bd doctor --fix` (cleaned merge artifacts), re-ran sync, then committed repaired Beads state.
 - v1 remains functional while v2 refactors continue.
 - `2026-02-14-nexus-dyd` completed: mkRepo/config now expose `layout`, `cleanup`, and `strictEnv`; runtime supports `layout=generated` emit root and `cleanup=full` mode; tests added.
+- `2026-02-14-nexus-xsf` completed: added v2 golden fixtures + tests for config-mode direct/generated outputs (including state files) with deterministic snapshots.
 - PRD.md is the source of truth for v2.
 
 ---
 
-**Last updated:** 2026-02-15 16:40 UTC  
-**Status:** v2 in progress; Beads sync healthy, `dyd` landed locally with tests passing
+**Last updated:** 2026-02-15 16:53 UTC  
+**Status:** v2 in progress; Beads sync healthy, `dyd` + `xsf` landed locally with tests passing

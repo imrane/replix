@@ -1,0 +1,13 @@
+{
+  "__generated_by": "nexus",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home"
+      ]
+    }
+  }
+}
