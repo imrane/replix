@@ -344,6 +344,17 @@ Optional local guard before pushing:
 
 CI runs the same tests on every PR.
 
+### Optional Client Smoke Tests (Gated)
+
+```bash
+bun run test:smoke:clients
+```
+
+Notes:
+- Smoke tests are opt-in and run only when `NEXUS_CLIENT_SMOKE=1`.
+- Missing client binaries are reported as explicit skips (not failures).
+- CI can enable this with repo variable `NEXUS_CLIENT_SMOKE=1`.
+
 ### Coverage
 
 ```bash

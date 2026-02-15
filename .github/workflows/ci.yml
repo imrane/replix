@@ -61,3 +61,7 @@ jobs:
           files: coverage/lcov.info
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Optional client smoke tests (gated)
+        if: vars.NEXUS_CLIENT_SMOKE == '1'
+        run: bun run test:smoke:clients
