@@ -113,7 +113,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       join(claudeSkillsRoot, s.itemId, "SKILL.md"),
     ]);
     desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
-    if (cfg.clients.includes("mcp")) desiredPaths.push(join(emitRoot, ".mcp.json"));
+    if (graph.mcp.length > 0) desiredPaths.push(join(emitRoot, ".mcp.json"));
 
     if (cleanupMode === "full") {
       await cleanupFull(emitRoot);
@@ -125,7 +125,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       await emitClaude({ repoRoot: emitRoot, skills: claudeSkills });
     }
 
-    if (cfg.clients.includes("mcp")) {
+    if (graph.mcp.length > 0) {
       const processVars = Object.fromEntries(
         Object.entries(process.env)
           .filter(([, v]) => typeof v === "string")
@@ -188,7 +188,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   const stateInput = {
     packs: [{ id: pack.meta.id, rev: pack.meta.version }],
     enable: enableSpec,
-    clients: ["claude", "mcp", "codex", "opencode"],
+    clients: ["claude", "codex", "opencode"],
     layout: "single-pack",
   };
   const desiredHash = computeStateHash(stateInput);

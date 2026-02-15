@@ -33,7 +33,7 @@ test("config mode (v2) > resolves skills+mcp from dotfiles registry", async () =
     const nexusCfg = {
       version: 1,
       repoRoot,
-      clients: ["claude", "mcp"],
+      clients: ["claude"],
       enable: { skills: ["humanizer"], mcp: ["filesystem"] },
       // v2: no local sources required
       overrides: { skills: {}, mcp: {} },

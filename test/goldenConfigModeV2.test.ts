@@ -51,7 +51,7 @@ describe("golden: v2 config-mode", () => {
         JSON.stringify({
           version: 1,
           repoRoot,
-          clients: ["claude", "mcp"],
+          clients: ["claude"],
           enable: { skills: ["repo-status"], mcp: ["filesystem"] },
           overrides: { skills: {}, mcp: {} },
           layout: "direct",
@@ -101,7 +101,7 @@ describe("golden: v2 config-mode", () => {
         JSON.stringify({
           version: 1,
           repoRoot,
-          clients: ["claude", "mcp"],
+          clients: ["claude"],
           enable: { skills: ["repo-status"], mcp: ["filesystem"] },
           overrides: { skills: {}, mcp: {} },
           layout: "generated",

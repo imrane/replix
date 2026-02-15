@@ -6,7 +6,7 @@
 # - Enabled skills are resolved by Nix (fetchGit for github) and passed to nexus via --config JSON
 
 { system
-, clients ? [ "claude" "mcp" "codex" "opencode" ]
+, clients ? [ "claude" "codex" "opencode" ]
 , enable ? { skills = []; mcp = []; }
 , skills ? {}            # Optional overrides for skills. If omitted, skills resolve from dotfiles registry at runtime.
 , vars ? {}              # Optional per-project templating vars overrides.

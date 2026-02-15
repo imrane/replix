@@ -36,7 +36,7 @@ test("config mode (v2) > mcp templating merges process < dotfiles < project vars
     const nexusCfg = {
       version: 1,
       repoRoot,
-      clients: ["mcp"],
+      clients: [],
       enable: { skills: [], mcp: ["filesystem"] },
       vars: {
         NEXUS_TEMPLATE_TEST: "from-project",
@@ -85,7 +85,7 @@ test("config mode (v2) > strictEnv false allows missing vars", async () => {
     const nexusCfg = {
       version: 1,
       repoRoot,
-      clients: ["mcp"],
+      clients: [],
       enable: { skills: [], mcp: ["filesystem"] },
       overrides: { skills: {}, mcp: {} },
     };
@@ -125,7 +125,7 @@ test("config mode (v2) > strictEnv true errors on missing vars", async () => {
     const nexusCfg = {
       version: 1,
       repoRoot,
-      clients: ["mcp"],
+      clients: [],
       enable: { skills: [], mcp: ["filesystem"] },
       overrides: { skills: {}, mcp: {} },
     };

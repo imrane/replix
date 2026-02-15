@@ -73,7 +73,7 @@ Projects just enable what they need:
     in {
       devShells.${system}.default = nexus.lib.mkRepo {
         inherit system;
-        clients = [ "claude" "mcp" ];
+        clients = [ "claude" ];
         enable = {
           skills = [ "humanizer" "repo-status" ];
           mcp = [ "filesystem" ];
@@ -217,8 +217,8 @@ Tool Directories (.claude/skills/, .mcp.json, etc.)
 nexus.lib.mkRepo {
   system = "x86_64-linux";
   
-  # Which clients to emit for
-  clients = [ "claude" "mcp" "codex" "opencode" ];
+  # Which clients to emit for (MCP is protocol-level, not a client)
+  clients = [ "claude" "codex" "opencode" ];
   
   # Enable from dotfiles skill library
   enable = {
@@ -349,7 +349,9 @@ enable = {
 - Fetch source
 - Copy to `.claude/skills/<skill-name>/`
 
-### 10.2 MCP
+### 10.2 MCP (Protocol Surface, Not a Client)
+
+MCP is a protocol consumed by tool clients (Claude/Codex/OpenCode), not a standalone client.
 
 **Writes:**
 - `.mcp.json`
