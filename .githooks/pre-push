@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fast local gate before pushing. CI is still the source of truth.
+
+if command -v bun >/dev/null 2>&1; then
+  bun test
+else
+  echo "bun not found; skipping tests" >&2
+fi
