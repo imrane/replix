@@ -54,13 +54,13 @@ jobs:
           name: coverage-lcov
           path: coverage/lcov.info
 
-      - name: Upload coverage to Codecov
+      - name: Upload coverage reports to Codecov
         if: always() && hashFiles('coverage/lcov.info') != ''
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Optional client smoke tests (gated)
         if: vars.NEXUS_CLIENT_SMOKE == '1'
