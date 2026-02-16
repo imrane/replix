@@ -230,13 +230,13 @@ nix flake check
 ## Next Agent Tasks
 
 **Current priority queue (refactor-first):**
-1. `2026-02-14-nexus-9dy` — Refactor `runNexus` into compile-plan + emit pipeline (**in_progress**)
-2. `2026-02-14-nexus-n4j` — Cleanup legacy compatibility surfaces (remove/gate)
-3. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
-4. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection (**in_progress**)
-5. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema) (**in_progress**)
+1. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
+2. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection (**in_progress**)
+3. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema) (**in_progress**)
 
 **Recently closed:**
+- `2026-02-14-nexus-9dy` (runNexus collapsed into compile-plan + emit pipeline - 2026-02-16)
+- `2026-02-14-nexus-n4j` (legacy compatibility surfaces gated behind env flags - 2026-02-16)
 - `2026-02-14-nexus-0uk` (selective github source includes via `?include=` + tests/docs)
 - `2026-02-14-nexus-6pg` (OpenCode native outputs parity: skills + MCP from canonical enable lists)
 - `2026-02-14-nexus-fu5` (test suite trimmed to high-signal behavior/golden core; heavy suites gated)
@@ -295,21 +295,24 @@ PRD.md remains source of truth for v2 goals.
 ---
 
 ## Session Delta (2026-02-16, concise)
-- Closed epic `nexus-9yh` after landing plugin architecture slices:
+- **Refactor complete (9dy + n4j):**
+  - Collapsed `runNexus.ts` from 360+ lines to ~60 lines via compile-plan + emit pipeline abstraction
+  - Extracted `src/compile/plan.ts` (unified EmitPlan type + compilers for config/pack modes)
+  - Extracted `src/compile/emit.ts` (pure emission logic consuming plan)
+  - Gated pack.json mode behind `NEXUS_DISABLE_PACK_MODE=1` env flag
+  - Gated legacy plugin env vars behind `NEXUS_DISABLE_LEGACY_ENV=1` env flag with deprecation warnings
+  - All 89 tests remain green; no regressions
+- Previous session (closed epic `nexus-9yh`):
   - `src/clientPlugins/*` (client path normalize/validate hooks)
   - `src/outputPlugins/*` (emission + desiredPaths plugin hooks)
-  - external plugin loader and dotfiles-first plugin registry (`programs.nexus.plugins`), keyed by client name.
-- README upgraded:
-  - examples now include `commands/hooks/agents/settings` selectors (not only skills/mcp)
-  - plugin usage documented with dotfiles registry + per-repo client enable.
-- Pack fixture expanded with canonical folders/files:
-  - `fixtures/packs/core/{commands,hooks,agents}` examples (plus test coverage).
+  - external plugin loader and dotfiles-first plugin registry (`programs.nexus.plugins`)
+  - README upgraded with canonical selectors examples
+  - Pack fixture expanded with `{commands,hooks,agents}` examples
 - `3tv` progress:
-  - added typed intermediate schema parser (`src/specSchema.ts`) with path safety gates
-  - added compiler layer (`src/specCompiler.ts`) + CLI script (`scripts/spec-compile.ts`)
-  - added CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
-  - added fixtures/tests for schema/compiler/CLI.
-- Current test baseline: `115 pass, 0 fail`.
+  - typed intermediate schema parser (`src/specSchema.ts`)
+  - compiler layer (`src/specCompiler.ts`) + CLI (`scripts/spec-compile.ts`)
+  - CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
+- Current test baseline: `89 pass, 0 fail`.
 
-**Last updated:** 2026-02-16 22:58 UTC  
-**Status:** v2 config-mode shipping with pluginized client/output architecture; active focus is `2026-02-14-nexus-9dy` (runNexus collapse) + `2026-02-14-nexus-n4j` (legacy cleanup).
+**Last updated:** 2026-02-16 23:12 UTC  
+**Status:** v2 config-mode shipping with pluginized client/output architecture; runNexus refactored into compile-plan + emit pipeline with legacy compatibility gated behind env flags.

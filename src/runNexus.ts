@@ -1,25 +1,14 @@
-import { cp, mkdir, readFile, rm, stat, writeFile, chmod } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { loadLocalPack } from "./resolver/localPack";
-import { loadPackMcpServers, loadPackOpenCodeAssets, packSkillByItemId } from "./resolver/coreItems";
-import { loadDotfilesRegistryFromEnv, type DotfilesClientFileDef } from "./resolver/dotfilesConfig";
-import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
-import { parseEnableSpec } from "./enable";
-import { compileGraph, type AvailableItems } from "./graph";
-import { formatId } from "./canonicalId";
+import { loadPackMcpServers, loadPackOpenCodeAssets } from "./resolver/coreItems";
+import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
 import { computeStateHash } from "./state";
 import { shouldSkipEmit, writeStateHash } from "./stateFile";
-import type { ClaudeSkillInput } from "./emitters/claude";
-import type { McpServerInput } from "./emitters/mcp";
-import type { OpenCodeAssetInput } from "./emitters/opencode";
-import { cleanupFull, cleanupOwnedOnly } from "./cleanup";
-import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
-import { templateMcpServer } from "./templating";
-import { resolveEnabledClientPaths } from "./compile/clientPaths";
+import { parseNexusConfig } from "./configSchema";
+import { compilePlanFromConfig, compilePlanFromPack } from "./compile/plan";
+import { emitPlan } from "./compile/emit";
 import "./clientPlugins/builtins";
-import { applyClientPathNormalization, assertClientPathSupported } from "./clientPlugins/registry";
 import "./outputPlugins/builtins";
-import { getOutputPlugin } from "./outputPlugins/registry";
 import { loadExternalPlugins } from "./plugins/loadExternal";
 
 export type RunNexusArgs = {
@@ -27,13 +16,13 @@ export type RunNexusArgs = {
   configPath?: string | null;
 };
 
-type ClientFileInjection = {
-  client: string;
-  relPath: string;
-  def: DotfilesClientFileDef;
-};
+const PACK_MODE_DISABLED = process.env.NEXUS_DISABLE_PACK_MODE === "1";
 
-const CUSTOM_FILES_MANIFEST = join(".nexus", "custom-files-owned.json");
+const PACK_MODE_DEPRECATION_WARNING = [
+  "⚠️ [DEPRECATED] pack.json mode is legacy and will be removed soon.",
+  "👉 Migrate to dotfiles + mkRepo config mode (NEXUS_DOTFILES_CONFIG_JSON + --config).",
+  "💡 Set NEXUS_DISABLE_PACK_MODE=1 to disable pack.json fallback entirely.",
+].join("\n");
 
 async function findPackRoot(start: string): Promise<string | null> {
   let current = start;
@@ -50,377 +39,62 @@ async function findPackRoot(start: string): Promise<string | null> {
   }
 }
 
-async function loadConfig(configPath: string): Promise<NexusConfigV1> {
-  const raw = await Bun.file(configPath).text();
-  const json = JSON.parse(raw);
-  return parseNexusConfig(json);
-}
-
-async function sourcePathFromDotfiles(source: string, allowUnpinned?: boolean): Promise<string> {
-  return resolveDotfilesSourceToPath(source, { allowUnpinned });
-}
-
-async function readCustomFilesManifest(repoRoot: string): Promise<string[]> {
-  try {
-    const raw = await readFile(join(repoRoot, CUSTOM_FILES_MANIFEST), "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed?.paths) ? parsed.paths.filter((p) => typeof p === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-async function writeCustomFilesManifest(repoRoot: string, relPaths: string[]): Promise<void> {
-  const out = join(repoRoot, CUSTOM_FILES_MANIFEST);
-  await mkdir(dirname(out), { recursive: true });
-  await writeFile(out, JSON.stringify({ paths: [...new Set(relPaths)].sort() }, null, 2) + "\n", "utf8");
-}
-
-async function cleanupStaleCustomFiles(repoRoot: string, desiredRelPaths: string[]): Promise<void> {
-  const prev = await readCustomFilesManifest(repoRoot);
-  const desired = new Set(desiredRelPaths.map((p) => p.replace(/^\/+/, "")));
-  for (const rel of prev) {
-    const normalized = rel.replace(/^\/+/, "");
-    if (desired.has(normalized)) continue;
-    await rm(join(repoRoot, normalized), { recursive: true, force: true });
-  }
-}
-
-async function emitClientFile(repoRoot: string, inj: ClientFileInjection): Promise<void> {
-  const outPath = join(repoRoot, inj.relPath);
-  await mkdir(dirname(outPath), { recursive: true });
-
-  if (typeof inj.def.text === "string") {
-    await writeFile(outPath, inj.def.text, "utf8");
-  } else if (typeof inj.def.source === "string") {
-    const srcPath = await sourcePathFromDotfiles(inj.def.source, inj.def.allowUnpinned);
-    const srcStat = await stat(srcPath);
-    if (srcStat.isDirectory()) {
-      await rm(outPath, { recursive: true, force: true });
-      await mkdir(outPath, { recursive: true });
-      await cp(srcPath, outPath, { recursive: true, force: true });
-    } else {
-      await cp(srcPath, outPath, { force: true });
-    }
-  } else {
-    throw new Error(`client file ${inj.client}:${inj.relPath} must define one of text|source`);
-  }
-
-  if (inj.def.mode) {
-    await chmod(outPath, Number.parseInt(inj.def.mode, 8));
-  } else if (inj.def.executable) {
-    await chmod(outPath, 0o755);
-  }
-}
-
-// client path normalization and support checks are provided by client file plugins.
-
-function resolveClientFileInjections(
-  cfg: NexusConfigV1,
-  dotfiles: Awaited<ReturnType<typeof loadDotfilesRegistryFromEnv>>,
-  enableSpec: ReturnType<typeof parseEnableSpec>,
-): ClientFileInjection[] {
-  const out: ClientFileInjection[] = [];
-
-  for (const client of cfg.clients) {
-    const defs = dotfiles.clients.get(client)?.files ?? {};
-    const definedPaths = Object.keys(defs).sort();
-
-    const enabledPaths = resolveEnabledClientPaths({
-      client,
-      enable: enableSpec,
-      explicitPaths: cfg.enable.clients?.[client]?.files,
-      definedPaths,
-    });
-
-    const seenNormalized = new Set<string>();
-
-    for (const rawRelPath of enabledPaths) {
-      const relPath = applyClientPathNormalization(client, rawRelPath);
-      assertClientPathSupported(client, relPath);
-
-      if (client === "codex" && relPath === ".codex/config.toml") {
-        throw new Error("codex .codex/config.toml is generated from canonical mcp/skills; do not inject it via clients.codex.files");
-      }
-
-      if (seenNormalized.has(relPath)) {
-        throw new Error(`duplicate client file path after normalization: ${client}.${relPath}`);
-      }
-      seenNormalized.add(relPath);
-
-      const def = defs[rawRelPath] ?? defs[relPath];
-      if (!def) throw new Error(`missing client file def in dotfiles: ${client}.${rawRelPath}`);
-      out.push({ client, relPath, def });
-    }
-  }
-
-  return out;
-}
-
-const PACK_MODE_DEPRECATION_WARNING = [
-  "⚠️ [DEPRECATED] pack.json mode is legacy and will be removed in v2.0.0.",
-  "👉 Migrate to dotfiles + mkRepo config mode (NEXUS_DOTFILES_CONFIG_JSON + --config).",
-  "📅 Timeline: v1.x = compatibility mode with warnings; v2.0.0 = pack.json mode removed.",
-].join("\n");
-
 export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void> {
-  // Mode A: config-driven (no pack.json required)
+  // Config mode: dotfiles + mkRepo
   if (configPath) {
-    const cfg = await loadConfig(configPath);
-    const repoRoot = cfg.repoRoot ?? cwd;
-    const layout = cfg.layout ?? "direct";
-    const cleanupMode = cfg.cleanup ?? "owned-only";
-    const emitRoot = layout === "generated" ? join(repoRoot, ".nexus", "generated") : repoRoot;
-
     console.log("🔧 Nexus: loading config...");
-
-    const enableSpec = parseEnableSpec(cfg.enable);
+    const raw = await Bun.file(configPath).text();
+    const cfg = parseNexusConfig(JSON.parse(raw));
 
     const dotfiles = await loadDotfilesRegistryFromEnv();
     await loadExternalPlugins({ cwd, clients: cfg.clients, dotfiles });
 
-    const availableSkillIds = new Set<string>([...Object.keys(cfg.overrides.skills), ...dotfiles.skills.keys()]);
-    const availableSkills = new Map([...availableSkillIds].sort().map((itemId) => [itemId, { kind: "skill" as const, itemId }]));
+    const plan = await compilePlanFromConfig({ cfg, dotfiles, cwd });
+    const desiredHash = computeStateHash(plan.stateHashInput);
 
-    const availableMcpIds = new Set<string>([...dotfiles.mcp.keys()]);
-    const availableMcp = new Map([...availableMcpIds].sort().map((name) => [name, { kind: "mcp" as const, name }]));
-
-    const claudeFiles = dotfiles.clients.get("claude")?.files ?? {};
-    const availableCommands = new Map(
-      Object.keys(claudeFiles)
-        .filter((p) => p.startsWith(".claude/commands/"))
-        .map((p) => [p.replace(".claude/commands/", ""), { kind: "command" as const, itemId: p.replace(".claude/commands/", "") }]),
-    );
-    const availableHooks = new Map(
-      Object.keys(claudeFiles)
-        .filter((p) => p.startsWith(".claude/hooks/"))
-        .map((p) => [p.replace(".claude/hooks/", ""), { kind: "hook" as const, itemId: p.replace(".claude/hooks/", "") }]),
-    );
-    const availableAgents = new Map(
-      Object.keys(claudeFiles)
-        .filter((p) => p.startsWith(".claude/agents/"))
-        .map((p) => [p.replace(".claude/agents/", ""), { kind: "agent" as const, itemId: p.replace(".claude/agents/", "") }]),
-    );
-    const availableSettings = new Map<string, { kind: "setting"; itemId: string }>();
-    if (claudeFiles[".claude/settings.json"]) availableSettings.set("settings", { kind: "setting", itemId: "settings" });
-    if (claudeFiles[".claude/settings.local.json"]) {
-      availableSettings.set("settingsLocal", { kind: "setting", itemId: "settingsLocal" });
-    }
-
-    const available: AvailableItems = {
-      skills: availableSkills,
-      mcp: availableMcp,
-      commands: availableCommands,
-      hooks: availableHooks,
-      agents: availableAgents,
-      settings: availableSettings,
-    };
-
-    const graph = compileGraph({ available, enable: enableSpec });
-    const clientFileInjections = resolveClientFileInjections(cfg, dotfiles, enableSpec);
-
-    const desiredHash = computeStateHash({
-      packs: [{ id: "config", rev: "v1" }],
-      enable: enableSpec,
-      clients: cfg.clients,
-      layout: `config:${layout}`,
-      extra: {
-        clientFiles: clientFileInjections.map((inj) => ({
-          client: inj.client,
-          path: inj.relPath,
-          text: inj.def.text,
-          source: inj.def.source,
-          mode: inj.def.mode,
-          executable: inj.def.executable,
-        })),
-      },
-    });
-
-    if (await shouldSkipEmit(emitRoot, desiredHash)) {
+    if (await shouldSkipEmit(plan.emitRoot, desiredHash)) {
       console.log("✅ Nexus: no changes (state hash matches), skipping emit");
       return;
     }
 
     console.log("📦 Nexus: emitting outputs...");
-
-    const claudeSkills: ClaudeSkillInput[] = await Promise.all(
-      graph.skills.map(async (node) => {
-        const fromCfg = cfg.overrides.skills[node.item.itemId]?.path;
-        const dotfilesSkill = dotfiles.skills.get(node.item.itemId);
-        const fromDotfiles = dotfilesSkill?.source;
-
-        const srcDir =
-          fromCfg ??
-          (fromDotfiles ? await sourcePathFromDotfiles(fromDotfiles, dotfilesSkill?.allowUnpinned) : null);
-        if (!srcDir) throw new Error(`missing skill source for: ${node.item.itemId}`);
-
-        return {
-          id: formatId({ pack: "config", imp: "skills", item: node.id }),
-          itemId: node.item.itemId,
-          srcDir,
-        };
-      }),
-    );
-
-    const processVars = Object.fromEntries(
-      Object.entries(process.env)
-        .filter(([, v]) => typeof v === "string")
-        .map(([k, v]) => [k, v as string]),
-    );
-    const mergedVars = {
-      ...processVars,
-      ...dotfiles.vars,
-      ...cfg.vars,
-    };
-    const strictEnv = cfg.strictEnv ?? dotfiles.strictEnv;
-
-    const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
-      const server = dotfiles.mcp.get(node.item.name);
-      if (!server) throw new Error(`missing mcp server def in dotfiles: ${node.item.name}`);
-      return {
-        id: formatId({ pack: "config", imp: "mcp", item: node.id }),
-        name: node.item.name,
-        server: templateMcpServer(server, {
-          vars: mergedVars,
-          strictEnv,
-          projectRoot: repoRoot,
-        }),
-      };
-    });
-
-    const desiredPaths = [
-      ...(cfg.clients.includes("claude")
-        ? getOutputPlugin("claude").desiredPaths({ repoRoot: emitRoot, claudeSkills })
-        : []),
-      ...getOutputPlugin("mcp").desiredPaths({ repoRoot: emitRoot, mcpServers: mcpInputs }),
-      ...(cfg.clients.includes("opencode")
-        ? getOutputPlugin("opencode").desiredPaths({ repoRoot: emitRoot, claudeSkills, mcpServers: mcpInputs, openCodeAssets: [] })
-        : []),
-      ...(cfg.clients.includes("codex")
-        ? getOutputPlugin("codex").desiredPaths({ repoRoot: emitRoot, codexConfigToml: "# nexus-managed\n", claudeSkills, mcpServers: mcpInputs })
-        : []),
-      ...clientFileInjections.map((inj) => join(emitRoot, inj.relPath)),
-    ];
-
-    if (cleanupMode === "full") {
-      await cleanupFull(emitRoot);
-    } else {
-      await cleanupOwnedOnly({ repoRoot: emitRoot, desiredPaths });
-      await cleanupStaleCustomFiles(emitRoot, clientFileInjections.map((inj) => inj.relPath));
-    }
-
-    if (cfg.clients.includes("claude")) {
-      await getOutputPlugin("claude").emit({ repoRoot: emitRoot, claudeSkills });
-    }
-
-    await getOutputPlugin("mcp").emit({ repoRoot: emitRoot, mcpServers: mcpInputs });
-
-    if (cfg.clients.includes("opencode")) {
-      await getOutputPlugin("opencode").emit({ repoRoot: emitRoot, claudeSkills, mcpServers: mcpInputs, openCodeAssets: [] });
-    }
-
-    if (cfg.clients.includes("codex")) {
-      await getOutputPlugin("codex").emit({ repoRoot: emitRoot, codexConfigToml: "# nexus-managed\n", claudeSkills, mcpServers: mcpInputs });
-    }
-
-    for (const inj of clientFileInjections) {
-      await emitClientFile(emitRoot, inj);
-    }
-    await writeCustomFilesManifest(emitRoot, clientFileInjections.map((inj) => inj.relPath));
-
-    await writeStateHash(emitRoot, desiredHash);
+    await emitPlan(plan);
+    await writeStateHash(plan.emitRoot, desiredHash);
     console.log("✅ Nexus: done");
     return;
   }
 
-  // Mode B: pack.json-driven (v1)
-  const packRoot = await findPackRoot(cwd);
-  if (!packRoot) {
-    throw new Error("No pack.json found (searched up from current directory)");
+  // Pack mode: legacy compatibility
+  if (PACK_MODE_DISABLED) {
+    throw new Error(
+      "pack.json mode is disabled (NEXUS_DISABLE_PACK_MODE=1). Use dotfiles + mkRepo config mode instead.",
+    );
   }
 
-  const repoRoot = packRoot;
-
-  await loadExternalPlugins({ cwd, clients: ["claude", "codex", "opencode"] });
+  const packRoot = await findPackRoot(cwd);
+  if (!packRoot) {
+    throw new Error("No pack.json found and no --config specified. See README for migration to config mode.");
+  }
 
   console.warn(PACK_MODE_DEPRECATION_WARNING);
   console.log("🔧 Nexus: loading pack...");
+
+  await loadExternalPlugins({ cwd, clients: ["claude", "codex", "opencode"] });
+
   const pack = await loadLocalPack(packRoot);
-
-  const availableSkills = new Map(pack.skills.map((s) => [s.itemId, { kind: "skill" as const, itemId: s.itemId }]));
-
   const mcpServers = await loadPackMcpServers(packRoot);
-  const availableMcp = new Map(mcpServers.map((m) => [m.name, { kind: "mcp" as const, name: m.name }]));
-
   const openCodeAssets = await loadPackOpenCodeAssets(packRoot);
 
-  const enableSpec = parseEnableSpec(pack.meta.enable ?? {});
+  const plan = await compilePlanFromPack({ pack, packRoot, mcpServers, openCodeAssets });
+  const desiredHash = computeStateHash(plan.stateHashInput);
 
-  const available: AvailableItems = {
-    skills: availableSkills,
-    mcp: availableMcp,
-  };
-  const graph = compileGraph({ available, enable: enableSpec });
-
-  const stateInput = {
-    packs: [{ id: pack.meta.id, rev: pack.meta.version }],
-    enable: enableSpec,
-    clients: ["claude", "codex", "opencode"],
-    layout: "single-pack",
-  };
-  const desiredHash = computeStateHash(stateInput);
-
-  if (await shouldSkipEmit(repoRoot, desiredHash)) {
+  if (await shouldSkipEmit(packRoot, desiredHash)) {
     console.log("✅ Nexus: no changes (state hash matches), skipping emit");
     return;
   }
 
   console.log("📦 Nexus: emitting outputs...");
-
-  const claudeSkills: ClaudeSkillInput[] = graph.skills.map((node) => {
-    const skill = packSkillByItemId(pack, node.item.itemId);
-    return {
-      id: formatId({ pack: pack.meta.id, imp: "skills", item: node.id }),
-      itemId: skill.itemId,
-      srcDir: skill.srcDir,
-    };
-  });
-
-  const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
-    const srv = mcpServers.find((s) => s.name === node.item.name);
-    if (!srv) throw new Error(`missing mcp server: ${node.item.name}`);
-    return {
-      id: formatId({ pack: pack.meta.id, imp: "mcp", item: node.id }),
-      name: srv.name,
-      server: srv.server,
-    };
-  });
-
-  const openCodeInputs: OpenCodeAssetInput[] = openCodeAssets.map((asset) => ({
-    id: formatId({ pack: pack.meta.id, imp: asset.kind, item: asset.fileName }),
-    kind: asset.kind,
-    fileName: asset.fileName,
-    srcPath: asset.srcPath,
-  }));
-
-  const desiredPaths = [
-    ...getOutputPlugin("claude").desiredPaths({ repoRoot, claudeSkills }),
-    ...getOutputPlugin("mcp").desiredPaths({ repoRoot, mcpServers: mcpInputs }),
-    ...getOutputPlugin("codex").desiredPaths({ repoRoot, codexConfigToml: "# nexus-managed\n" }),
-    ...getOutputPlugin("opencode").desiredPaths({ repoRoot, openCodeAssets: openCodeInputs }),
-  ];
-
-  await cleanupOwnedOnly({ repoRoot, desiredPaths });
-  await getOutputPlugin("claude").emit({ repoRoot, claudeSkills });
-
-  await getOutputPlugin("mcp").emit({ repoRoot, mcpServers: mcpInputs });
-
-  // Codex conformance: emit only a Nexus ownership marker by default.
-  // Avoid speculative defaults for Codex config sections.
-  await getOutputPlugin("codex").emit({ repoRoot, codexConfigToml: `# nexus-managed\n` });
-
-  await getOutputPlugin("opencode").emit({ repoRoot, openCodeAssets: openCodeInputs });
-
-  await writeStateHash(repoRoot, desiredHash);
+  await emitPlan(plan);
+  await writeStateHash(packRoot, desiredHash);
   console.log("✅ Nexus: done");
 }
