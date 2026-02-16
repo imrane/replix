@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, rmSync, cpSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 
 export type ParsedGithubSource = {
@@ -7,14 +8,16 @@ export type ParsedGithubSource = {
   repo: string;
   ref: string | null;
   subpath: string | null;
+  include: string[];
   floating: boolean;
 };
 
 // Supported forms:
-// - github:owner/repo@<rev>[#sub/dir]           (legacy pinned)
-// - github:owner/repo?rev=<rev>[#sub/dir]       (pinned)
-// - github:owner/repo/<branch>[#sub/dir]        (floating branch)
-// - github:owner/repo[#sub/dir]                 (floating default branch)
+// - github:owner/repo@<rev>[#sub/dir]                      (legacy pinned)
+// - github:owner/repo?rev=<rev>[#sub/dir]                  (pinned)
+// - github:owner/repo?rev=<rev>&include=a,b[#sub/dir]      (pinned + selective include)
+// - github:owner/repo/<branch>[#sub/dir]                   (floating branch)
+// - github:owner/repo[#sub/dir]                            (floating default branch)
 export function parseGithubSource(src: string): ParsedGithubSource | null {
   if (!src.startsWith("github:")) return null;
 
@@ -28,6 +31,11 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
 
   const query = new URLSearchParams(queryPart);
   const revFromQuery = query.get("rev");
+  const include = (query.get("include") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.replace(/^\.\//, "").replace(/^\/+/, ""));
 
   const legacyPinned = /^([^/]+)\/([^@/]+)@([0-9a-f]+)$/.exec(pathPart);
   if (legacyPinned) {
@@ -36,6 +44,7 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
       repo: legacyPinned[2]!,
       ref: legacyPinned[3]!,
       subpath,
+      include,
       floating: false,
     };
   }
@@ -51,14 +60,14 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
   }
 
   if (revFromQuery) {
-    return { owner: owner!, repo: repo!, ref: revFromQuery, subpath, floating: false };
+    return { owner: owner!, repo: repo!, ref: revFromQuery, subpath, include, floating: false };
   }
 
   if (branchRef) {
-    return { owner: owner!, repo: repo!, ref: branchRef, subpath, floating: true };
+    return { owner: owner!, repo: repo!, ref: branchRef, subpath, include, floating: true };
   }
 
-  return { owner: owner!, repo: repo!, ref: null, subpath, floating: true };
+  return { owner: owner!, repo: repo!, ref: null, subpath, include, floating: true };
 }
 
 function cacheRoot(): string {
@@ -91,6 +100,31 @@ function sourceCacheKey(g: ParsedGithubSource): string {
   return g.ref.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function includeCacheKey(include: string[]): string {
+  if (include.length === 0) return "all";
+  const hash = createHash("sha1");
+  hash.update(include.join("\n"));
+  return hash.digest("hex").slice(0, 12);
+}
+
+function materializeSelectiveInclude(root: string, include: string[]): string {
+  const out = join(root, ".nexus-includes", includeCacheKey(include));
+  rmSync(out, { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
+
+  for (const rel of include) {
+    const src = join(root, rel);
+    if (!existsSync(src)) {
+      throw new Error(`github source include path does not exist: ${rel}`);
+    }
+    const dst = join(out, rel);
+    mkdirSync(dirname(dst), { recursive: true });
+    cpSync(src, dst, { recursive: true, force: true });
+  }
+
+  return out;
+}
+
 export async function resolveDotfilesSourceToPath(
   source: string,
   opts?: { allowUnpinned?: boolean },
@@ -110,6 +144,7 @@ export async function resolveDotfilesSourceToPath(
           "  github:owner/repo@<rev>#sub/dir",
           "  github:owner/repo?rev=<rev>",
           "  github:owner/repo?rev=<rev>#sub/dir",
+          "  github:owner/repo?rev=<rev>&include=path1,path2#sub/dir",
           "  github:owner/repo/<branch>",
           "  github:owner/repo/<branch>#sub/dir",
           "  github:owner/repo",
@@ -154,7 +189,8 @@ export async function resolveDotfilesSourceToPath(
       }
     }
 
-    const resolved = g.subpath ? join(root, g.subpath) : root;
+    const sourceRoot = g.include.length > 0 ? materializeSelectiveInclude(root, g.include) : root;
+    const resolved = g.subpath ? join(sourceRoot, g.subpath) : sourceRoot;
     if (!existsSync(resolved)) {
       throw new Error(`resolved github source path does not exist: ${resolved}`);
     }

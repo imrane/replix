@@ -276,6 +276,9 @@ programs.nexus.skills = {
   # GitHub repo
   # GitHub sources must be pinned: github:owner/repo@<rev>
   humanizer.source = "github:blader/humanizer@<rev>";
+
+  # Optional: selective include (reduces clone/copy surface)
+  repo-status.source = "github:acme/skills?rev=<rev>&include=skills/repo-status,commands/review.md#skills/repo-status";
   
   # Local path
   repo-status.source = "path:~/.config/nexus/skills/repo-status";
