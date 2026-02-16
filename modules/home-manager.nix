@@ -20,6 +20,20 @@ in {
       description = "Automatically run nexus when entering directories with pack.json";
     };
 
+    packs = mkOption {
+      type = types.listOf (types.submodule ({ ... }: {
+        options = {
+          source = mkOption {
+            type = types.str;
+            description = "Pack source (path:... or github:... pinned). Must resolve to a directory containing pack.json.";
+          };
+          allowUnpinned = mkOption { type = types.bool; default = false; };
+        };
+      }));
+      default = [];
+      description = "Pack-first registry inputs. Packs are loaded first, then direct skills/mcp/client defs can override.";
+    };
+
     # v2 direction: dotfiles registry (skills + MCP servers)
     skills = mkOption {
       type = types.attrsOf (types.submodule ({ ... }: {
@@ -86,6 +100,10 @@ in {
 
     # Export dotfiles registry JSON + env var for runtime resolution.
     home.file."${cfg.registryPath}".text = builtins.toJSON {
+      packs = map (v: {
+        source = v.source;
+        allowUnpinned = v.allowUnpinned;
+      }) cfg.packs;
       skills = mapAttrs (_: v: {
         source = v.source;
         description = v.description;

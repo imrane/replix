@@ -25,7 +25,7 @@ Define AI tooling once in dotfiles, then enable it per repo with one unified sel
 
 ## Quick start
 
-### 1) Dotfiles (define once)
+### 1) Dotfiles (define once, **pack-first**)
 
 ```nix
 # ~/.config/home-manager/nexus.nix
@@ -36,40 +36,33 @@ Define AI tooling once in dotfiles, then enable it per repo with one unified sel
   programs.nexus = {
     enable = true;
 
-    # Canonical skills
-    skills = {
-      # GitHub sources should be pinned
-      humanizer.source = "github:blader/humanizer@<rev>";
+    # PRIMARY: import tooling bundles as packs
+    packs = [
+      { source = "github:your-org/nexus-pack@<rev>"; }
+      { source = "path:~/.config/nexus/packs/internal"; }
+    ];
 
-      # Optional selective include to reduce source surface
-      repo-status.source = "github:acme/skills?rev=<rev>&include=skills/repo-status#skills/repo-status";
-    };
+    # Optional direct overrides (secondary path)
+    skills.humanizer.source = "github:blader/humanizer@<rev>";
 
-    # Canonical MCP definitions
+    # Optional direct MCP override
     mcp.filesystem = {
       command = "npx";
       args = ["-y" "@modelcontextprotocol/server-filesystem" "${ENV:FS_ROOT}"];
     };
 
-    # Canonical artifact definitions (currently mapped from claude namespace)
+    # Optional artifact overrides
     claude.commands."review.md" = { source = "path:~/.config/nexus/claude/commands/review.md"; };
-    claude.hooks."pre-commit.sh" = {
-      source = "path:~/.config/nexus/claude/hooks/pre-commit.sh";
-      executable = true;
-    };
-    claude.agents."security.md" = { source = "path:~/.config/nexus/claude/agents/security.md"; };
-    claude.settings = { source = "path:~/.config/nexus/claude/settings.json"; };
-    claude.settingsLocal = { source = "path:~/.config/nexus/claude/settings.local.json"; };
 
-    # Vars usable in templating
-    vars = {
-      FS_ROOT = "/home/imrane";
-    };
-
+    vars = { FS_ROOT = "/home/imrane"; };
     strictEnv = true;
   };
 }
 ```
+
+Pack-first merge behavior:
+- packs are loaded first
+- direct `skills` / `mcp` / artifact defs override pack values when keys collide
 
 ### 2) Repo flake (enable per repo)
 
@@ -107,6 +100,15 @@ nix develop
 ```
 
 Nexus emits client-native outputs in the repo.
+
+### Pack shape expected by dotfiles pack-first mode
+
+A pack source should contain `pack.json` and may include:
+- `skills/<id>/SKILL.md`
+- `mcp/servers.json`
+- `commands/*.md`
+- `hooks/*`
+- `agents/*.md`
 
 ---
 
@@ -231,9 +233,10 @@ nexus spec compile --in <snapshot.json> --out <schema.json>
 ## Status
 
 - ✅ v2 config-mode is active and primary
-- ✅ Unified selectors are the recommended entrypoint
+- ✅ Pack-first dotfiles registry (`programs.nexus.packs`) is enabled
+- ✅ Unified selectors are the recommended per-repo entrypoint
 - ✅ Canonical MCP compiles to all supported client outputs
-- ⚠️ Legacy pack mode remains for compatibility and is queued for removal
+- ⚠️ Legacy repo-local pack mode (`pack.json` fallback) remains compatibility-only and is queued for removal
 
 See:
 - `PRD.md` for roadmap/spec
