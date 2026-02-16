@@ -24,9 +24,14 @@ export type DotfilesClientDef = {
 };
 
 export type DotfilesClaudeDef = {
+  // Convenience sections for repo-scoped Claude Code artifacts.
   commands?: Record<string, DotfilesClientFileDef>;
   hooks?: Record<string, DotfilesClientFileDef>;
   agents?: Record<string, DotfilesClientFileDef>;
+
+  // Settings are a single file (not a directory).
+  // This maps to `.claude/settings.json` in the repo.
+  settings?: DotfilesClientFileDef;
 };
 
 export type DotfilesConfig = {
@@ -68,6 +73,13 @@ function toClaudeClientFiles(cfg: DotfilesConfig): Record<string, DotfilesClient
       if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
       out[rel] = def;
     }
+  }
+
+  // Convenience: single-file repo settings
+  if (cfg.claude?.settings) {
+    const rel = ".claude/settings.json";
+    if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
+    out[rel] = cfg.claude.settings;
   }
 
   return out;
