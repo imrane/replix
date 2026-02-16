@@ -26,7 +26,7 @@ describe("client path compile", () => {
       client: "claude",
       enable,
       explicitPaths: undefined,
-      definedPaths: [".claude/commands/other.md"],
+      definedPaths: [".claude/commands/review.md", ".claude/commands/other.md"],
     });
 
     expect(out).toEqual([".claude/commands/review.md"]);
@@ -38,9 +38,21 @@ describe("client path compile", () => {
       client: "claude",
       enable,
       explicitPaths: [".claude/hooks/pre-commit.sh"],
-      definedPaths: [],
+      definedPaths: [".claude/commands/review.md", ".claude/hooks/pre-commit.sh"],
     });
 
     expect(out).toEqual([".claude/hooks/pre-commit.sh", ".claude/commands/review.md"]);
+  });
+
+  it("drops canonical selector paths when target client has no matching file defs", () => {
+    const enable = parseEnableSpec({ commands: ["review.md"] });
+    const out = resolveEnabledClientPaths({
+      client: "opencode",
+      enable,
+      explicitPaths: undefined,
+      definedPaths: [],
+    });
+
+    expect(out).toEqual([]);
   });
 });

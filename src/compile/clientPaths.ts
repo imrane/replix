@@ -20,7 +20,7 @@ export function resolveEnabledClientPaths(params: {
   definedPaths: string[];
 }): string[] {
   const { client, enable, explicitPaths, definedPaths } = params;
-  const canonicalPaths = resolveCanonicalSelectorPaths(client, enable);
+  const canonicalPaths = resolveCanonicalSelectorPaths(client, enable).filter((p) => definedPaths.includes(p));
   const hasCanonicalSelectors =
     enable.commands.length > 0 ||
     enable.hooks.length > 0 ||
