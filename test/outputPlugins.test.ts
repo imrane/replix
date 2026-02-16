@@ -26,4 +26,17 @@ describe("output plugins", () => {
     expect(noPath).toEqual([]);
     expect(yesPath).toEqual(["/tmp/repo/.codex/config.toml"]);
   });
+
+  test("opencode plugin includes native skills and opencode MCP config paths", () => {
+    const paths = getOutputPlugin("opencode").desiredPaths({
+      repoRoot: "/tmp/repo",
+      claudeSkills: [{ id: "x", itemId: "humanizer", srcDir: "/tmp/src" }],
+      mcpServers: [{ id: "m", name: "filesystem", server: { command: "npx" } }],
+      openCodeAssets: [],
+    });
+
+    expect(paths).toContain("/tmp/repo/.opencode/skills/humanizer");
+    expect(paths).toContain("/tmp/repo/.opencode/skills/humanizer/SKILL.md");
+    expect(paths).toContain("/tmp/repo/opencode.json");
+  });
 });

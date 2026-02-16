@@ -570,9 +570,11 @@ nix flake check
 
 ⚠️ **v1.0 MVP Complete** (legacy pack.json path still present, queued for removal)
 
-✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, codex conformance guard, OpenCode canonical path normalization, and Claude parity files (`settings`, `settingsLocal`, commands/hooks/agents) are implemented and covered by tests.
+✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, and client outputs are implemented and covered by tests.
 
-🚧 **Next architecture step** — move from mixed path-level client file selection toward a canonical artifact graph compiled by client adapters, then extract clients into separate plugin units.
+✅ **Canonical MCP source direction landed** — one internal MCP definition now compiles to client outputs (`.mcp.json`, `opencode.json`, Codex config generation) instead of maintaining multiple internal MCP sources.
+
+🚧 **Current focus** — compress runtime complexity (`runNexus.ts`) and remove legacy compatibility branches while preserving behavior.
 
 ### Migration Direction (updated)
 
@@ -594,7 +596,7 @@ nexus/
 ├── PRD.md                 # Product requirements + trajectory
 ├── AGENTS.md              # Implementation state + handoff context
 ├── src/                   # TypeScript source
-├── test/                  # Bun tests (85 passing)
+├── test/                  # Bun tests (default suite is fast; optional heavy suites are env-gated)
 ├── modules/               # Nix modules
 │   └── home-manager.nix   # Home-manager integration
 ├── flake.nix              # Nix flake
@@ -626,4 +628,4 @@ MIT
 **Created:** 2026-02-14  
 **Repo:** https://github.com/imrane/nexus  
 **Stack:** Bun + TypeScript + Nix  
-**Tests:** 85 passing
+**Tests:** Passing (core suite optimized; optional integration suites are gated)

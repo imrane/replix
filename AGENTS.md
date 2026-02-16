@@ -58,21 +58,35 @@ nix flake check
 **Stack:** Bun + TypeScript + Nix  
 **Status:** v2 config-mode is implemented and actively hardening; v1 pack mode is queued for removal (no deprecation rollout needed before removal).
 
+### ⚠️ Engineering Warning (Boss directive — 2026-02-16)
+
+The implementation has drifted into **over-engineering** for the core job (compile canonical pack spec to client-native artifacts). Delivery speed is being hurt by layered transitional abstractions and dual-mode compatibility paths.
+
+**What must happen now (non-optional):**
+1. **Ship thin vertical slices** from canonical spec → client-native outputs (starting with OpenCode skills + MCP native config).
+2. **Reduce orchestration complexity** in `runNexus.ts` by moving to one deterministic compile plan + emit path.
+3. **Remove/cordon legacy paths** (pack mode + env/plugin compatibility shims) behind explicit compatibility gates, then delete.
+4. **Keep tests high-signal**: golden behavior tests over combinatorial architecture tests.
+5. **No new abstractions without immediate payoff** to current refactor goals.
+
+If work increases moving parts without reducing branches/LOC in the hot path, stop and redesign simpler.
+
 ### Runtime Reality (what is shipping now)
 
 **Implemented and tested:**
 - Dotfiles registry resolution (`programs.nexus.skills` + `programs.nexus.mcp`)
 - `mkRepo` enable flow + override merging
-- Emitters: Claude, MCP, Codex (`.codex/config.toml` repo scope), OpenCode
+- Emitters: Claude, MCP, Codex, OpenCode
+- **Single-source MCP compilation**: canonical MCP definitions compile to `.mcp.json`, `opencode.json`, and Codex MCP config generation
 - Codex conformance guard (schema + runtime defense-in-depth)
 - OpenCode canonical singular dirs (`command/agent`) + legacy plural alias input support
 - Claude parity files: commands/hooks/agents + `settings` + `settingsLocal`
 - Templating (`${PROJECT_ROOT}`, `${ENV:VAR}`), layout modes, cleanup strategies
 - State hash idempotency + owned-only cleanup
 
-**Tests:** 74 passing
-- Unit + integration + golden coverage
-- Optional gated client smoke (`NEXUS_CLIENT_SMOKE=1`)
+**Tests:** Passing (default suite trimmed + fast)
+- Behavior/golden/integration focus
+- Optional gated heavy suites: `NEXUS_CLIENT_SMOKE=1`, `NEXUS_NIX_SMOKE=1`, `NEXUS_GITHUB_INTEGRATION=1`
 
 **Key Files:**
 - `src/runNexus.ts` - config-mode orchestration + runtime guards
@@ -215,13 +229,14 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Current priority queue (spec-first):**
-1. `2026-02-14-nexus-zjl` — Claude Code artifact spec audit (commands/hooks/agents/settings)
-2. `2026-02-14-nexus-7op` — Codex artifact/config spec audit
-3. `2026-02-14-nexus-3co` — Codex skills surface + shim adapter audit (canonical → codex)
-4. `2026-02-14-nexus-d38` — CI: gated client smoke tests
-5. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
-6. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
+**Current priority queue (refactor-first):**
+1. `2026-02-14-nexus-6pg` — OpenCode plugin parity: canonical pack spec → native OpenCode skills + MCP (**in_progress**)
+2. `2026-02-14-nexus-9dy` — Refactor `runNexus` into compile-plan + emit pipeline (**in_progress**)
+3. `2026-02-14-nexus-n4j` — Cleanup legacy compatibility surfaces (remove/gate)
+4. `2026-02-14-nexus-fu5` — Tests cleanup: behavior-focused golden slices over architecture matrix
+5. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
+6. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
+7. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
 
 **Recently closed:**
 - `2026-02-14-nexus-pry` (Codecov upload + README badge)
@@ -238,12 +253,20 @@ nix flake check
 ## Notes (decisions)
 
 - **OpenCode path alignment (2026-02-15):** upstream `anomalyco/opencode` uses `.opencode/command` + `.opencode/agent` (singular). Nexus now emits/loads these canonical dirs and keeps `commands/agents` as *read-only aliases* for backward compatibility. Rationale: match upstream by default while not breaking existing packs.
-- **Codex scope decision (updated 2026-02-16):** Nexus core keeps Codex selectors as **no-op** (no canonical selector mapping), but repo-scoped file support now allows `.codex/config.toml` plus shim skill roots under `.agents/skills/**` and `.codex/skills/**`.
-- **Codex conformance guard (updated 2026-02-16):** enforced in schema + runtime path guard; unsupported Codex repo paths are rejected, while the shim roots above are explicitly allowed.
+- **Codex scope decision (updated 2026-02-16):** Codex selectors remain **no-op** at canonical selector mapping level, but codex outputs are now compiled from canonical skill/MCP inputs.
+- **Codex conformance guard (updated 2026-02-16):** unsupported Codex repo paths are rejected; codex skill emission target is `.agents/skills/**`; direct injection of `.codex/config.toml` via `clients.codex.files` is blocked to keep a single MCP source.
 - **Testing decision:** keep fast, deterministic golden/schema/cleanup/state tests as the always-on suite; add **gated client smoke tests** (env-var opt-in) when non-interactive validation exists and no auth is required.
 - **TDD calibration (Boss directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
 - **Codex conformance hardening (2026-02-16):** repo support stays strict to `.codex/config.toml`; in pack mode, emit ownership marker only (no speculative default sections like `[skills]`).
 - **CLI usability gap captured (2026-02-16):** added P1 tasks for `list skills/mcp` and flake snippet helper; added P2 task for first-class command/agent enable ergonomics beyond raw `enable.clients.<client>.files` paths.
+- **Problems encountered during ship push (2026-02-16):**
+  - duplicate-path failures when canonical selectors and explicit client file lists targeted the same OpenCode output path
+  - split MCP paths (canonical + client-file overrides) risked two sources of truth
+  - heavy test matrix (nix/github/client smoke always-on) slowed iteration signal
+- **Cleanup rationale applied (2026-02-16):**
+  - enforce one canonical MCP source and compile to each client output
+  - block codex `.codex/config.toml` direct injection via `clients.codex.files`
+  - trim low-signal tests; gate expensive suites behind env flags
 - **Architecture direction (2026-02-16, Boss):** move to one canonical pack/artifact spec (skills, MCP, hooks, commands, agents, settings) compiled by `mkRepo` into client-specific outputs; treat file-path client injection as temporary compatibility.
 - **Removal policy (2026-02-16, Boss):** since adoption is still pre-launch, do not spend cycles on formal deprecation rollout; queue legacy surfaces (notably pack.json mode and path-first client-file APIs) for clean removal as canonical/plugin architecture lands.
 - **Plugin split direction (2026-02-16, Boss):** clients are moving into separate plugin units; prioritize core canonical graph + adapter interface first, then peel built-ins into standalone plugins on that interface.

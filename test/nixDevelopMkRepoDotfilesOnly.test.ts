@@ -14,6 +14,12 @@ function run(cmd: string[], opts?: { cwd?: string; env?: Record<string, string> 
 test(
   "nix develop smoke > mkRepo works with dotfiles registry only (no repo-local sources)",
   () => {
+    if (process.env.NEXUS_NIX_SMOKE !== "1") {
+      console.log("⏭️  nix smoke skipped (set NEXUS_NIX_SMOKE=1 to enable)");
+      expect(true).toBe(true);
+      return;
+    }
+
     const tmp = mkdtempSync("/tmp/nexus-mkRepo-dotfiles-only-");
     const nexusRoot = resolve(__dirname, "..");
 

@@ -139,6 +139,10 @@ function resolveClientFileInjections(
       const relPath = applyClientPathNormalization(client, rawRelPath);
       assertClientPathSupported(client, relPath);
 
+      if (client === "codex" && relPath === ".codex/config.toml") {
+        throw new Error("codex .codex/config.toml is generated from canonical mcp/skills; do not inject it via clients.codex.files");
+      }
+
       if (seenNormalized.has(relPath)) {
         throw new Error(`duplicate client file path after normalization: ${client}.${relPath}`);
       }
@@ -289,6 +293,12 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
         ? getOutputPlugin("claude").desiredPaths({ repoRoot: emitRoot, claudeSkills })
         : []),
       ...getOutputPlugin("mcp").desiredPaths({ repoRoot: emitRoot, mcpServers: mcpInputs }),
+      ...(cfg.clients.includes("opencode")
+        ? getOutputPlugin("opencode").desiredPaths({ repoRoot: emitRoot, claudeSkills, mcpServers: mcpInputs, openCodeAssets: [] })
+        : []),
+      ...(cfg.clients.includes("codex")
+        ? getOutputPlugin("codex").desiredPaths({ repoRoot: emitRoot, codexConfigToml: "# nexus-managed\n", claudeSkills, mcpServers: mcpInputs })
+        : []),
       ...clientFileInjections.map((inj) => join(emitRoot, inj.relPath)),
     ];
 
@@ -304,6 +314,14 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     }
 
     await getOutputPlugin("mcp").emit({ repoRoot: emitRoot, mcpServers: mcpInputs });
+
+    if (cfg.clients.includes("opencode")) {
+      await getOutputPlugin("opencode").emit({ repoRoot: emitRoot, claudeSkills, mcpServers: mcpInputs, openCodeAssets: [] });
+    }
+
+    if (cfg.clients.includes("codex")) {
+      await getOutputPlugin("codex").emit({ repoRoot: emitRoot, codexConfigToml: "# nexus-managed\n", claudeSkills, mcpServers: mcpInputs });
+    }
 
     for (const inj of clientFileInjections) {
       await emitClientFile(emitRoot, inj);

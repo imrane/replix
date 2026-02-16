@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:
 import { join } from "node:path";
 import { runNexus } from "../src/runNexus";
 
-test("config mode (v2) > codex client accepts config + skill shim file paths", async () => {
+test("config mode (v2) > codex client accepts skill shim paths and blocks config.toml injection", async () => {
   const tmp = mkdtempSync("/tmp/nexus-config-codex-conformance-");
   try {
     const repoRoot = join(tmp, "repo");
@@ -16,7 +16,6 @@ test("config mode (v2) > codex client accepts config + skill shim file paths", a
         clients: {
           codex: {
             files: {
-              ".codex/config.toml": { text: "[mcp]\nenabled = true\n" },
               ".agents/skills/humanizer/SKILL.md": { text: "# humanizer\n" },
             },
           },
@@ -36,7 +35,7 @@ test("config mode (v2) > codex client accepts config + skill shim file paths", a
           skills: [],
           mcp: [],
           clients: {
-            codex: { files: [".codex/config.toml", ".agents/skills/humanizer/SKILL.md"] },
+            codex: { files: [".agents/skills/humanizer/SKILL.md"] },
           },
         },
         overrides: { skills: {}, mcp: {} },
@@ -47,14 +46,14 @@ test("config mode (v2) > codex client accepts config + skill shim file paths", a
     expect(existsSync(join(repoRoot, ".codex", "config.toml"))).toBeTrue();
     expect(existsSync(join(repoRoot, ".agents", "skills", "humanizer", "SKILL.md"))).toBeTrue();
 
-    // now set an unsupported codex path and assert hard failure
+    // now try injecting codex config directly and assert hard failure (single canonical MCP source)
     writeFileSync(
       dotfilesCfgPath,
       JSON.stringify({
         clients: {
           codex: {
             files: {
-              ".codex/commands/review.md": { text: "# review\n" },
+              ".codex/config.toml": { text: "# custom\n" },
             },
           },
         },
@@ -71,7 +70,7 @@ test("config mode (v2) > codex client accepts config + skill shim file paths", a
           skills: [],
           mcp: [],
           clients: {
-            codex: { files: [".codex/commands/review.md"] },
+            codex: { files: [".codex/config.toml"] },
           },
         },
         overrides: { skills: {}, mcp: {} },
@@ -79,7 +78,7 @@ test("config mode (v2) > codex client accepts config + skill shim file paths", a
     );
 
     await expect(runNexus({ cwd: repoRoot, configPath: nexusCfgPath })).rejects.toThrow(
-      "unsupported codex repo file path",
+      "generated from canonical mcp/skills",
     );
   } finally {
     rmSync(tmp, { recursive: true, force: true });

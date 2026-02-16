@@ -54,4 +54,39 @@ describe("opencode emitter", () => {
     expect(readFileSync(join(repoRoot, ".opencode", "hooks", "pre-commit.sh"), "utf8")).toContain("echo hi");
     expect(readFileSync(join(repoRoot, ".opencode", "rules", "style.md"), "utf8")).toContain("style");
   });
+
+  it("writes native opencode skills and opencode MCP config", async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
+    const skillSrc = mkdtempSync(join(tmpdir(), "nexus-skill-"));
+    mkdirSync(join(skillSrc, "humanizer"), { recursive: true });
+    writeFileSync(join(skillSrc, "humanizer", "SKILL.md"), "---\nname: humanizer\ndescription: x\n---\n");
+
+    await emitOpenCode({
+      repoRoot,
+      skills: [
+        {
+          id: "core:humanizer",
+          itemId: "humanizer",
+          srcDir: join(skillSrc, "humanizer"),
+        },
+      ],
+      mcpServers: [
+        {
+          id: "core/mcp:filesystem",
+          name: "filesystem",
+          server: {
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-filesystem", "/home"],
+          },
+        },
+      ],
+    });
+
+    expect(existsSync(join(repoRoot, ".opencode", "skills", "humanizer", "SKILL.md"))).toBeTrue();
+
+    const cfg = JSON.parse(readFileSync(join(repoRoot, "opencode.json"), "utf8"));
+    expect(cfg.mcp.filesystem.type).toBe("local");
+    expect(cfg.mcp.filesystem.command).toEqual(["npx", "-y", "@modelcontextprotocol/server-filesystem", "/home"]);
+    expect(cfg.mcp.filesystem.enabled).toBeTrue();
+  });
 });

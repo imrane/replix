@@ -30,20 +30,28 @@ registerOutputPlugin({
 
 registerOutputPlugin({
   id: "codex",
-  desiredPaths: ({ repoRoot, codexConfigToml }) => (typeof codexConfigToml === "string" ? [join(repoRoot, ".codex", "config.toml")] : []),
-  emit: async ({ repoRoot, codexConfigToml }) => {
-    if (typeof codexConfigToml !== "string") return;
-    await emitCodex({ repoRoot, configToml: codexConfigToml });
+  desiredPaths: ({ repoRoot, codexConfigToml, claudeSkills = [], mcpServers = [] }) => {
+    const configPath = typeof codexConfigToml === "string" || mcpServers.length > 0 ? [join(repoRoot, ".codex", "config.toml")] : [];
+    const skillPaths = claudeSkills.flatMap((s) => [
+      join(repoRoot, ".agents", "skills", s.itemId),
+      join(repoRoot, ".agents", "skills", s.itemId, "SKILL.md"),
+    ]);
+    return [...configPath, ...skillPaths];
+  },
+  emit: async ({ repoRoot, codexConfigToml, claudeSkills = [], mcpServers = [] }) => {
+    await emitCodex({ repoRoot, configToml: codexConfigToml, skills: claudeSkills, mcpServers });
   },
 });
 
 registerOutputPlugin({
   id: "opencode",
-  desiredPaths: ({ repoRoot, openCodeAssets = [] }) => {
+  desiredPaths: ({ repoRoot, openCodeAssets = [], claudeSkills = [], mcpServers = [] }) => {
     const root = join(repoRoot, ".opencode");
-    return [join(root, ".nexus-managed"), ...openCodeAssets.map((asset) => join(root, asset.kind, asset.fileName))];
+    const skillPaths = claudeSkills.flatMap((s) => [join(root, "skills", s.itemId), join(root, "skills", s.itemId, "SKILL.md")]);
+    const mcpConfig = mcpServers.length > 0 ? [join(repoRoot, "opencode.json")] : [];
+    return [join(root, ".nexus-managed"), ...openCodeAssets.map((asset) => join(root, asset.kind, asset.fileName)), ...skillPaths, ...mcpConfig];
   },
-  emit: async ({ repoRoot, openCodeAssets = [] }) => {
-    await emitOpenCode({ repoRoot, assets: openCodeAssets });
+  emit: async ({ repoRoot, openCodeAssets = [], claudeSkills = [], mcpServers = [] }) => {
+    await emitOpenCode({ repoRoot, assets: openCodeAssets, skills: claudeSkills, mcpServers });
   },
 });
