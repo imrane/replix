@@ -53,6 +53,44 @@ Nexus auto-injects configuration into the correct locations:
 
 After `home-manager switch`, skills are available to all projects.
 
+### 1.1 Optional: Define Claude Commands/Hooks/Agents in Dotfiles
+
+```nix
+# ~/.config/home-manager/nexus.nix
+{
+  programs.nexus = {
+    enable = true;
+
+    claude = {
+      commands = {
+        "/review.md" = { source = "path:~/.config/nexus/claude/commands/review.md"; };
+      };
+
+      hooks = {
+        "pre-commit.sh" = {
+          source = "path:~/.config/nexus/claude/hooks/pre-commit.sh";
+          executable = true;
+        };
+      };
+
+      agents = {
+        "security.md" = { source = "path:~/.config/nexus/claude/agents/security.md"; };
+      };
+
+      settings = { source = "path:~/.config/nexus/claude/settings.json"; };
+      settingsLocal = { source = "path:~/.config/nexus/claude/settings.local.json"; };
+    };
+  };
+}
+```
+
+These map to repo files under:
+- `.claude/commands/*`
+- `.claude/hooks/*`
+- `.claude/agents/*`
+- `.claude/settings.json`
+- `.claude/settings.local.json`
+
 ### 2. Enable in Project (No Config Files)
 
 ```nix
@@ -136,6 +174,33 @@ nexus.lib.mkRepo {
 ```
 
 Returns: `pkgs.mkShell` with injection in `shellHook`.
+
+### Claude Commands/Hooks/Agents in Project Config
+
+There is currently **no separate** `enable.commands/hooks/agents` block.
+Project selection happens through `enable.clients.<client>.files` (file-path allowlist from dotfiles client registry).
+
+```nix
+nexus.lib.mkRepo {
+  system = "x86_64-linux";
+  clients = [ "claude" ];
+
+  enable = {
+    skills = [ "humanizer" ];
+    mcp = [ "filesystem" ];
+
+    clients = {
+      claude.files = [
+        ".claude/commands/review.md"
+        ".claude/hooks/pre-commit.sh"
+        ".claude/agents/security.md"
+        ".claude/settings.json"
+        ".claude/settings.local.json"
+      ];
+    };
+  };
+}
+```
 
 ### Skill Sources
 
@@ -235,6 +300,12 @@ programs.nexus.skills.humanizer.source = "github:you/my-skills-pack#humanizer";
 **Emits:**
 - `.claude/skills/<skill-name>/SKILL.md`
 - `.claude/skills/.nexus-managed` (ownership marker)
+- Optional parity files when configured/enabled:
+  - `.claude/commands/*`
+  - `.claude/hooks/*`
+  - `.claude/agents/*`
+  - `.claude/settings.json`
+  - `.claude/settings.local.json`
 
 **Marker:**
 ```text
