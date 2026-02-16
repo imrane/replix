@@ -8,6 +8,7 @@
 { system
 , clients ? [ "claude" "codex" "opencode" ]
 , enable ? { skills = []; mcp = []; }
+, claude ? {}            # Optional first-class selector ergonomics: { commands, hooks, agents, settings }
 , skills ? {}            # Optional overrides for skills. If omitted, skills resolve from dotfiles registry at runtime.
 , vars ? {}              # Optional per-project templating vars overrides.
 , strictEnv ? null       # Optional per-project strictEnv override. null -> dotfiles default.
@@ -60,7 +61,19 @@ let
     else
       throw "nexus.mkRepo: unsupported source scheme (expected path: or github:): ${src}";
 
-  enabledSkills = enable.skills or [];
+  enableNormalized =
+    let
+      mergeSel = name: lib.unique ((enable.${name} or []) ++ (claude.${name} or []));
+    in
+      enable
+      // {
+        commands = mergeSel "commands";
+        hooks = mergeSel "hooks";
+        agents = mergeSel "agents";
+        settings = mergeSel "settings";
+      };
+
+  enabledSkills = enableNormalized.skills or [];
 
   # Only include skills that have explicit overrides in this repo.
   # Anything missing here can still resolve from the user's dotfiles registry (runtime).
@@ -89,7 +102,7 @@ let
     version = 1;
     repoRoot = repoRoot; # if null, nexus uses cwd
     clients = clients;
-    enable = enable;
+    enable = enableNormalized;
     vars = vars;
     layout = layout;
     cleanup = cleanup;
