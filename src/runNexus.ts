@@ -377,7 +377,9 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   });
   await emitMcp({ repoRoot, servers: mcpInputs });
 
-  await emitCodex({ repoRoot, configToml: `# nexus-managed\n[skills]\nenabled = true\n` });
+  // Codex conformance: emit only a Nexus ownership marker by default.
+  // Avoid speculative defaults for Codex config sections.
+  await emitCodex({ repoRoot, configToml: `# nexus-managed\n` });
 
   const openCodeInputs: OpenCodeAssetInput[] = openCodeAssets.map((asset) => ({
     id: formatId({ pack: pack.meta.id, imp: asset.kind, item: asset.fileName }),

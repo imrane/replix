@@ -272,7 +272,7 @@ Codex loads repo config from `.codex/config.toml` (OpenAI Codex config reference
 
 | Surface | Scope | Nexus status | Notes |
 |---|---|---|---|
-| `.codex/config.toml` | Repository | ✅ Supported | Written with ownership header, cleaned in `owned-only` mode when Nexus-managed, and enforced by config-path validation |
+| `.codex/config.toml` | Repository | ✅ Supported | Written with ownership header only (no speculative default sections), cleaned in `owned-only` mode when Nexus-managed, and enforced by config-path validation |
 | `~/.codex/*` (user config) | User-global | ❌ Not emitted | Out of scope for repo-scoped injection |
 | Cloud/workspace settings | Cloud-only | ❌ Not emitted | Not represented as repo files |
 
