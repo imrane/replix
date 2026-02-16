@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:
 import { join } from "node:path";
 import { runNexus } from "../src/runNexus";
 
-test("config mode (v2) > codex client accepts only .codex/config.toml", async () => {
+test("config mode (v2) > codex client accepts config + skill shim file paths", async () => {
   const tmp = mkdtempSync("/tmp/nexus-config-codex-conformance-");
   try {
     const repoRoot = join(tmp, "repo");
@@ -17,6 +17,7 @@ test("config mode (v2) > codex client accepts only .codex/config.toml", async ()
           codex: {
             files: {
               ".codex/config.toml": { text: "[mcp]\nenabled = true\n" },
+              ".agents/skills/humanizer/SKILL.md": { text: "# humanizer\n" },
             },
           },
         },
@@ -35,7 +36,7 @@ test("config mode (v2) > codex client accepts only .codex/config.toml", async ()
           skills: [],
           mcp: [],
           clients: {
-            codex: { files: [".codex/config.toml"] },
+            codex: { files: [".codex/config.toml", ".agents/skills/humanizer/SKILL.md"] },
           },
         },
         overrides: { skills: {}, mcp: {} },
@@ -44,6 +45,7 @@ test("config mode (v2) > codex client accepts only .codex/config.toml", async ()
 
     await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
     expect(existsSync(join(repoRoot, ".codex", "config.toml"))).toBeTrue();
+    expect(existsSync(join(repoRoot, ".agents", "skills", "humanizer", "SKILL.md"))).toBeTrue();
 
     // now set an unsupported codex path and assert hard failure
     writeFileSync(

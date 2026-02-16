@@ -37,7 +37,7 @@ test("config schema > accepts layout + cleanup enums", () => {
   expect(cfg.enable.clients?.claude?.files).toEqual([".claude/commands/review.md"]);
 });
 
-test("config schema > codex client only accepts .codex/config.toml", () => {
+test("config schema > codex client accepts config + skill shim roots", () => {
   const cfg = parseNexusConfig({
     version: 1,
     repoRoot: null,
@@ -47,14 +47,18 @@ test("config schema > codex client only accepts .codex/config.toml", () => {
       mcp: [],
       clients: {
         codex: {
-          files: [".codex/config.toml"],
+          files: [".codex/config.toml", ".agents/skills/humanizer/SKILL.md", ".codex/skills/humanizer/SKILL.md"],
         },
       },
     },
     overrides: { skills: {}, mcp: {} },
   });
 
-  expect(cfg.enable.clients?.codex?.files).toEqual([".codex/config.toml"]);
+  expect(cfg.enable.clients?.codex?.files).toEqual([
+    ".codex/config.toml",
+    ".agents/skills/humanizer/SKILL.md",
+    ".codex/skills/humanizer/SKILL.md",
+  ]);
 });
 
 test("config schema > rejects unsupported codex client file paths", () => {
@@ -69,6 +73,26 @@ test("config schema > rejects unsupported codex client file paths", () => {
         clients: {
           codex: {
             files: [".codex/commands/review.md"],
+          },
+        },
+      },
+      overrides: { skills: {}, mcp: {} },
+    }),
+  ).toThrow("unsupported codex repo file path");
+});
+
+test("config schema > rejects unsupported codex repo roots outside allowed shim paths", () => {
+  expect(() =>
+    parseNexusConfig({
+      version: 1,
+      repoRoot: null,
+      clients: ["codex"],
+      enable: {
+        skills: [],
+        mcp: [],
+        clients: {
+          codex: {
+            files: [".agents/prompts/review.md"],
           },
         },
       },

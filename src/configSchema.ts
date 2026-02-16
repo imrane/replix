@@ -39,13 +39,21 @@ function assertStringArray(x: unknown, name: string): string[] {
   return x as string[];
 }
 
+function isSupportedCodexRepoPath(file: string): boolean {
+  return (
+    file === ".codex/config.toml" ||
+    file.startsWith(".agents/skills/") ||
+    file.startsWith(".codex/skills/")
+  );
+}
+
 function validateClientFilePaths(client: string, files: string[], name: string): void {
-  // Codex conformance: repo-scoped surface is .codex/config.toml only.
+  // Codex conformance: core supports .codex/config.toml, plus shim skill roots under .agents/skills and .codex/skills.
   if (client === "codex") {
     for (const file of files) {
-      if (file !== ".codex/config.toml") {
+      if (!isSupportedCodexRepoPath(file)) {
         throw new Error(
-          `${name} contains unsupported codex repo file path: ${file} (supported: .codex/config.toml)`,
+          `${name} contains unsupported codex repo file path: ${file} (supported: .codex/config.toml, .agents/skills/**, .codex/skills/**)`,
         );
       }
     }

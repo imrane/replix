@@ -128,11 +128,18 @@ function normalizeClientFilePath(client: string, relPath: string): string {
 }
 
 function assertClientFilePathSupported(client: string, relPath: string): void {
-  // Codex conformance: repo-scoped surface is .codex/config.toml only.
-  if (client === "codex" && relPath !== ".codex/config.toml") {
-    throw new Error(
-      `unsupported codex repo file path: ${relPath} (supported: .codex/config.toml; user-global/cloud surfaces are out of scope)`,
-    );
+  // Codex conformance: core supports .codex/config.toml + skill shim roots only.
+  if (client === "codex") {
+    const ok =
+      relPath === ".codex/config.toml" ||
+      relPath.startsWith(".agents/skills/") ||
+      relPath.startsWith(".codex/skills/");
+
+    if (!ok) {
+      throw new Error(
+        `unsupported codex repo file path: ${relPath} (supported: .codex/config.toml, .agents/skills/**, .codex/skills/**; user-global/cloud surfaces are out of scope)`,
+      );
+    }
   }
 }
 
