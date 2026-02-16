@@ -7,6 +7,7 @@
     "test": "bun test",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=coverage",
     "test:smoke:clients": "NEXUS_CLIENT_SMOKE=1 bun test test/clientSmokeGated.test.ts",
+    "drift:check": "bun scripts/spec-drift-check.ts",
     "check": "bun test"
   },
   "devDependencies": {

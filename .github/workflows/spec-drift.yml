@@ -1,0 +1,75 @@
+name: Spec Drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Run drift check
+        id: drift
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXUS_DRIFT_FAIL_ON_CHANGE: "0"
+        run: |
+          bun run drift:check
+
+      - name: Upload drift report artifact
+        if: always() && hashFiles('.nexus/spec-drift-report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-drift-report
+          path: .nexus/spec-drift-report.json
+
+      - name: Open or update issue on drift
+        if: always() && hashFiles('.nexus/spec-drift-report.json') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('.nexus/spec-drift-report.json', 'utf8'));
+            const deltas = Array.isArray(report.deltas) ? report.deltas : [];
+            const title = 'Spec drift detected (automated)';
+
+            const body = deltas.length === 0
+              ? `No drift detected.\n\nGenerated: ${report.generatedAt}`
+              : [
+                  `Detected ${deltas.length} drift target(s).`,
+                  '',
+                  ...deltas.map(d => `- **${d.key}** (${d.repo}): ${d.changedFields.join(', ')}`),
+                  '',
+                  `Generated: ${report.generatedAt}`,
+                ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issues = await github.rest.issues.listForRepo({ owner, repo, state: 'open', per_page: 100 });
+            const existing = issues.data.find(i => i.title === title);
+
+            if (deltas.length === 0) {
+              if (existing) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+              }
+              return;
+            }
+
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['drift', 'automation'] });
+            }
