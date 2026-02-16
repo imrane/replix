@@ -1,116 +1,95 @@
-# Nexus - Dotfiles-First AI Toolchain Injection
+# Nexus — Dotfiles-first AI tooling for repos
 
 [![CI](https://github.com/imrane/nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/imrane/nexus/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/imrane/nexus/graph/badge.svg?token=VPKG1SPQRK)](https://codecov.io/github/imrane/nexus)
 
-**Declarative, repo-scoped injection of AI skills and MCP servers for Claude Code, Codex, and OpenCode.**
+Define AI tooling once in dotfiles, then enable it per repo with one unified selector model.
+
+## Why Nexus
+
+- **No config sprawl in every repo**
+- **One canonical enable model** for skills/MCP/artifacts
+- **Multi-client output generation** (Claude, OpenCode, Codex)
+- **Deterministic + idempotent** emission with cleanup
 
 ---
 
-## What It Does
+## 60-second mental model
 
-**Define skills once in dotfiles. Enable per-project via `mkRepo`.**
-
-Nexus auto-injects configuration into the correct locations:
-- `.claude/skills/` - Agent skills
-- `.mcp.json` - MCP servers
-- `.codex/config.toml` - Codex repo config
-- `.opencode/` - OpenCode repo artifacts
-
-**No local config files needed in projects.**
+1. Put canonical definitions in dotfiles (`programs.nexus.*`).
+2. In each repo flake, call `nexus.lib.mkRepo`.
+3. Use unified `enable` selectors to choose what that repo gets.
+4. Nexus emits client-native files (`.claude/*`, `.opencode/*`, `.codex/*`, `.mcp.json`).
 
 ---
 
-## Quick Start
+## Quick start
 
-### 1. Define Skills in Dotfiles (Once)
+### 1) Dotfiles (define once)
 
 ```nix
 # ~/.config/home-manager/nexus.nix
 {
   inputs.nexus.url = "github:imrane/nexus";
-  
   imports = [ nexus.homeManagerModules.default ];
-  
+
   programs.nexus = {
     enable = true;
-    
+
+    # Canonical skills
     skills = {
-      # GitHub sources must be pinned (pure eval): github:owner/repo@<rev>
+      # GitHub sources should be pinned
       humanizer.source = "github:blader/humanizer@<rev>";
-      repo-status.source = "path:~/.config/nexus/skills/repo-status";
+
+      # Optional selective include to reduce source surface
+      repo-status.source = "github:acme/skills?rev=<rev>&include=skills/repo-status#skills/repo-status";
     };
-    
-    mcp = {
-      filesystem = {
-        command = "npx";
-        args = ["-y" "@modelcontextprotocol/server-filesystem" "/home"];
-      };
+
+    # Canonical MCP definitions
+    mcp.filesystem = {
+      command = "npx";
+      args = ["-y" "@modelcontextprotocol/server-filesystem" "${ENV:FS_ROOT}"];
     };
+
+    # Canonical artifact definitions (currently mapped from claude namespace)
+    claude.commands."review.md" = { source = "path:~/.config/nexus/claude/commands/review.md"; };
+    claude.hooks."pre-commit.sh" = {
+      source = "path:~/.config/nexus/claude/hooks/pre-commit.sh";
+      executable = true;
+    };
+    claude.agents."security.md" = { source = "path:~/.config/nexus/claude/agents/security.md"; };
+    claude.settings = { source = "path:~/.config/nexus/claude/settings.json"; };
+    claude.settingsLocal = { source = "path:~/.config/nexus/claude/settings.local.json"; };
+
+    # Vars usable in templating
+    vars = {
+      FS_ROOT = "/home/imrane";
+    };
+
+    strictEnv = true;
   };
 }
 ```
 
-After `home-manager switch`, skills are available to all projects.
-
-### 1.1 Define Canonical Artifacts in Dotfiles
+### 2) Repo flake (enable per repo)
 
 ```nix
-# ~/.config/home-manager/nexus.nix
-{
-  programs.nexus = {
-    enable = true;
-
-    claude = {
-      commands = {
-        "/review.md" = { source = "path:~/.config/nexus/claude/commands/review.md"; };
-      };
-
-      hooks = {
-        "pre-commit.sh" = {
-          source = "path:~/.config/nexus/claude/hooks/pre-commit.sh";
-          executable = true;
-        };
-      };
-
-      agents = {
-        "security.md" = { source = "path:~/.config/nexus/claude/agents/security.md"; };
-      };
-
-      settings = { source = "path:~/.config/nexus/claude/settings.json"; };
-      settingsLocal = { source = "path:~/.config/nexus/claude/settings.local.json"; };
-    };
-  };
-}
-```
-
-These become canonical artifact definitions that adapters map to client-specific outputs (currently Claude emits):
-- `.claude/commands/*`
-- `.claude/hooks/*`
-- `.claude/agents/*`
-- `.claude/settings.json`
-- `.claude/settings.local.json`
-
-### 2. Enable in Project (No Config Files)
-
-```nix
-# ~/my-project/flake.nix
+# ./flake.nix
 {
   inputs.nexus.url = "github:imrane/nexus";
-  
+
   outputs = { nixpkgs, nexus, ... }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
     in {
       devShells.${system}.default = nexus.lib.mkRepo {
         inherit system;
-        clients = [ "claude" ];
-        enable = {
-          skills = [ "humanizer" "repo-status" ];
-          mcp = [ "filesystem" ];
+        clients = [ "claude" "opencode" "codex" ];
 
-          # Canonical artifact selectors
+        # PRIMARY ENTRYPOINT: unified selectors
+        enable = {
+          skills = [ "humanizer" ];
+          mcp = [ "filesystem" ];
           commands = [ "review.md" ];
           hooks = [ "pre-commit.sh" ];
           agents = [ "security.md" ];
@@ -121,562 +100,173 @@ These become canonical artifact definitions that adapters map to client-specific
 }
 ```
 
-### 3. Use It
+### 3) Activate
 
 ```bash
-cd ~/my-project
 nix develop
-# → .claude/skills/humanizer/ auto-generated
-# → .mcp.json written
-# → No local config files needed
-
-claude  # Skills auto-loaded
 ```
+
+Nexus emits client-native outputs in the repo.
 
 ---
 
-## Benefits
+## Unified enable model (primary)
 
-✅ **No local config** - Projects stay clean  
-✅ **Define once** - Skills portable across all projects  
-✅ **Override per-project** - Pull custom skills as flake inputs  
-✅ **Fully declarative** - Nix-based, reproducible  
-✅ **Idempotent** - Only writes when changed  
-✅ **Safe cleanup** - Removes stale skills automatically
+Use these selectors in `enable`:
+- `skills`
+- `mcp`
+- `commands`
+- `hooks`
+- `agents`
+- `settings`
+
+### Compatibility/override path (secondary)
+
+`enable.clients.<client>.files` still works for explicit per-client file control.
+Use it only when you need an override/escape hatch.
 
 ---
 
-## Architecture
+## Output surfaces by client
 
-### Core API: `mkRepo`
+| Client | Output |
+|---|---|
+| Claude | `.claude/skills/*`, `.claude/commands/*`, `.claude/hooks/*`, `.claude/agents/*`, `.claude/settings.json`, `.claude/settings.local.json` |
+| OpenCode | `.opencode/skills/*`, `.opencode/command/*`, `.opencode/hooks/*`, `.opencode/agent/*`, `opencode.json` |
+| Codex | `.codex/config.toml`, `.agents/skills/*` |
+| Protocol MCP | `.mcp.json` |
 
-```nix
-nexus.lib.mkRepo {
-  system = "x86_64-linux";
-  
-  # Which tool clients to emit config for (MCP is protocol-level, not a client)
-  clients = [ "claude" "codex" "opencode" ];
-  
-  # Enable from dotfiles
-  enable = {
-    skills = [ "humanizer" "repo-status" ];
-    mcp = [ "filesystem" "github" ];
+Nexus compiles a **single canonical MCP source** into all client-native MCP targets.
 
-    # Canonical selectors (compiled by client adapters)
-    commands = [ "review.md" ];
-    hooks = [ "pre-commit.sh" ];
-    agents = [ "security.md" ];
-    settings = [ "settings" "settingsLocal" ];
-  };
-  
-  # Optional: override specific skills
-  overrides = {
-    skills.custom = customSkillFlake;
-  };
-  
-  # Optional: layout mode
-  layout = "direct";  # or "generated"
-  
-  # Optional: cleanup strategy
-  cleanup = "owned-only";  # or "full"
+---
 
-  # Optional: templating behavior
-  strictEnv = true;
-}
-```
+## Environment variables and secrets (Clan/sops friendly)
 
-Returns: `pkgs.mkShell` with injection in `shellHook`.
-
-### Unified Artifact Selectors (Canonical Spec) — Primary Entry Point
-
-Use unified `enable` selectors as the default model. Client-specific file enables are compatibility/override escape hatches.
-
-Nexus supports canonical artifact selectors in `enable`:
-- `enable.commands`
-- `enable.hooks`
-- `enable.agents`
-- `enable.settings`
-
-These are compiled by client adapters (Claude/OpenCode/Codex), so selection is **unified**, while output paths remain client-specific.
-
-```nix
-nexus.lib.mkRepo {
-  system = "x86_64-linux";
-  clients = [ "claude" "opencode" "codex" ];
-
-  enable = {
-    skills = [ "humanizer" ];
-    mcp = [ "filesystem" ];
-
-    commands = [ "review.md" ];
-    hooks = [ "pre-commit.sh" ];
-    agents = [ "security.md" ];
-    settings = [ "settings" "settingsLocal" ];
-  };
-}
-```
-
-`enable.clients.<client>.files` still works as a compatibility path, but canonical selectors are the primary model.
-
-### Environment Variables, Secrets, and Templating
-
-Nexus templates MCP command/args/env values with:
+Templating supports:
 - `${PROJECT_ROOT}`
 - `${VAR}`
 - `${ENV:VAR}`
 
-Variable precedence (highest last):
-1. Process environment
-2. Dotfiles `programs.nexus.vars`
-3. Repo config `vars`
+Precedence (highest wins):
+1. process env
+2. dotfiles `programs.nexus.vars`
+3. repo config `vars`
 
-`strictEnv` controls behavior for missing vars:
-- `true` (default): fail fast
-- `false`: substitute empty string
+`strictEnv`:
+- `true` (default): missing var => error
+- `false`: missing var => empty string
 
-This works well with secret managers (for example Clan/sops) by exporting vars before `nix develop` / `nexus` activation.
+### Example with secrets exported by Clan/sops
 
-### Running the Same MCP Tool with Different Env Profiles Per Repo
-
-Yes — supported today via named MCP entries + per-repo enable.
-
-Define multiple MCP entries in dotfiles using the same command but different templated env:
+```bash
+# example: exported before entering dev shell
+export MYTOOL_DEV_TOKEN="..."
+export MYTOOL_PROD_TOKEN="..."
+```
 
 ```nix
-programs.nexus = {
-  mcp = {
-    mytool-dev = {
-      command = "my-mcp";
-      env = { PROFILE = "dev"; TOKEN = "${ENV:MYTOOL_DEV_TOKEN}"; };
+programs.nexus.mcp = {
+  mytool-dev = {
+    command = "my-mcp";
+    env = {
+      PROFILE = "dev";
+      TOKEN = "${ENV:MYTOOL_DEV_TOKEN}";
     };
-    mytool-prod = {
-      command = "my-mcp";
-      env = { PROFILE = "prod"; TOKEN = "${ENV:MYTOOL_PROD_TOKEN}"; };
+  };
+
+  mytool-prod = {
+    command = "my-mcp";
+    env = {
+      PROFILE = "prod";
+      TOKEN = "${ENV:MYTOOL_PROD_TOKEN}";
     };
   };
 };
 ```
 
-Then in each repo flake, activate the profile you want:
+Then select profile **per repo**:
 
 ```nix
 enable.mcp = [ "mytool-dev" ];   # repo A
 # enable.mcp = [ "mytool-prod" ]; # repo B
 ```
 
-### Enabling More Clients via Plugins
-
-Preferred model: define plugins once in dotfiles, then refer to clients by name per repo.
-
-**Dotfiles registry:**
-
-```nix
-programs.nexus.plugins = {
-  acme = { module = "path:~/.config/nexus/plugins/acme-client.mjs"; };
-  foo = { module = "path:~/.config/nexus/plugins/foo-client.mjs"; };
-};
-```
-
-**Project:**
-
-```nix
-nexus.lib.mkRepo {
-  system = "x86_64-linux";
-  clients = [ "claude" "codex" "acme" "foo" ];
-  enable = {
-    skills = [ "humanizer" ];
-    mcp = [ "filesystem" ];
-  };
-}
-```
-
-When Nexus runs, it loads plugin modules for enabled client names from the dotfiles plugin registry automatically.
-
-Plugin modules register themselves via:
-- `registerClientFilePlugin(...)`
-- `registerOutputPlugin(...)`
-
-```ts
-import { registerClientFilePlugin } from "nexus/src/clientPlugins/registry";
-import { registerOutputPlugin } from "nexus/src/outputPlugins/registry";
-
-registerClientFilePlugin({
-  client: "acme",
-  normalizePath: ({ relPath }) => relPath.replace(/^\/+/, "").replace("acme/commands/", "acme/command/"),
-});
-
-registerOutputPlugin({
-  id: "codex",
-  desiredPaths: ({ repoRoot }) => [repoRoot + "/.codex/override.toml"],
-  emit: async () => {
-    // custom emit logic
-  },
-});
-```
-
-Legacy env-based loading (`NEXUS_PLUGIN_MODULES`, `NEXUS_CLIENT_PLUGIN_MODULES`, `NEXUS_OUTPUT_PLUGIN_MODULES`) remains as temporary backward compatibility.
-
-### Skill Sources
-
-**User dotfiles:**
-```nix
-programs.nexus.skills = {
-  # GitHub repo
-  # GitHub sources must be pinned: github:owner/repo@<rev>
-  humanizer.source = "github:blader/humanizer@<rev>";
-
-  # Optional: selective include (reduces clone/copy surface)
-  repo-status.source = "github:acme/skills?rev=<rev>&include=skills/repo-status,commands/review.md#skills/repo-status";
-  
-  # Local path
-  repo-status.source = "path:~/.config/nexus/skills/repo-status";
-  
-  # From a skill pack
-  code-review.source = "github:someone/skills-pack#code-review";
-};
-```
-
-**Project override:**
-```nix
-{
-  inputs.custom.url = "github:someone/custom-skill";
-  
-  outputs = { nexus, custom, ... }:
-    nexus.lib.mkRepo {
-      enable.skills = [ "humanizer" "custom" ];
-      overrides.skills.custom = custom;
-    };
-}
-```
-
 ---
 
-## Pack System (For Publishers)
-
-**`pack.json` is ONLY for publishable skill packs** (not for projects).
-
-### Creating a Skill Pack
-
-```
-my-skills-pack/
-├── pack.json              # Required for packs
-├── skills/
-│   ├── humanizer/
-│   │   └── SKILL.md
-│   └── repo-status/
-│       └── SKILL.md
-├── commands/
-│   └── review.md
-├── hooks/
-│   └── pre-commit.sh
-├── agents/
-│   └── security.md
-└── mcp/
-    └── servers.json
-```
-
-Canonical `commands/`, `hooks/`, and `agents/` folders are included so packs can carry first-class artifact definitions alongside skills/MCP (used by current examples and upcoming compiler/plugin flows).
-
-**pack.json:**
-```json
-{
-  "id": "my-skills-pack",
-  "version": "1.0.0",
-  "imports": []
-}
-```
-
-### Publishing
+## CLI
 
 ```bash
-git init
-git add -A
-git commit -m "Initial skill pack"
-git remote add origin git@github.com:you/my-skills-pack.git
-git push -u origin main
-```
-
-### Using Published Packs
-
-**In user dotfiles:**
-```nix
-programs.nexus.packs = [
-  { source = "github:you/my-skills-pack"; }
-];
-
-# Then enable individual skills
-programs.nexus.enable.skills = [
-  "my-skills-pack:humanizer"
-  "my-skills-pack:repo-status"
-];
-```
-
-**Or reference directly:**
-```nix
-programs.nexus.skills.humanizer.source = "github:you/my-skills-pack#humanizer";
-```
-
----
-
-## Clients
-
-### Claude Code
-
-**Emits:**
-- `.claude/skills/<skill-name>/SKILL.md`
-- `.claude/skills/.nexus-managed` (ownership marker)
-- Optional parity files when configured/enabled:
-  - `.claude/commands/*`
-  - `.claude/hooks/*`
-  - `.claude/agents/*`
-  - `.claude/settings.json`
-  - `.claude/settings.local.json`
-
-**Marker:**
-```text
-generated by nexus
-```
-
-### MCP (Protocol Surface, Not a Client)
-
-MCP is a protocol consumed by clients (Claude/Codex/OpenCode), not a client itself.
-
-**Emits:**
-- `.mcp.json`
-
-**Format:**
-```json
-{
-  "__generated_by": "nexus",
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
-    }
-  }
-}
-```
-
-### Codex
-
-**Emits (repo-scoped):**
-- `.codex/config.toml`
-
-Codex loads repo config from `.codex/config.toml` (OpenAI Codex config reference: https://developers.openai.com/codex/config-reference).
-
-**Codex support matrix (Nexus):**
-
-| Surface | Scope | Nexus status | Notes |
-|---|---|---|---|
-| `.codex/config.toml` | Repository | ✅ Supported | Written with ownership header only (no speculative default sections), cleaned in `owned-only` mode when Nexus-managed, and enforced by config-path validation |
-| `~/.codex/*` (user config) | User-global | ❌ Not emitted | Out of scope for repo-scoped injection |
-| Cloud/workspace settings | Cloud-only | ❌ Not emitted | Not represented as repo files |
-
-**Header:**
-```toml
-# generated by nexus
-```
-
-### OpenCode
-
-**Emits:**
-- `.opencode/command/`
-- `.opencode/agent/`
-- `.opencode/hooks/`
-- `.opencode/rules/`
-- `.opencode/.nexus-managed` (ownership marker)
-
----
-
-## How It Works
-
-1. **Read dotfiles config** - Load skill definitions from `programs.nexus`
-2. **Resolve enable list** - Match enabled items to skill sources
-3. **Fetch skills** - Clone/cache from github:, path:, etc.
-4. **Compile canonical graph** - Merge enabled skills, MCP, and canonical artifact selectors (commands/hooks/agents/settings)
-5. **Compute state hash** - Hash of enabled items + sources
-6. **Check if changed** - Compare to `.claude/.nexus-state`
-7. **Emit outputs** - Write `.claude/skills/`, `.mcp.json`, etc.
-8. **Write state** - Save hash for next run (idempotency)
-
----
-
-## State & Idempotency
-
-**State hash includes:**
-- Skill/MCP IDs
-- Source URLs/revisions
-- Enable lists
-- Clients
-
-**Stored in:**
-- `layout=direct` → `.claude/.nexus-state`
-- `layout=generated` → `.nexus/generated/.claude/.nexus-state`
-
-**Behavior:**
-- Hash matches → Skip emit (no-op)
-- Hash differs → Re-emit all outputs
-- Missing state → First run, emit everything
-
----
-
-## Cleanup
-
-**Owned-only (default):**
-- Only removes files Nexus previously generated
-- Checks ownership markers (`.nexus-managed`, `__generated_by`)
-
-**Full (optional):**
-- Removes entire managed directories
-- Use with caution
-
----
-
-## CLI Feature Set
-
-Current Nexus CLI commands:
-
-```bash
-# Emit Nexus artifacts (default command)
+# Emit (config mode)
 nexus --config <path>
-# or
+
+# Legacy fallback mode (pack.json) if --config omitted
 nexus
 
-# List available items in current repo context
+# Discovery
 nexus list skills [--config <path>]
 nexus list mcp [--config <path>]
 
-# Generate mkRepo enable snippet
+# Generate mkRepo snippet
 nexus snippet --skills a,b --mcp x,y
 
-# Drift detection without mutation (CI-friendly)
+# Drift check (no mutation, CI-friendly)
 nexus check --config <path>
 
-# Compile spec snapshot -> validated typed schema (3tv)
+# Compile snapshot -> validated typed schema
 nexus spec compile --in <snapshot.json> --out <schema.json>
 ```
 
-Notes:
-- `list` marks each item as `enabled` or `available`.
-- `check` exits non-zero when generated outputs drift.
-- `spec compile` validates path safety by client roots before writing schema.
-- If `--config` is omitted, Nexus uses pack-mode fallback (`pack.json`) where applicable.
+---
+
+## Guarantees
+
+- **Idempotent emits** via state hash
+- **Owned-only cleanup** by default
+- **Optional full cleanup** mode
+- **Path safety guards** for client surfaces
+- **Fast test suite**, heavier smokes gated by env flags
+
+---
+
+## Status
+
+- ✅ v2 config-mode is active and primary
+- ✅ Unified selectors are the recommended entrypoint
+- ✅ Canonical MCP compiles to all supported client outputs
+- ⚠️ Legacy pack mode remains for compatibility and is queued for removal
+
+See:
+- `PRD.md` for roadmap/spec
+- `AGENTS.md` for current implementation handoff
 
 ---
 
 ## Development
 
-### Run Tests
-
 ```bash
 bun test
-```
-
-Optional local guard before pushing:
-
-```bash
-./scripts/install-githooks.sh
-```
-
-CI runs the same tests on every PR.
-
-### Optional Client Smoke Tests (Gated)
-
-```bash
-bun run test:smoke:clients
-```
-
-Notes:
-- Smoke tests are opt-in and run only when `NEXUS_CLIENT_SMOKE=1`.
-- Missing client binaries are reported as explicit skips (not failures).
-- CI can enable this with repo variable `NEXUS_CLIENT_SMOKE=1`.
-
-### Coverage
-
-```bash
 bun run test:coverage
-```
-
-Outputs:
-- Console coverage summary (text reporter)
-- `coverage/lcov.info` (LCOV artifact)
-
-In CI, the LCOV file is uploaded as artifact: `coverage-lcov`.
-
-### Build Package
-
-```bash
-nix build
-```
-
-### Run Checks
-
-```bash
 nix flake check
 ```
 
----
-
-## Implementation Status
-
-⚠️ **v1.0 MVP Complete** (legacy pack.json path still present, queued for removal)
-
-✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, and client outputs are implemented and covered by tests.
-
-✅ **Canonical MCP source direction landed** — one internal MCP definition now compiles to client outputs (`.mcp.json`, `opencode.json`, Codex config generation) instead of maintaining multiple internal MCP sources.
-
-🚧 **Current focus** — compress runtime complexity (`runNexus.ts`) and remove legacy compatibility branches while preserving behavior.
-
-### Migration Direction (updated)
-
-- **Pre-launch policy:** no formal deprecation rollout required yet.
-- **Legacy surfaces** (notably `pack.json` mode and path-first client-file enable flows) are queued for removal as canonical config-mode hardening completes.
-- **Primary path:** dotfiles + `mkRepo` config mode.
-
-See **[PRD.md](PRD.md)** for complete v2.0 specification.
-
-See **[AGENTS.md](AGENTS.md)** for implementation state.
+Optional gated suites:
+- `NEXUS_CLIENT_SMOKE=1`
+- `NEXUS_NIX_SMOKE=1`
+- `NEXUS_GITHUB_INTEGRATION=1`
 
 ---
 
-## Project Structure
+## Contributing policy
 
-```
-nexus/
-├── README.md              # This file
-├── PRD.md                 # Product requirements + trajectory
-├── AGENTS.md              # Implementation state + handoff context
-├── src/                   # TypeScript source
-├── test/                  # Bun tests (default suite is fast; optional heavy suites are env-gated)
-├── modules/               # Nix modules
-│   └── home-manager.nix   # Home-manager integration
-├── flake.nix              # Nix flake
-└── fixtures/              # Test fixtures
-    └── packs/core/        # Golden test pack
-```
+Only these markdown files are allowed:
+1. `README.md`
+2. `PRD.md`
+3. `AGENTS.md`
 
----
-
-## Contributing
-
-**Hard Rule:** Only 3 markdown files allowed:
-1. `README.md` - User-facing overview
-2. `PRD.md` - Product requirements
-3. `AGENTS.md` - Implementation state
-
-**All other notes → Use `bd` (beads) issues.**
-
-No TODO.md, STATUS.md, ARCHITECTURE.md, or docs/ sprawl.
+Use beads (`bd`) for all other notes/tasks.
 
 ---
 
 ## License
 
 MIT
-
----
-
-**Created:** 2026-02-14  
-**Repo:** https://github.com/imrane/nexus  
-**Stack:** Bun + TypeScript + Nix  
-**Tests:** Passing (core suite optimized; optional integration suites are gated)
