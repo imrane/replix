@@ -481,6 +481,38 @@ Codex loads repo config from `.codex/config.toml` (OpenAI Codex config reference
 
 ---
 
+## CLI Feature Set
+
+Current Nexus CLI commands:
+
+```bash
+# Emit Nexus artifacts (default command)
+nexus --config <path>
+# or
+nexus
+
+# List available items in current repo context
+nexus list skills [--config <path>]
+nexus list mcp [--config <path>]
+
+# Generate mkRepo enable snippet
+nexus snippet --skills a,b --mcp x,y
+
+# Drift detection without mutation (CI-friendly)
+nexus check --config <path>
+
+# Compile spec snapshot -> validated typed schema (3tv)
+nexus spec compile --in <snapshot.json> --out <schema.json>
+```
+
+Notes:
+- `list` marks each item as `enabled` or `available`.
+- `check` exits non-zero when generated outputs drift.
+- `spec compile` validates path safety by client roots before writing schema.
+- If `--config` is omitted, Nexus uses pack-mode fallback (`pack.json`) where applicable.
+
+---
+
 ## Development
 
 ### Run Tests
