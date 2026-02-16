@@ -230,15 +230,16 @@ nix flake check
 ## Next Agent Tasks
 
 **Current priority queue (refactor-first):**
-1. `2026-02-14-nexus-6pg` — OpenCode plugin parity: canonical pack spec → native OpenCode skills + MCP (**in_progress**)
-2. `2026-02-14-nexus-9dy` — Refactor `runNexus` into compile-plan + emit pipeline (**in_progress**)
-3. `2026-02-14-nexus-n4j` — Cleanup legacy compatibility surfaces (remove/gate)
-4. `2026-02-14-nexus-fu5` — Tests cleanup: behavior-focused golden slices over architecture matrix
-5. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
-6. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection
-7. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema)
+1. `2026-02-14-nexus-9dy` — Refactor `runNexus` into compile-plan + emit pipeline (**in_progress**)
+2. `2026-02-14-nexus-n4j` — Cleanup legacy compatibility surfaces (remove/gate)
+3. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
+4. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection (**in_progress**)
+5. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema) (**in_progress**)
 
 **Recently closed:**
+- `2026-02-14-nexus-0uk` (selective github source includes via `?include=` + tests/docs)
+- `2026-02-14-nexus-6pg` (OpenCode native outputs parity: skills + MCP from canonical enable lists)
+- `2026-02-14-nexus-fu5` (test suite trimmed to high-signal behavior/golden core; heavy suites gated)
 - `2026-02-14-nexus-pry` (Codecov upload + README badge)
 - `2026-02-14-nexus-rrq` (per-client custom injection)
 - `2026-02-14-nexus-0qi` (OpenCode parity slice landed, pending strict conformance audit)
@@ -310,5 +311,5 @@ PRD.md remains source of truth for v2 goals.
   - added fixtures/tests for schema/compiler/CLI.
 - Current test baseline: `115 pass, 0 fail`.
 
-**Last updated:** 2026-02-16 20:00 UTC  
-**Status:** v2 config-mode shipping with pluginized client/output architecture; active focus is `2026-02-14-nexus-3tv` (spec compiler pipeline hardening).
+**Last updated:** 2026-02-16 22:58 UTC  
+**Status:** v2 config-mode shipping with pluginized client/output architecture; active focus is `2026-02-14-nexus-9dy` (runNexus collapse) + `2026-02-14-nexus-n4j` (legacy cleanup).
