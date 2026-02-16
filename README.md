@@ -187,9 +187,11 @@ nexus.lib.mkRepo {
 
 Returns: `pkgs.mkShell` with injection in `shellHook`.
 
-### Unified Artifact Selectors (Canonical Spec)
+### Unified Artifact Selectors (Canonical Spec) — Primary Entry Point
 
-Nexus now supports canonical artifact selectors in `enable`:
+Use unified `enable` selectors as the default model. Client-specific file enables are compatibility/override escape hatches.
+
+Nexus supports canonical artifact selectors in `enable`:
 - `enable.commands`
 - `enable.hooks`
 - `enable.agents`
@@ -215,6 +217,52 @@ nexus.lib.mkRepo {
 ```
 
 `enable.clients.<client>.files` still works as a compatibility path, but canonical selectors are the primary model.
+
+### Environment Variables, Secrets, and Templating
+
+Nexus templates MCP command/args/env values with:
+- `${PROJECT_ROOT}`
+- `${VAR}`
+- `${ENV:VAR}`
+
+Variable precedence (highest last):
+1. Process environment
+2. Dotfiles `programs.nexus.vars`
+3. Repo config `vars`
+
+`strictEnv` controls behavior for missing vars:
+- `true` (default): fail fast
+- `false`: substitute empty string
+
+This works well with secret managers (for example Clan/sops) by exporting vars before `nix develop` / `nexus` activation.
+
+### Running the Same MCP Tool with Different Env Profiles Per Repo
+
+Yes — supported today via named MCP entries + per-repo enable.
+
+Define multiple MCP entries in dotfiles using the same command but different templated env:
+
+```nix
+programs.nexus = {
+  mcp = {
+    mytool-dev = {
+      command = "my-mcp";
+      env = { PROFILE = "dev"; TOKEN = "${ENV:MYTOOL_DEV_TOKEN}"; };
+    };
+    mytool-prod = {
+      command = "my-mcp";
+      env = { PROFILE = "prod"; TOKEN = "${ENV:MYTOOL_PROD_TOKEN}"; };
+    };
+  };
+};
+```
+
+Then in each repo flake, activate the profile you want:
+
+```nix
+enable.mcp = [ "mytool-dev" ];   # repo A
+# enable.mcp = [ "mytool-prod" ]; # repo B
+```
 
 ### Enabling More Clients via Plugins
 
