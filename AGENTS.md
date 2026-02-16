@@ -252,5 +252,13 @@ PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-16 01:56 UTC  
-**Status:** v2 in progress; OpenCode paths aligned; Codex kept config-only; entering spec-audit + automation phase
+## Notes (new learnings / references)
+
+- **Claude settings files (repo scope):** support both `.claude/settings.json` and `.claude/settings.local.json` as first-class dotfiles conveniences (`claude.settings` / `claude.settingsLocal`). Docs: https://code.claude.com/docs/en/settings
+- **Keep Nexus minimal:** Openboot has a good *layering + selective include* concept for agent references, but Nexus should not grow into stack autodetect/orchestration. Repo: https://github.com/treadiehq/openboot
+- **MCP ergonomics:** tools like EveryMCP are great for imperative “patch my agents now”, but Nexus stays declarative (dotfiles + mkRepo). Repo: https://github.com/am-will/everymcp
+
+---
+
+**Last updated:** 2026-02-16 03:40 UTC  
+**Status:** v2 config-mode improving; Claude settings files supported; staying declarative; next: consider selective source includes + drift check
