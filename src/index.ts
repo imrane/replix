@@ -4,6 +4,7 @@ import { runNexus } from "./runNexus";
 import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { parseEnableSpec } from "./enable";
+import { checkNexusConfig } from "./check";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -109,12 +110,28 @@ async function main() {
       return;
     }
 
-    if (cmd === "list" || cmd === "snippet" || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "check") {
+      if (!configPath) {
+        console.error("❌ nexus check requires --config <path>");
+        process.exit(1);
+      }
+      const result = await checkNexusConfig(configPath, cwd);
+      if (result.ok) {
+        console.log("✅ nexus check: outputs are in sync");
+        return;
+      }
+      console.error("❌ nexus check: outputs drifted from config");
+      for (const line of result.changes) console.error(`- ${line}`);
+      process.exit(2);
+    }
+
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
       console.log("  nexus list mcp [--config <path>]           # list MCP servers available in this repo context");
       console.log("  nexus snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
+      console.log("  nexus check --config <path>                # verify generated outputs are in sync");
       return;
     }
 
