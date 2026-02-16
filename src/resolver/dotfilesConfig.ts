@@ -35,10 +35,15 @@ export type DotfilesClaudeDef = {
   settingsLocal?: DotfilesClientFileDef;
 };
 
+export type DotfilesPluginDef = {
+  module: string;
+};
+
 export type DotfilesConfig = {
   skills?: Record<string, DotfilesSkillDef>;
   mcp?: Record<string, DotfilesMcpDef>;
   clients?: Record<string, DotfilesClientDef>;
+  plugins?: Record<string, DotfilesPluginDef>;
   claude?: DotfilesClaudeDef;
   vars?: Record<string, string>;
   strictEnv?: boolean;
@@ -48,6 +53,7 @@ export type DotfilesRegistry = {
   skills: Map<string, DotfilesSkillDef>;
   mcp: Map<string, DotfilesMcpDef>;
   clients: Map<string, DotfilesClientDef>;
+  plugins: Map<string, DotfilesPluginDef>;
   vars: Record<string, string>;
   strictEnv: boolean;
 };
@@ -95,7 +101,7 @@ function toClaudeClientFiles(cfg: DotfilesConfig): Record<string, DotfilesClient
 export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
   const p = process.env.NEXUS_DOTFILES_CONFIG_JSON;
   if (!p) {
-    return { skills: new Map(), mcp: new Map(), clients: new Map(), vars: {}, strictEnv: true };
+    return { skills: new Map(), mcp: new Map(), clients: new Map(), plugins: new Map(), vars: {}, strictEnv: true };
   }
   const cfg = await loadDotfilesConfigFromPath(p);
 
@@ -114,11 +120,13 @@ export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
     };
   }
   const clients = new Map(Object.entries(clientObj).sort((a, b) => a[0].localeCompare(b[0])));
+  const plugins = new Map(Object.entries(cfg.plugins ?? {}).sort((a, b) => a[0].localeCompare(b[0])));
 
   return {
     skills,
     mcp,
     clients,
+    plugins,
     vars: cfg.vars ?? {},
     strictEnv: cfg.strictEnv ?? true,
   };

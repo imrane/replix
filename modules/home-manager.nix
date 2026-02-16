@@ -49,6 +49,19 @@ in {
       description = "Global MCP server registry (dotfiles-first).";
     };
 
+    plugins = mkOption {
+      type = types.attrsOf (types.submodule ({ ... }: {
+        options = {
+          module = mkOption {
+            type = types.str;
+            description = "Plugin module specifier (path/package) loaded when the client name is enabled in mkRepo.clients.";
+          };
+        };
+      }));
+      default = {};
+      description = "Plugin registry keyed by client name (dotfiles-first client plugin loading).";
+    };
+
     vars = mkOption {
       type = types.attrsOf types.str;
       default = {};
@@ -84,6 +97,9 @@ in {
         args = v.args;
         env = v.env;
       }) cfg.mcp;
+      plugins = mapAttrs (_: v: {
+        module = v.module;
+      }) cfg.plugins;
       vars = cfg.vars;
       strictEnv = cfg.strictEnv;
     };

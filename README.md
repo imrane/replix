@@ -109,6 +109,12 @@ These become canonical artifact definitions that adapters map to client-specific
         enable = {
           skills = [ "humanizer" "repo-status" ];
           mcp = [ "filesystem" ];
+
+          # Canonical artifact selectors
+          commands = [ "review.md" ];
+          hooks = [ "pre-commit.sh" ];
+          agents = [ "security.md" ];
+          settings = [ "settings" "settingsLocal" ];
         };
       };
     };
@@ -155,6 +161,12 @@ nexus.lib.mkRepo {
   enable = {
     skills = [ "humanizer" "repo-status" ];
     mcp = [ "filesystem" "github" ];
+
+    # Canonical selectors (compiled by client adapters)
+    commands = [ "review.md" ];
+    hooks = [ "pre-commit.sh" ];
+    agents = [ "security.md" ];
+    settings = [ "settings" "settingsLocal" ];
   };
   
   # Optional: override specific skills
@@ -204,6 +216,58 @@ nexus.lib.mkRepo {
 
 `enable.clients.<client>.files` still works as a compatibility path, but canonical selectors are the primary model.
 
+### Enabling More Clients via Plugins
+
+Preferred model: define plugins once in dotfiles, then refer to clients by name per repo.
+
+**Dotfiles registry:**
+
+```nix
+programs.nexus.plugins = {
+  acme = { module = "path:~/.config/nexus/plugins/acme-client.mjs"; };
+  foo = { module = "path:~/.config/nexus/plugins/foo-client.mjs"; };
+};
+```
+
+**Project:**
+
+```nix
+nexus.lib.mkRepo {
+  system = "x86_64-linux";
+  clients = [ "claude" "codex" "acme" "foo" ];
+  enable = {
+    skills = [ "humanizer" ];
+    mcp = [ "filesystem" ];
+  };
+}
+```
+
+When Nexus runs, it loads plugin modules for enabled client names from the dotfiles plugin registry automatically.
+
+Plugin modules register themselves via:
+- `registerClientFilePlugin(...)`
+- `registerOutputPlugin(...)`
+
+```ts
+import { registerClientFilePlugin } from "nexus/src/clientPlugins/registry";
+import { registerOutputPlugin } from "nexus/src/outputPlugins/registry";
+
+registerClientFilePlugin({
+  client: "acme",
+  normalizePath: ({ relPath }) => relPath.replace(/^\/+/, "").replace("acme/commands/", "acme/command/"),
+});
+
+registerOutputPlugin({
+  id: "codex",
+  desiredPaths: ({ repoRoot }) => [repoRoot + "/.codex/override.toml"],
+  emit: async () => {
+    // custom emit logic
+  },
+});
+```
+
+Legacy env-based loading (`NEXUS_PLUGIN_MODULES`, `NEXUS_CLIENT_PLUGIN_MODULES`, `NEXUS_OUTPUT_PLUGIN_MODULES`) remains as temporary backward compatibility.
+
 ### Skill Sources
 
 **User dotfiles:**
@@ -250,9 +314,17 @@ my-skills-pack/
 │   │   └── SKILL.md
 │   └── repo-status/
 │       └── SKILL.md
+├── commands/
+│   └── review.md
+├── hooks/
+│   └── pre-commit.sh
+├── agents/
+│   └── security.md
 └── mcp/
     └── servers.json
 ```
+
+Canonical `commands/`, `hooks/`, and `agents/` folders are included so packs can carry first-class artifact definitions alongside skills/MCP (used by current examples and upcoming compiler/plugin flows).
 
 **pack.json:**
 ```json

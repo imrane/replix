@@ -5,6 +5,9 @@ import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { parseEnableSpec } from "./enable";
 import { checkNexusConfig } from "./check";
+import { mkdir } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -92,6 +95,17 @@ function renderSnippet(skills: string[], mcp: string[]): string {
   return lines.join("\n");
 }
 
+async function compileSpec(inPath: string, outPath: string): Promise<void> {
+  const raw = await Bun.file(inPath).text();
+  const snapshot = JSON.parse(raw) as ClientSpecSnapshot;
+  const schema = compileClientSpec(snapshot);
+
+  const outAbs = resolve(outPath);
+  await mkdir(dirname(outAbs), { recursive: true });
+  await Bun.write(outAbs, JSON.stringify(schema, null, 2) + "\n");
+  console.log(`✅ nexus spec compile: ${outAbs}`);
+}
+
 async function main() {
   const cwd = process.cwd();
   const configPath = readArgValue("--config");
@@ -125,13 +139,25 @@ async function main() {
       process.exit(2);
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "spec" && sub === "compile") {
+      const inPath = readArgValue("--in");
+      const outPath = readArgValue("--out");
+      if (!inPath || !outPath) {
+        console.error("❌ nexus spec compile requires --in <snapshot.json> --out <schema.json>");
+        process.exit(1);
+      }
+      await compileSpec(inPath, outPath);
+      return;
+    }
+
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
       console.log("  nexus list mcp [--config <path>]           # list MCP servers available in this repo context");
       console.log("  nexus snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
       console.log("  nexus check --config <path>                # verify generated outputs are in sync");
+      console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }
 

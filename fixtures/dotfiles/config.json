@@ -8,5 +8,8 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
     }
+  },
+  "plugins": {
+    "acme2": { "module": "./nexus-plugins/acme2.mjs" }
   }
 }

@@ -9,14 +9,18 @@ import { compileGraph, type AvailableItems } from "./graph";
 import { formatId } from "./canonicalId";
 import { computeStateHash } from "./state";
 import { shouldSkipEmit, writeStateHash } from "./stateFile";
-import { emitClaude, type ClaudeSkillInput } from "./emitters/claude";
-import { emitMcp, type McpServerInput } from "./emitters/mcp";
-import { emitCodex } from "./emitters/codex";
-import { emitOpenCode, type OpenCodeAssetInput } from "./emitters/opencode";
+import type { ClaudeSkillInput } from "./emitters/claude";
+import type { McpServerInput } from "./emitters/mcp";
+import type { OpenCodeAssetInput } from "./emitters/opencode";
 import { cleanupFull, cleanupOwnedOnly } from "./cleanup";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { templateMcpServer } from "./templating";
 import { resolveEnabledClientPaths } from "./compile/clientPaths";
+import "./clientPlugins/builtins";
+import { applyClientPathNormalization, assertClientPathSupported } from "./clientPlugins/registry";
+import "./outputPlugins/builtins";
+import { getOutputPlugin } from "./outputPlugins/registry";
+import { loadExternalPlugins } from "./plugins/loadExternal";
 
 export type RunNexusArgs = {
   cwd: string;
@@ -109,39 +113,7 @@ async function emitClientFile(repoRoot: string, inj: ClientFileInjection): Promi
   }
 }
 
-function normalizeClientFilePath(client: string, relPath: string): string {
-  const normalized = relPath.replace(/^\/+/, "");
-
-  // OpenCode conformance bridge: support legacy plural dirs while emitting canonical singular dirs.
-  if (client === "opencode") {
-    if (normalized === ".opencode/commands") return ".opencode/command";
-    if (normalized.startsWith(".opencode/commands/")) {
-      return normalized.replace(".opencode/commands/", ".opencode/command/");
-    }
-    if (normalized === ".opencode/agents") return ".opencode/agent";
-    if (normalized.startsWith(".opencode/agents/")) {
-      return normalized.replace(".opencode/agents/", ".opencode/agent/");
-    }
-  }
-
-  return normalized;
-}
-
-function assertClientFilePathSupported(client: string, relPath: string): void {
-  // Codex conformance: core supports .codex/config.toml + skill shim roots only.
-  if (client === "codex") {
-    const ok =
-      relPath === ".codex/config.toml" ||
-      relPath.startsWith(".agents/skills/") ||
-      relPath.startsWith(".codex/skills/");
-
-    if (!ok) {
-      throw new Error(
-        `unsupported codex repo file path: ${relPath} (supported: .codex/config.toml, .agents/skills/**, .codex/skills/**; user-global/cloud surfaces are out of scope)`,
-      );
-    }
-  }
-}
+// client path normalization and support checks are provided by client file plugins.
 
 function resolveClientFileInjections(
   cfg: NexusConfigV1,
@@ -164,8 +136,8 @@ function resolveClientFileInjections(
     const seenNormalized = new Set<string>();
 
     for (const rawRelPath of enabledPaths) {
-      const relPath = normalizeClientFilePath(client, rawRelPath);
-      assertClientFilePathSupported(client, relPath);
+      const relPath = applyClientPathNormalization(client, rawRelPath);
+      assertClientPathSupported(client, relPath);
 
       if (seenNormalized.has(relPath)) {
         throw new Error(`duplicate client file path after normalization: ${client}.${relPath}`);
@@ -201,6 +173,7 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     const enableSpec = parseEnableSpec(cfg.enable);
 
     const dotfiles = await loadDotfilesRegistryFromEnv();
+    await loadExternalPlugins({ cwd, clients: cfg.clients, dotfiles });
 
     const availableSkillIds = new Set<string>([...Object.keys(cfg.overrides.skills), ...dotfiles.skills.keys()]);
     const availableSkills = new Map([...availableSkillIds].sort().map((itemId) => [itemId, { kind: "skill" as const, itemId }]));
@@ -285,14 +258,39 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       }),
     );
 
-    const claudeSkillsRoot = join(emitRoot, ".claude", "skills");
-    const desiredPaths = claudeSkills.flatMap((s) => [
-      join(claudeSkillsRoot, s.itemId),
-      join(claudeSkillsRoot, s.itemId, "SKILL.md"),
-    ]);
-    desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
-    if (graph.mcp.length > 0) desiredPaths.push(join(emitRoot, ".mcp.json"));
-    for (const inj of clientFileInjections) desiredPaths.push(join(emitRoot, inj.relPath));
+    const processVars = Object.fromEntries(
+      Object.entries(process.env)
+        .filter(([, v]) => typeof v === "string")
+        .map(([k, v]) => [k, v as string]),
+    );
+    const mergedVars = {
+      ...processVars,
+      ...dotfiles.vars,
+      ...cfg.vars,
+    };
+    const strictEnv = cfg.strictEnv ?? dotfiles.strictEnv;
+
+    const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
+      const server = dotfiles.mcp.get(node.item.name);
+      if (!server) throw new Error(`missing mcp server def in dotfiles: ${node.item.name}`);
+      return {
+        id: formatId({ pack: "config", imp: "mcp", item: node.id }),
+        name: node.item.name,
+        server: templateMcpServer(server, {
+          vars: mergedVars,
+          strictEnv,
+          projectRoot: repoRoot,
+        }),
+      };
+    });
+
+    const desiredPaths = [
+      ...(cfg.clients.includes("claude")
+        ? getOutputPlugin("claude").desiredPaths({ repoRoot: emitRoot, claudeSkills })
+        : []),
+      ...getOutputPlugin("mcp").desiredPaths({ repoRoot: emitRoot, mcpServers: mcpInputs }),
+      ...clientFileInjections.map((inj) => join(emitRoot, inj.relPath)),
+    ];
 
     if (cleanupMode === "full") {
       await cleanupFull(emitRoot);
@@ -302,37 +300,10 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     }
 
     if (cfg.clients.includes("claude")) {
-      await emitClaude({ repoRoot: emitRoot, skills: claudeSkills });
+      await getOutputPlugin("claude").emit({ repoRoot: emitRoot, claudeSkills });
     }
 
-    if (graph.mcp.length > 0) {
-      const processVars = Object.fromEntries(
-        Object.entries(process.env)
-          .filter(([, v]) => typeof v === "string")
-          .map(([k, v]) => [k, v as string]),
-      );
-      const mergedVars = {
-        ...processVars,
-        ...dotfiles.vars,
-        ...cfg.vars,
-      };
-      const strictEnv = cfg.strictEnv ?? dotfiles.strictEnv;
-
-      const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
-        const server = dotfiles.mcp.get(node.item.name);
-        if (!server) throw new Error(`missing mcp server def in dotfiles: ${node.item.name}`);
-        return {
-          id: formatId({ pack: "config", imp: "mcp", item: node.id }),
-          name: node.item.name,
-          server: templateMcpServer(server, {
-            vars: mergedVars,
-            strictEnv,
-            projectRoot: repoRoot,
-          }),
-        };
-      });
-      await emitMcp({ repoRoot: emitRoot, servers: mcpInputs });
-    }
+    await getOutputPlugin("mcp").emit({ repoRoot: emitRoot, mcpServers: mcpInputs });
 
     for (const inj of clientFileInjections) {
       await emitClientFile(emitRoot, inj);
@@ -351,6 +322,8 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
   }
 
   const repoRoot = packRoot;
+
+  await loadExternalPlugins({ cwd, clients: ["claude", "codex", "opencode"] });
 
   console.warn(PACK_MODE_DEPRECATION_WARNING);
   console.log("🔧 Nexus: loading pack...");
@@ -395,22 +368,6 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     };
   });
 
-  const claudeSkillsRoot = join(repoRoot, ".claude", "skills");
-  const desiredPaths = claudeSkills.flatMap((s) => [
-    join(claudeSkillsRoot, s.itemId),
-    join(claudeSkillsRoot, s.itemId, "SKILL.md"),
-  ]);
-  desiredPaths.push(join(claudeSkillsRoot, ".nexus-managed"));
-  desiredPaths.push(join(repoRoot, ".mcp.json"));
-  desiredPaths.push(join(repoRoot, ".codex", "config.toml"));
-  desiredPaths.push(join(repoRoot, ".opencode", ".nexus-managed"));
-  for (const asset of openCodeAssets) {
-    desiredPaths.push(join(repoRoot, ".opencode", asset.kind, asset.fileName));
-  }
-
-  await cleanupOwnedOnly({ repoRoot, desiredPaths });
-  await emitClaude({ repoRoot, skills: claudeSkills });
-
   const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
     const srv = mcpServers.find((s) => s.name === node.item.name);
     if (!srv) throw new Error(`missing mcp server: ${node.item.name}`);
@@ -420,11 +377,6 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
       server: srv.server,
     };
   });
-  await emitMcp({ repoRoot, servers: mcpInputs });
-
-  // Codex conformance: emit only a Nexus ownership marker by default.
-  // Avoid speculative defaults for Codex config sections.
-  await emitCodex({ repoRoot, configToml: `# nexus-managed\n` });
 
   const openCodeInputs: OpenCodeAssetInput[] = openCodeAssets.map((asset) => ({
     id: formatId({ pack: pack.meta.id, imp: asset.kind, item: asset.fileName }),
@@ -432,7 +384,24 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     fileName: asset.fileName,
     srcPath: asset.srcPath,
   }));
-  await emitOpenCode({ repoRoot, assets: openCodeInputs });
+
+  const desiredPaths = [
+    ...getOutputPlugin("claude").desiredPaths({ repoRoot, claudeSkills }),
+    ...getOutputPlugin("mcp").desiredPaths({ repoRoot, mcpServers: mcpInputs }),
+    ...getOutputPlugin("codex").desiredPaths({ repoRoot, codexConfigToml: "# nexus-managed\n" }),
+    ...getOutputPlugin("opencode").desiredPaths({ repoRoot, openCodeAssets: openCodeInputs }),
+  ];
+
+  await cleanupOwnedOnly({ repoRoot, desiredPaths });
+  await getOutputPlugin("claude").emit({ repoRoot, claudeSkills });
+
+  await getOutputPlugin("mcp").emit({ repoRoot, mcpServers: mcpInputs });
+
+  // Codex conformance: emit only a Nexus ownership marker by default.
+  // Avoid speculative defaults for Codex config sections.
+  await getOutputPlugin("codex").emit({ repoRoot, codexConfigToml: `# nexus-managed\n` });
+
+  await getOutputPlugin("opencode").emit({ repoRoot, openCodeAssets: openCodeInputs });
 
   await writeStateHash(repoRoot, desiredHash);
   console.log("✅ Nexus: done");

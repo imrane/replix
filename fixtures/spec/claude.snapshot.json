@@ -1,0 +1,18 @@
+{
+  "client": "claude",
+  "version": "2026-02-16",
+  "source": {
+    "docs": [
+      "https://code.claude.com/docs/en/settings",
+      "https://code.claude.com/docs/en/hooks"
+    ],
+    "repo": "https://github.com/anthropics/claude-code"
+  },
+  "artifacts": [
+    { "kind": "skill", "path": ".claude/skills/repo-status/SKILL.md" },
+    { "kind": "command", "path": ".claude/commands/review.md" },
+    { "kind": "hook", "path": ".claude/hooks/pre-commit.sh" },
+    { "kind": "agent", "path": ".claude/agents/security.md" },
+    { "kind": "settings", "path": ".claude/settings.json" }
+  ]
+}

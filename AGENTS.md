@@ -270,5 +270,22 @@ PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-16 18:06 UTC  
-**Status:** v2 config-mode shipping with 102 green tests; current focus is client plugin split (`nexus-9yh`) and remaining P2 docs/spec tasks after landing codex shim parity + selector guardrails + drift check CLI.
+## Session Delta (2026-02-16, concise)
+- Closed epic `nexus-9yh` after landing plugin architecture slices:
+  - `src/clientPlugins/*` (client path normalize/validate hooks)
+  - `src/outputPlugins/*` (emission + desiredPaths plugin hooks)
+  - external plugin loader and dotfiles-first plugin registry (`programs.nexus.plugins`), keyed by client name.
+- README upgraded:
+  - examples now include `commands/hooks/agents/settings` selectors (not only skills/mcp)
+  - plugin usage documented with dotfiles registry + per-repo client enable.
+- Pack fixture expanded with canonical folders/files:
+  - `fixtures/packs/core/{commands,hooks,agents}` examples (plus test coverage).
+- `3tv` progress:
+  - added typed intermediate schema parser (`src/specSchema.ts`) with path safety gates
+  - added compiler layer (`src/specCompiler.ts`) + CLI script (`scripts/spec-compile.ts`)
+  - added CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
+  - added fixtures/tests for schema/compiler/CLI.
+- Current test baseline: `115 pass, 0 fail`.
+
+**Last updated:** 2026-02-16 20:00 UTC  
+**Status:** v2 config-mode shipping with pluginized client/output architecture; active focus is `2026-02-14-nexus-3tv` (spec compiler pipeline hardening).

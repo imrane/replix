@@ -14,6 +14,9 @@ describe("dotfiles config registry", () => {
 
     expect([...reg.mcp.keys()]).toEqual(["filesystem"]);
     expect(reg.mcp.get("filesystem")?.command).toBe("npx");
+
+    expect([...reg.plugins.keys()]).toEqual(["acme2"]);
+    expect(reg.plugins.get("acme2")?.module).toBe("./nexus-plugins/acme2.mjs");
   });
 
   test("enableValidation fails when enabled skill missing", async () => {
