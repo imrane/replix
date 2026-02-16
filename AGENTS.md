@@ -250,6 +250,7 @@ nix flake check
 - **Adapter groundwork started (2026-02-16):** added selector adapter contract (`src/adapters/types.ts`) and built-in adapters for Claude (`src/adapters/claude.ts`), OpenCode (`src/adapters/opencode.ts`), and Codex (`src/adapters/codex.ts`), with registry lookup (`src/adapters/registry.ts`) used by `runNexus` for canonical selector → client path mapping. Current Codex adapter is intentionally selector-noop because codex repo scope in Nexus remains `.codex/config.toml` only.
 - **Compile-stage extraction started (2026-02-16):** selector planning was moved out of `runNexus` into `src/compile/clientPaths.ts` (`resolveCanonicalSelectorPaths` + `resolveEnabledClientPaths`) with focused tests (`test/clientPathsCompile.test.ts`) to make plugin extraction mechanical.
 - **Concise handoff (2026-02-16):** canonical selectors are now first-class (`enable.commands/hooks/agents/settings`), adapter registry covers built-ins (claude/opencode/codex), and codex selector mapping remains intentionally empty until codex plugin scope expands beyond `.codex/config.toml`.
+- **Important gap (2026-02-16):** unification is currently complete at the *project enable* layer, but dotfiles authoring is still mixed (`claude.*` + `clients.<client>.files`); a truly client-agnostic dotfiles `artifacts.*` schema is still pending.
 
 PRD.md remains source of truth for v2 goals.
 
