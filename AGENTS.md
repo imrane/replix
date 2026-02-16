@@ -238,8 +238,8 @@ nix flake check
 ## Notes (decisions)
 
 - **OpenCode path alignment (2026-02-15):** upstream `anomalyco/opencode` uses `.opencode/command` + `.opencode/agent` (singular). Nexus now emits/loads these canonical dirs and keeps `commands/agents` as *read-only aliases* for backward compatibility. Rationale: match upstream by default while not breaking existing packs.
-- **Codex scope decision (2026-02-15):** keep Nexus core Codex support as **repo `.codex/config.toml` only**. Codex has a separate skills surface (`.agents/skills` and `.codex/skills`) with different metadata expectations; we’ll treat this as a future client-plugin concern.
-- **Codex conformance guard (2026-02-16):** this is now enforced in two places: (1) schema parse (`config.enable.clients.codex.files` accepts only `.codex/config.toml`), and (2) runtime injection guard in `runNexus` (defense-in-depth).
+- **Codex scope decision (updated 2026-02-16):** Nexus core keeps Codex selectors as **no-op** (no canonical selector mapping), but repo-scoped file support now allows `.codex/config.toml` plus shim skill roots under `.agents/skills/**` and `.codex/skills/**`.
+- **Codex conformance guard (updated 2026-02-16):** enforced in schema + runtime path guard; unsupported Codex repo paths are rejected, while the shim roots above are explicitly allowed.
 - **Testing decision:** keep fast, deterministic golden/schema/cleanup/state tests as the always-on suite; add **gated client smoke tests** (env-var opt-in) when non-interactive validation exists and no auth is required.
 - **TDD calibration (Boss directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
 - **Codex conformance hardening (2026-02-16):** repo support stays strict to `.codex/config.toml`; in pack mode, emit ownership marker only (no speculative default sections like `[skills]`).
@@ -251,6 +251,11 @@ nix flake check
 - **Compile-stage extraction started (2026-02-16):** selector planning was moved out of `runNexus` into `src/compile/clientPaths.ts` (`resolveCanonicalSelectorPaths` + `resolveEnabledClientPaths`) with focused tests (`test/clientPathsCompile.test.ts`) to make plugin extraction mechanical.
 - **Concise handoff (2026-02-16):** canonical selectors are now first-class (`enable.commands/hooks/agents/settings`), adapter registry covers built-ins (claude/opencode/codex), and codex selector mapping remains intentionally empty until codex plugin scope expands beyond `.codex/config.toml`.
 - **Important gap (2026-02-16):** unification is currently complete at the *project enable* layer, but dotfiles authoring is still mixed (`claude.*` + `clients.<client>.files`); a truly client-agnostic dotfiles `artifacts.*` schema is still pending.
+- **mkRepo DX fix (2026-02-16):** `nexus.lib.mkRepo` now infers `pkgs` + `nexusPackage` by default from flake context; callers can still override explicitly.
+- **Drift check command (2026-02-16):** added `nexus check --config <path>` to detect output drift without mutating the working repo (CI-friendly non-zero exit + ADD/MODIFY/REMOVE report).
+- **Selector guardrail (2026-02-16):** canonical selector paths are now filtered by client-defined file defs to prevent cross-client failures when only one client defines a selector target.
+- **Claude skill copy hardening (2026-02-16):** emitter now skips VCS metadata directories (`.git/.hg/.svn`) to avoid permission/runtime issues when copying cached git sources.
+- **Codex audit artifacts (2026-02-16):** added `fixtures/codex-surface-matrix.json` + shim fixture (`fixtures/codex-skill-shim`) + tests to lock current policy.
 
 PRD.md remains source of truth for v2 goals.
 
@@ -265,5 +270,5 @@ PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-16 15:45 UTC  
-**Status:** v2 config-mode shipping with 85 green tests; current focus is canonical compile/adapters → client plugins, plus CLI ergonomics + drift detection + selective source includes
+**Last updated:** 2026-02-16 18:06 UTC  
+**Status:** v2 config-mode shipping with 102 green tests; current focus is client plugin split (`nexus-9yh`) and remaining P2 docs/spec tasks after landing codex shim parity + selector guardrails + drift check CLI.
