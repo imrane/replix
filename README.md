@@ -1,7 +1,7 @@
 # Nexus - Dotfiles-First AI Toolchain Injection
 
 [![CI](https://github.com/imrane/nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/imrane/nexus/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/imrane/nexus/graph/badge.svg)](https://codecov.io/gh/imrane/nexus)
+[![codecov](https://codecov.io/github/imrane/nexus/graph/badge.svg?token=VPKG1SPQRK)](https://codecov.io/github/imrane/nexus)
 
 **Declarative, repo-scoped injection of AI skills and MCP servers for Claude Code, Codex, and OpenCode.**
 
@@ -53,7 +53,7 @@ Nexus auto-injects configuration into the correct locations:
 
 After `home-manager switch`, skills are available to all projects.
 
-### 1.1 Optional: Define Claude Commands/Hooks/Agents in Dotfiles
+### 1.1 Define Canonical Artifacts in Dotfiles
 
 ```nix
 # ~/.config/home-manager/nexus.nix
@@ -84,7 +84,7 @@ After `home-manager switch`, skills are available to all projects.
 }
 ```
 
-These map to repo files under:
+These become canonical artifact definitions that adapters map to client-specific outputs (currently Claude emits):
 - `.claude/commands/*`
 - `.claude/hooks/*`
 - `.claude/agents/*`
@@ -464,7 +464,7 @@ nix flake check
 
 ## Implementation Status
 
-⚠️ **v1.0 MVP Complete** (pack.json-based, now in deprecation mode)
+⚠️ **v1.0 MVP Complete** (legacy pack.json path still present, queued for removal)
 
 ✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, codex conformance guard, OpenCode canonical path normalization, and Claude parity files (`settings`, `settingsLocal`, commands/hooks/agents) are implemented and covered by tests.
 
@@ -490,7 +490,7 @@ nexus/
 ├── PRD.md                 # Product requirements + trajectory
 ├── AGENTS.md              # Implementation state + handoff context
 ├── src/                   # TypeScript source
-├── test/                  # Bun tests (74 passing)
+├── test/                  # Bun tests (85 passing)
 ├── modules/               # Nix modules
 │   └── home-manager.nix   # Home-manager integration
 ├── flake.nix              # Nix flake
@@ -522,4 +522,4 @@ MIT
 **Created:** 2026-02-14  
 **Repo:** https://github.com/imrane/nexus  
 **Stack:** Bun + TypeScript + Nix  
-**Tests:** 74 passing
+**Tests:** 85 passing
