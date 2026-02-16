@@ -108,6 +108,15 @@ async function emitClientFile(repoRoot: string, inj: ClientFileInjection): Promi
   }
 }
 
+function assertClientFilePathSupported(client: string, relPath: string): void {
+  // Codex conformance: repo-scoped surface is .codex/config.toml only.
+  if (client === "codex" && relPath !== ".codex/config.toml") {
+    throw new Error(
+      `unsupported codex repo file path: ${relPath} (supported: .codex/config.toml; user-global/cloud surfaces are out of scope)`,
+    );
+  }
+}
+
 function resolveClientFileInjections(cfg: NexusConfigV1, dotfiles: Awaited<ReturnType<typeof loadDotfilesRegistryFromEnv>>): ClientFileInjection[] {
   const out: ClientFileInjection[] = [];
 
@@ -117,6 +126,7 @@ function resolveClientFileInjections(cfg: NexusConfigV1, dotfiles: Awaited<Retur
     const enabledPaths = cfg.enable.clients?.[client]?.files ?? definedPaths;
 
     for (const relPath of enabledPaths) {
+      assertClientFilePathSupported(client, relPath);
       const def = defs[relPath];
       if (!def) throw new Error(`missing client file def in dotfiles: ${client}.${relPath}`);
       out.push({ client, relPath, def });

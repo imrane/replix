@@ -34,6 +34,19 @@ function assertStringArray(x: unknown, name: string): string[] {
   return x as string[];
 }
 
+function validateClientFilePaths(client: string, files: string[], name: string): void {
+  // Codex conformance: repo-scoped surface is .codex/config.toml only.
+  if (client === "codex") {
+    for (const file of files) {
+      if (file !== ".codex/config.toml") {
+        throw new Error(
+          `${name} contains unsupported codex repo file path: ${file} (supported: .codex/config.toml)`,
+        );
+      }
+    }
+  }
+}
+
 export function parseNexusConfig(input: unknown): NexusConfigV1 {
   if (!isRecord(input)) throw new Error("config must be an object");
   if (input.version !== 1) throw new Error("config.version must be 1");
@@ -64,7 +77,9 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     if (!(filesRaw === undefined || (Array.isArray(filesRaw) && filesRaw.every((f) => typeof f === "string")))) {
       throw new Error(`config.enable.clients.${client}.files must be string[]`);
     }
-    enableClients[client] = { files: filesRaw as string[] | undefined };
+    const files = filesRaw as string[] | undefined;
+    if (files) validateClientFilePaths(client, files, `config.enable.clients.${client}.files`);
+    enableClients[client] = { files };
   }
 
   const overridesRaw = (input as any).overrides ?? (input as any).sources;

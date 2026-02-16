@@ -266,7 +266,15 @@ MCP is a protocol consumed by clients (Claude/Codex/OpenCode), not a client itse
 **Emits (repo-scoped):**
 - `.codex/config.toml`
 
-Codex loads repo config from `.codex/config.toml` (see OpenAI docs: https://developers.openai.com/codex/config-reference).
+Codex loads repo config from `.codex/config.toml` (OpenAI Codex config reference: https://developers.openai.com/codex/config-reference).
+
+**Codex support matrix (Nexus):**
+
+| Surface | Scope | Nexus status | Notes |
+|---|---|---|---|
+| `.codex/config.toml` | Repository | ✅ Supported | Written with ownership header, cleaned in `owned-only` mode when Nexus-managed, and enforced by config-path validation |
+| `~/.codex/*` (user config) | User-global | ❌ Not emitted | Out of scope for repo-scoped injection |
+| Cloud/workspace settings | Cloud-only | ❌ Not emitted | Not represented as repo files |
 
 **Header:**
 ```toml
