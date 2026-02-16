@@ -393,11 +393,11 @@ nix flake check
 
 ⚠️ **v1.0 MVP Complete** (pack.json-based, now in deprecation mode)
 
-📘 **v2.0 in progress** - dotfiles config-mode, templating, layout/cleanup options, and v2 golden tests landed
+✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, codex conformance guard, OpenCode canonical path normalization, and Claude parity files (`settings`, `settingsLocal`, commands/hooks/agents) are implemented and covered by tests.
 
 ### Migration Timeline (Semver)
 
-- **v1.x**: pack.json mode remains as compatibility path, but emits deprecation warnings.
+- **v1.x**: pack.json mode remains as compatibility path, and emits deprecation warnings.
 - **v2.0.0**: pack.json mode removed; dotfiles + `mkRepo` config mode is required.
 - **Upgrade path**: migrate projects to `mkRepo` + dotfiles registry before taking v2.0.0.
 
@@ -412,10 +412,10 @@ See **[AGENTS.md](AGENTS.md)** for implementation state.
 ```
 nexus/
 ├── README.md              # This file
-├── PRD.md                 # v2.0 specification
-├── AGENTS.md              # Implementation state
+├── PRD.md                 # Product requirements + trajectory
+├── AGENTS.md              # Implementation state + handoff context
 ├── src/                   # TypeScript source
-├── test/                  # Bun tests (55 passing)
+├── test/                  # Bun tests (74 passing)
 ├── modules/               # Nix modules
 │   └── home-manager.nix   # Home-manager integration
 ├── flake.nix              # Nix flake
@@ -447,4 +447,4 @@ MIT
 **Created:** 2026-02-14  
 **Repo:** https://github.com/imrane/nexus  
 **Stack:** Bun + TypeScript + Nix  
-**Tests:** 55 passing
+**Tests:** 74 passing

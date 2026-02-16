@@ -56,50 +56,44 @@ nix flake check
 
 **Repo:** `~/code/try/2026-02-14-nexus`  
 **Stack:** Bun + TypeScript + Nix  
-**Status:** v1.0 MVP complete (pack.json-based). v2.0 PRD complete (dotfiles-based).
+**Status:** v2 config-mode is implemented and actively hardening; v1 pack mode remains as deprecated compatibility.
 
-### v1.0 Implementation (Current - Will be Deprecated)
+### Runtime Reality (what is shipping now)
 
-**What works now:**
-- `pack.json` in project repos
-- Skills in `skills/` directory
-- Auto-injection to `.claude/skills/`, `.mcp.json`, etc.
-- Nix package + home-manager module
-- 36 tests passing
+**Implemented and tested:**
+- Dotfiles registry resolution (`programs.nexus.skills` + `programs.nexus.mcp`)
+- `mkRepo` enable flow + override merging
+- Emitters: Claude, MCP, Codex (`.codex/config.toml` repo scope), OpenCode
+- Codex conformance guard (schema + runtime defense-in-depth)
+- OpenCode canonical singular dirs (`command/agent`) + legacy plural alias input support
+- Claude parity files: commands/hooks/agents + `settings` + `settingsLocal`
+- Templating (`${PROJECT_ROOT}`, `${ENV:VAR}`), layout modes, cleanup strategies
+- State hash idempotency + owned-only cleanup
 
-**Stack:**
-- Bun + TypeScript
-- TDD via `bun test`
-- Nix flake with devShell + check
-- Home-manager module (v1 API)
+**Tests:** 74 passing
+- Unit + integration + golden coverage
+- Optional gated client smoke (`NEXUS_CLIENT_SMOKE=1`)
 
 **Key Files:**
-- `src/index.ts` - CLI entry point
-- `src/graph.ts` - Canonical graph compiler
+- `src/runNexus.ts` - config-mode orchestration + runtime guards
+- `src/configSchema.ts` - schema validation + codex path conformance
+- `src/resolver/dotfilesConfig.ts` - dotfiles registry loader
 - `src/emitters/` - Claude, MCP, Codex, OpenCode emitters
-- `src/state.ts` - State hash (idempotency)
-- `src/cleanup.ts` - Owned-only cleanup
-- `package.nix` - Nix package derivation
-- `modules/home-manager.nix` - Home-manager module (v1)
-- `flake.nix` - Exports package + module
-
-**Tests:** 43 passing
-- Unit tests for all components
-- Golden tests (fixtures/packs/core)
-- Integration tests (missing enabled, collisions, state no-op)
+- `src/state.ts`, `src/stateFile.ts` - idempotency and persistence
+- `src/cleanup.ts` - owned-only/full cleanup
 
 ---
 
-### v2.0 Architecture (PRD Complete - Ready for Implementation)
+### v2 Architecture (source of truth)
 
-See **PRD.md** for complete specification.
+See **PRD.md** for product requirements and trajectory.
 
-**Key Changes:**
-- **No local config** - Projects have zero files
-- **Dotfiles-first** - Skills defined in `programs.nexus.skills.*`
-- **mkRepo API** - Projects enable via flake
-- **Override via inputs** - Pull skills as flake inputs
-- **Pack system** - pack.json only for importable skill libraries
+**Key Changes (still true):**
+- **No local config** in projects by default
+- **Dotfiles-first** registry
+- **mkRepo API** for per-repo enablement
+- **Override via inputs** for repo-specific skill sources
+- **Pack system** scoped to publishable/importable libraries
 
 **Core Design:**
 
@@ -263,5 +257,5 @@ PRD.md remains source of truth for v2 goals.
 
 ---
 
-**Last updated:** 2026-02-16 03:40 UTC  
-**Status:** v2 config-mode improving; Claude settings files supported; staying declarative; next: consider selective source includes + drift check
+**Last updated:** 2026-02-16 04:36 UTC  
+**Status:** v2 config-mode shipping with 74 green tests; focus is CLI ergonomics + drift detection + selective source includes while preserving strict declarative scope
