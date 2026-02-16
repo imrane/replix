@@ -2,6 +2,7 @@ export type DriftTarget = {
   key: string;
   repo: string; // owner/name
   channel?: "release" | "tag";
+  docsUrls?: string[];
 };
 
 export type UpstreamSnapshot = {
@@ -10,6 +11,7 @@ export type UpstreamSnapshot = {
   releaseTag?: string;
   releasePublishedAt?: string;
   latestTag?: string;
+  docsFingerprint?: string;
 };
 
 export type DriftBaseline = Record<string, UpstreamSnapshot>;
@@ -47,6 +49,7 @@ export function diffSnapshots(baseline: DriftBaseline, current: UpstreamSnapshot
       if (normalized(before.releaseTag) !== normalized(after.releaseTag)) changedFields.push("releaseTag");
       if (normalized(before.releasePublishedAt) !== normalized(after.releasePublishedAt)) changedFields.push("releasePublishedAt");
       if (normalized(before.latestTag) !== normalized(after.latestTag)) changedFields.push("latestTag");
+      if (normalized(before.docsFingerprint) !== normalized(after.docsFingerprint)) changedFields.push("docsFingerprint");
     }
 
     if (changedFields.length > 0) {
@@ -64,12 +67,13 @@ export function toBaselineMap(current: UpstreamSnapshot[]): DriftBaseline {
 export function assessImpact(delta: DriftDelta): DriftImpact {
   const hasRelease = delta.changedFields.includes("releaseTag") || delta.changedFields.includes("releasePublishedAt");
   const hasTag = delta.changedFields.includes("latestTag");
+  const hasDocs = delta.changedFields.includes("docsFingerprint");
   const isNew = delta.changedFields.includes("new_target");
 
   let risk: DriftRisk = "low";
   if (isNew) risk = "high";
   else if (hasRelease && hasTag) risk = "high";
-  else if (hasRelease || hasTag) risk = "medium";
+  else if (hasRelease || hasTag || hasDocs) risk = "medium";
 
   const byKey: Record<string, { modules: string[]; tests: string[] }> = {
     "claude-code": {

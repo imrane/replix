@@ -1,13 +1,35 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { assessImpact, diffSnapshots, toBaselineMap, type DriftBaseline, type DriftTarget, type UpstreamSnapshot } from "../src/drift";
 
 const DEFAULT_TARGETS: DriftTarget[] = [
-  { key: "opencode", repo: "sst/opencode" },
-  { key: "codex", repo: "openai/codex" },
-  { key: "claude-code", repo: "anthropics/claude-code" },
+  {
+    key: "opencode",
+    repo: "sst/opencode",
+    docsUrls: [
+      "https://raw.githubusercontent.com/sst/opencode/refs/heads/dev/AGENTS.md",
+      "https://raw.githubusercontent.com/sst/opencode/refs/heads/dev/packages/opencode/src/config/types.ts",
+    ],
+  },
+  {
+    key: "codex",
+    repo: "openai/codex",
+    docsUrls: [
+      "https://raw.githubusercontent.com/openai/codex/main/README.md",
+      "https://raw.githubusercontent.com/openai/codex/main/docs/config.md",
+    ],
+  },
+  {
+    key: "claude-code",
+    repo: "anthropics/claude-code",
+    docsUrls: [
+      "https://docs.anthropic.com/en/docs/claude-code/settings",
+      "https://docs.anthropic.com/en/docs/claude-code/hooks",
+    ],
+  },
 ];
 
 type GhRelease = {
@@ -37,9 +59,40 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   return (await res.json()) as T;
 }
 
+async function fetchText(url: string): Promise<string | null> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "nexus-spec-drift-check",
+    },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Docs request failed (${res.status}) ${url}`);
+  return await res.text();
+}
+
+async function docsFingerprint(urls: string[] | undefined): Promise<string | undefined> {
+  if (!urls || urls.length === 0) return undefined;
+
+  const chunks: string[] = [];
+  for (const url of urls) {
+    const text = await fetchText(url);
+    if (text == null) {
+      chunks.push(`${url}\n<missing>`);
+      continue;
+    }
+    chunks.push(`${url}\n${text}`);
+  }
+
+  const hash = createHash("sha256");
+  hash.update(chunks.join("\n\n---\n\n"));
+  return hash.digest("hex");
+}
+
 async function fetchSnapshot(target: DriftTarget): Promise<UpstreamSnapshot> {
   const release = await fetchJson<GhRelease>(`https://api.github.com/repos/${target.repo}/releases/latest`);
   const tags = await fetchJson<GhTag[]>(`https://api.github.com/repos/${target.repo}/tags?per_page=1`);
+  const fingerprint = await docsFingerprint(target.docsUrls);
 
   return {
     key: target.key,
@@ -47,6 +100,7 @@ async function fetchSnapshot(target: DriftTarget): Promise<UpstreamSnapshot> {
     releaseTag: release?.tag_name,
     releasePublishedAt: release?.published_at,
     latestTag: tags?.[0]?.name,
+    docsFingerprint: fingerprint,
   };
 }
 

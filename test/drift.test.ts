@@ -47,3 +47,11 @@ test("drift impact > assigns medium risk for release-only change", () => {
   expect(impact.risk).toBe("medium");
   expect(impact.suggestedTests).toContain("test/adapterOpenCode.test.ts");
 });
+
+test("drift diff > detects docs fingerprint drift", () => {
+  const before = [{ key: "claude-code", repo: "anthropics/claude-code", docsFingerprint: "abc" }];
+  const after = [{ key: "claude-code", repo: "anthropics/claude-code", docsFingerprint: "xyz" }];
+  const delta = diffSnapshots(toBaselineMap(before), after)[0]!;
+  expect(delta.changedFields).toContain("docsFingerprint");
+  expect(assessImpact(delta).risk).toBe("medium");
+});
