@@ -66,22 +66,17 @@ test(
   };
 
   outputs = { self, nixpkgs, flake-utils, nexus }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.\${system};
-      in {
-        devShells.default = nexus.lib.mkRepo {
-          inherit system;
-          inherit pkgs;
-          nexusPackage = nexus.packages.\${system}.default;
+    flake-utils.lib.eachDefaultSystem (system: {
+      devShells.default = nexus.lib.mkRepo {
+        inherit system;
 
-          clients = [ "claude" ];
-          enable = { skills = [ "humanizer" ]; mcp = []; };
+        clients = [ "claude" ];
+        enable = { skills = [ "humanizer" ]; mcp = []; };
 
-          # IMPORTANT: no per-repo sources/overrides
-          skills = { };
-        };
-      });
+        # IMPORTANT: no per-repo sources/overrides
+        skills = { };
+      };
+    });
 }`;
       writeFileSync(join(repoRoot, "flake.nix"), flake);
 

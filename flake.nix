@@ -73,7 +73,8 @@
       }
     ))
     // {
-      # Top-level library API (v2 direction). Consumers pass pkgs/system/nexusPackage.
-      lib = import ./lib;
+      # Top-level library API (v2 direction).
+      # mkRepo can infer pkgs + nexus package from this flake; callers may still override explicitly.
+      lib = import ./lib { inherit self nixpkgs; };
     };
 }
