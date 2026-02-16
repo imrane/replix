@@ -12,10 +12,15 @@ export type EmitClaudeInput = {
   skills: ClaudeSkillInput[];
 };
 
+function shouldSkipEntry(name: string): boolean {
+  return name === ".git" || name === ".hg" || name === ".svn";
+}
+
 async function copyDir(src: string, dst: string): Promise<void> {
   await mkdir(dst, { recursive: true });
   const entries = await readdir(src, { withFileTypes: true });
   for (const e of entries) {
+    if (shouldSkipEntry(e.name)) continue;
     const s = join(src, e.name);
     const d = join(dst, e.name);
     if (e.isDirectory()) {

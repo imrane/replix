@@ -40,4 +40,28 @@ describe("claude emitter", () => {
     expect(existsSync(outSkill)).toBeTrue();
     expect(read(outSkill)).toContain("Code review");
   });
+
+  it("skips VCS metadata directories inside skill sources", async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
+    const srcRoot = mkdtempSync(join(tmpdir(), "nexus-skill-"));
+    const skillDir = join(srcRoot, "skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), "# Code review\n");
+    mkdirSync(join(skillDir, ".git", "objects"), { recursive: true });
+    writeFileSync(join(skillDir, ".git", "objects", "secret"), "x");
+
+    await emitClaude({
+      repoRoot,
+      skills: [
+        {
+          id: "core/review:code-review",
+          itemId: "code-review",
+          srcDir: skillDir,
+        },
+      ],
+    });
+
+    const copiedGit = join(repoRoot, ".claude", "skills", "code-review", ".git", "objects", "secret");
+    expect(existsSync(copiedGit)).toBeFalse();
+  });
 });
