@@ -175,32 +175,34 @@ nexus.lib.mkRepo {
 
 Returns: `pkgs.mkShell` with injection in `shellHook`.
 
-### Claude Commands/Hooks/Agents in Project Config
+### Unified Artifact Selectors (Canonical Spec)
 
-There is currently **no separate** `enable.commands/hooks/agents` block.
-Project selection happens through `enable.clients.<client>.files` (file-path allowlist from dotfiles client registry).
+Nexus now supports canonical artifact selectors in `enable`:
+- `enable.commands`
+- `enable.hooks`
+- `enable.agents`
+- `enable.settings`
+
+These are compiled by client adapters (Claude/OpenCode/Codex), so selection is **unified**, while output paths remain client-specific.
 
 ```nix
 nexus.lib.mkRepo {
   system = "x86_64-linux";
-  clients = [ "claude" ];
+  clients = [ "claude" "opencode" "codex" ];
 
   enable = {
     skills = [ "humanizer" ];
     mcp = [ "filesystem" ];
 
-    clients = {
-      claude.files = [
-        ".claude/commands/review.md"
-        ".claude/hooks/pre-commit.sh"
-        ".claude/agents/security.md"
-        ".claude/settings.json"
-        ".claude/settings.local.json"
-      ];
-    };
+    commands = [ "review.md" ];
+    hooks = [ "pre-commit.sh" ];
+    agents = [ "security.md" ];
+    settings = [ "settings" "settingsLocal" ];
   };
 }
 ```
+
+`enable.clients.<client>.files` still works as a compatibility path, but canonical selectors are the primary model.
 
 ### Skill Sources
 
@@ -368,7 +370,7 @@ Codex loads repo config from `.codex/config.toml` (OpenAI Codex config reference
 1. **Read dotfiles config** - Load skill definitions from `programs.nexus`
 2. **Resolve enable list** - Match enabled items to skill sources
 3. **Fetch skills** - Clone/cache from github:, path:, etc.
-4. **Compile canonical graph** - Merge all enabled skills/MCP
+4. **Compile canonical graph** - Merge enabled skills, MCP, and canonical artifact selectors (commands/hooks/agents/settings)
 5. **Compute state hash** - Hash of enabled items + sources
 6. **Check if changed** - Compare to `.claude/.nexus-state`
 7. **Emit outputs** - Write `.claude/skills/`, `.mcp.json`, etc.
