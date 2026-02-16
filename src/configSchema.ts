@@ -6,6 +6,10 @@ export type NexusOverridesV1 = {
 export type NexusEnableV1 = {
   skills: string[];
   mcp: string[];
+  commands?: string[];
+  hooks?: string[];
+  agents?: string[];
+  settings?: string[];
   clients?: Record<string, { files?: string[] }>;
 };
 
@@ -28,6 +32,7 @@ function isRecord(x: unknown): x is Record<string, unknown> {
 }
 
 function assertStringArray(x: unknown, name: string): string[] {
+  if (x === undefined) return [];
   if (!Array.isArray(x) || !x.every((v) => typeof v === "string")) {
     throw new Error(`${name} must be string[]`);
   }
@@ -65,6 +70,10 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
   if (!isRecord(enable)) throw new Error("config.enable must be an object");
   const skills = assertStringArray(enable.skills, "config.enable.skills");
   const mcp = assertStringArray(enable.mcp, "config.enable.mcp");
+  const commands = assertStringArray(enable.commands, "config.enable.commands");
+  const hooks = assertStringArray(enable.hooks, "config.enable.hooks");
+  const agents = assertStringArray(enable.agents, "config.enable.agents");
+  const settings = assertStringArray(enable.settings, "config.enable.settings");
 
   const enableClientsRaw = (enable as any).clients;
   if (!(enableClientsRaw === undefined || isRecord(enableClientsRaw))) {
@@ -131,7 +140,7 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
     version: 1,
     repoRoot,
     clients,
-    enable: { skills, mcp, clients: enableClients },
+    enable: { skills, mcp, commands, hooks, agents, settings, clients: enableClients },
     vars,
     strictEnv: strictEnvRaw,
     layout: layoutRaw,

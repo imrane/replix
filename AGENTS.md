@@ -56,7 +56,7 @@ nix flake check
 
 **Repo:** `~/code/try/2026-02-14-nexus`  
 **Stack:** Bun + TypeScript + Nix  
-**Status:** v2 config-mode is implemented and actively hardening; v1 pack mode remains as deprecated compatibility.
+**Status:** v2 config-mode is implemented and actively hardening; v1 pack mode is queued for removal (no deprecation rollout needed before removal).
 
 ### Runtime Reality (what is shipping now)
 
@@ -157,11 +157,11 @@ programs.nexus.skills.humanizer.source = "github:blader/humanizer";
 mkRepo { enable.skills = [ "humanizer" ]; };
 ```
 
-**Transition plan:**
-1. Implement v2 API alongside v1
-2. Add deprecation warnings for pack.json
-3. Ship v2.0.0 with migration guide
-4. Remove v1 compat layer after transition
+**Transition plan (updated):**
+1. Continue v2 API hardening (canonical graph + adapters)
+2. Keep v1 pack mode only as short-lived compatibility while refactor lands
+3. Queue v1 pack mode for direct removal (no staged deprecation warnings required)
+4. Keep migration notes concise in README/PRD for any remaining early users
 
 ---
 
@@ -244,6 +244,12 @@ nix flake check
 - **TDD calibration (Boss directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
 - **Codex conformance hardening (2026-02-16):** repo support stays strict to `.codex/config.toml`; in pack mode, emit ownership marker only (no speculative default sections like `[skills]`).
 - **CLI usability gap captured (2026-02-16):** added P1 tasks for `list skills/mcp` and flake snippet helper; added P2 task for first-class command/agent enable ergonomics beyond raw `enable.clients.<client>.files` paths.
+- **Architecture direction (2026-02-16, Boss):** move to one canonical pack/artifact spec (skills, MCP, hooks, commands, agents, settings) compiled by `mkRepo` into client-specific outputs; treat file-path client injection as temporary compatibility.
+- **Removal policy (2026-02-16, Boss):** since adoption is still pre-launch, do not spend cycles on formal deprecation rollout; queue legacy surfaces (notably pack.json mode and path-first client-file APIs) for clean removal as canonical/plugin architecture lands.
+- **Plugin split direction (2026-02-16, Boss):** clients are moving into separate plugin units; prioritize core canonical graph + adapter interface first, then peel built-ins into standalone plugins on that interface.
+- **Adapter groundwork started (2026-02-16):** added selector adapter contract (`src/adapters/types.ts`) and built-in adapters for Claude (`src/adapters/claude.ts`), OpenCode (`src/adapters/opencode.ts`), and Codex (`src/adapters/codex.ts`), with registry lookup (`src/adapters/registry.ts`) used by `runNexus` for canonical selector → client path mapping. Current Codex adapter is intentionally selector-noop because codex repo scope in Nexus remains `.codex/config.toml` only.
+- **Compile-stage extraction started (2026-02-16):** selector planning was moved out of `runNexus` into `src/compile/clientPaths.ts` (`resolveCanonicalSelectorPaths` + `resolveEnabledClientPaths`) with focused tests (`test/clientPathsCompile.test.ts`) to make plugin extraction mechanical.
+- **Concise handoff (2026-02-16):** canonical selectors are now first-class (`enable.commands/hooks/agents/settings`), adapter registry covers built-ins (claude/opencode/codex), and codex selector mapping remains intentionally empty until codex plugin scope expands beyond `.codex/config.toml`.
 
 PRD.md remains source of truth for v2 goals.
 
@@ -254,8 +260,9 @@ PRD.md remains source of truth for v2 goals.
 - **Claude settings files (repo scope):** support both `.claude/settings.json` and `.claude/settings.local.json` as first-class dotfiles conveniences (`claude.settings` / `claude.settingsLocal`). Docs: https://code.claude.com/docs/en/settings
 - **Keep Nexus minimal:** Openboot has a good *layering + selective include* concept for agent references, but Nexus should not grow into stack autodetect/orchestration. Repo: https://github.com/treadiehq/openboot
 - **MCP ergonomics:** tools like EveryMCP are great for imperative “patch my agents now”, but Nexus stays declarative (dotfiles + mkRepo). Repo: https://github.com/am-will/everymcp
+- **Codecov private repo token:** CI already reads `secrets.CODECOV_TOKEN` in `.github/workflows/ci.yml`; set it at repo settings → Secrets and variables → Actions.
 
 ---
 
-**Last updated:** 2026-02-16 04:36 UTC  
-**Status:** v2 config-mode shipping with 74 green tests; focus is CLI ergonomics + drift detection + selective source includes while preserving strict declarative scope
+**Last updated:** 2026-02-16 15:45 UTC  
+**Status:** v2 config-mode shipping with 85 green tests; current focus is canonical compile/adapters → client plugins, plus CLI ergonomics + drift detection + selective source includes

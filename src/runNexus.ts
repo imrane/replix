@@ -16,6 +16,7 @@ import { emitOpenCode, type OpenCodeAssetInput } from "./emitters/opencode";
 import { cleanupFull, cleanupOwnedOnly } from "./cleanup";
 import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { templateMcpServer } from "./templating";
+import { resolveEnabledClientPaths } from "./compile/clientPaths";
 
 export type RunNexusArgs = {
   cwd: string;
@@ -135,13 +136,24 @@ function assertClientFilePathSupported(client: string, relPath: string): void {
   }
 }
 
-function resolveClientFileInjections(cfg: NexusConfigV1, dotfiles: Awaited<ReturnType<typeof loadDotfilesRegistryFromEnv>>): ClientFileInjection[] {
+function resolveClientFileInjections(
+  cfg: NexusConfigV1,
+  dotfiles: Awaited<ReturnType<typeof loadDotfilesRegistryFromEnv>>,
+  enableSpec: ReturnType<typeof parseEnableSpec>,
+): ClientFileInjection[] {
   const out: ClientFileInjection[] = [];
 
   for (const client of cfg.clients) {
     const defs = dotfiles.clients.get(client)?.files ?? {};
     const definedPaths = Object.keys(defs).sort();
-    const enabledPaths = cfg.enable.clients?.[client]?.files ?? definedPaths;
+
+    const enabledPaths = resolveEnabledClientPaths({
+      client,
+      enable: enableSpec,
+      explicitPaths: cfg.enable.clients?.[client]?.files,
+      definedPaths,
+    });
+
     const seenNormalized = new Set<string>();
 
     for (const rawRelPath of enabledPaths) {
@@ -189,13 +201,39 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     const availableMcpIds = new Set<string>([...dotfiles.mcp.keys()]);
     const availableMcp = new Map([...availableMcpIds].sort().map((name) => [name, { kind: "mcp" as const, name }]));
 
+    const claudeFiles = dotfiles.clients.get("claude")?.files ?? {};
+    const availableCommands = new Map(
+      Object.keys(claudeFiles)
+        .filter((p) => p.startsWith(".claude/commands/"))
+        .map((p) => [p.replace(".claude/commands/", ""), { kind: "command" as const, itemId: p.replace(".claude/commands/", "") }]),
+    );
+    const availableHooks = new Map(
+      Object.keys(claudeFiles)
+        .filter((p) => p.startsWith(".claude/hooks/"))
+        .map((p) => [p.replace(".claude/hooks/", ""), { kind: "hook" as const, itemId: p.replace(".claude/hooks/", "") }]),
+    );
+    const availableAgents = new Map(
+      Object.keys(claudeFiles)
+        .filter((p) => p.startsWith(".claude/agents/"))
+        .map((p) => [p.replace(".claude/agents/", ""), { kind: "agent" as const, itemId: p.replace(".claude/agents/", "") }]),
+    );
+    const availableSettings = new Map<string, { kind: "setting"; itemId: string }>();
+    if (claudeFiles[".claude/settings.json"]) availableSettings.set("settings", { kind: "setting", itemId: "settings" });
+    if (claudeFiles[".claude/settings.local.json"]) {
+      availableSettings.set("settingsLocal", { kind: "setting", itemId: "settingsLocal" });
+    }
+
     const available: AvailableItems = {
       skills: availableSkills,
       mcp: availableMcp,
+      commands: availableCommands,
+      hooks: availableHooks,
+      agents: availableAgents,
+      settings: availableSettings,
     };
 
     const graph = compileGraph({ available, enable: enableSpec });
-    const clientFileInjections = resolveClientFileInjections(cfg, dotfiles);
+    const clientFileInjections = resolveClientFileInjections(cfg, dotfiles, enableSpec);
 
     const desiredHash = computeStateHash({
       packs: [{ id: "config", rev: "v1" }],

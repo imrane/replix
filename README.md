@@ -466,11 +466,13 @@ nix flake check
 
 ✅ **v2 config-mode active** — dotfiles registry, `mkRepo`, templating, layout/cleanup modes, codex conformance guard, OpenCode canonical path normalization, and Claude parity files (`settings`, `settingsLocal`, commands/hooks/agents) are implemented and covered by tests.
 
-### Migration Timeline (Semver)
+🚧 **Next architecture step** — move from mixed path-level client file selection toward a canonical artifact graph compiled by client adapters, then extract clients into separate plugin units.
 
-- **v1.x**: pack.json mode remains as compatibility path, and emits deprecation warnings.
-- **v2.0.0**: pack.json mode removed; dotfiles + `mkRepo` config mode is required.
-- **Upgrade path**: migrate projects to `mkRepo` + dotfiles registry before taking v2.0.0.
+### Migration Direction (updated)
+
+- **Pre-launch policy:** no formal deprecation rollout required yet.
+- **Legacy surfaces** (notably `pack.json` mode and path-first client-file enable flows) are queued for removal as canonical config-mode hardening completes.
+- **Primary path:** dotfiles + `mkRepo` config mode.
 
 See **[PRD.md](PRD.md)** for complete v2.0 specification.
 

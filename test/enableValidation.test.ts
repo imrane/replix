@@ -8,10 +8,18 @@ describe("enable validation", () => {
         {
           skills: ["core/review:code-review"],
           mcp: [],
+          commands: [],
+          hooks: [],
+          agents: [],
+          settings: [],
         },
         {
           skills: new Set(),
           mcp: new Set(),
+          commands: new Set(),
+          hooks: new Set(),
+          agents: new Set(),
+          settings: new Set(),
         },
       ),
     ).toThrow(/missing enabled skill/i);
@@ -23,10 +31,18 @@ describe("enable validation", () => {
         {
           skills: [],
           mcp: ["core/mcp:filesystem"],
+          commands: [],
+          hooks: [],
+          agents: [],
+          settings: [],
         },
         {
           skills: new Set(),
           mcp: new Set(),
+          commands: new Set(),
+          hooks: new Set(),
+          agents: new Set(),
+          settings: new Set(),
         },
       ),
     ).toThrow(/missing enabled mcp/i);
@@ -34,11 +50,29 @@ describe("enable validation", () => {
 
   it("returns enabled ids when present", () => {
     const out = resolveEnabled(
-      { skills: ["a/b:c"], mcp: ["x/y:z"] },
-      { skills: new Set(["a/b:c"]), mcp: new Set(["x/y:z"]) },
+      {
+        skills: ["a/b:c"],
+        mcp: ["x/y:z"],
+        commands: [],
+        hooks: [],
+        agents: [],
+        settings: [],
+      },
+      {
+        skills: new Set(["a/b:c"]),
+        mcp: new Set(["x/y:z"]),
+        commands: new Set(),
+        hooks: new Set(),
+        agents: new Set(),
+        settings: new Set(),
+      },
     );
 
     expect(out.skills).toEqual(["a/b:c"]);
     expect(out.mcp).toEqual(["x/y:z"]);
+    expect(out.commands).toEqual([]);
+    expect(out.hooks).toEqual([]);
+    expect(out.agents).toEqual([]);
+    expect(out.settings).toEqual([]);
   });
 });

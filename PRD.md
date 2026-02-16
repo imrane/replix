@@ -128,6 +128,12 @@ Implemented and validated in-repo:
 
 This PRD remains the trajectory and constraint document; AGENTS.md holds live handoff details.
 
+### 2.5 Direction Update (2026-02-16)
+
+- **Canonical-first model:** Nexus should define one canonical artifact spec across `skills`, `mcp`, `commands`, `hooks`, `agents`, `settings` (and related metadata), then compile through `mkRepo` into each client’s required output format.
+- **No deprecation theater pre-launch:** because adoption is still early, legacy paths are **queued for removal** rather than requiring long staged deprecation workflows.
+- **Plugin trajectory:** client emitters are expected to move into separate plugin units; sequencing is: (1) stabilize canonical graph + adapter contracts in core, then (2) extract clients into plugins.
+
 ---
 
 ## 3. Non-Goals
