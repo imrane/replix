@@ -247,6 +247,7 @@ nix flake check
 - **Codex scope decision (2026-02-15):** keep Nexus core Codex support as **repo `.codex/config.toml` only**. Codex has a separate skills surface (`.agents/skills` and `.codex/skills`) with different metadata expectations; we’ll treat this as a future client-plugin concern.
 - **Codex conformance guard (2026-02-16):** this is now enforced in two places: (1) schema parse (`config.enable.clients.codex.files` accepts only `.codex/config.toml`), and (2) runtime injection guard in `runNexus` (defense-in-depth).
 - **Testing decision:** keep fast, deterministic golden/schema/cleanup/state tests as the always-on suite; add **gated client smoke tests** (env-var opt-in) when non-interactive validation exists and no auth is required.
+- **TDD calibration (Boss directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
 
 PRD.md remains source of truth for v2 goals.
 

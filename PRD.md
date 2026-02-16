@@ -384,8 +384,14 @@ enabled = true
 ### 10.4 OpenCode
 
 **Writes:**
-- `.opencode/commands/`
+- `.opencode/command/`
+- `.opencode/agent/`
+- `.opencode/hooks/`
+- `.opencode/rules/`
 - `.opencode/.nexus-managed`
+
+**Compatibility bridge:**
+- Legacy plural references (`.opencode/commands/*`, `.opencode/agents/*`) are accepted at config input time and normalized to canonical singular output paths.
 
 ---
 

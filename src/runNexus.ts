@@ -108,6 +108,24 @@ async function emitClientFile(repoRoot: string, inj: ClientFileInjection): Promi
   }
 }
 
+function normalizeClientFilePath(client: string, relPath: string): string {
+  const normalized = relPath.replace(/^\/+/, "");
+
+  // OpenCode conformance bridge: support legacy plural dirs while emitting canonical singular dirs.
+  if (client === "opencode") {
+    if (normalized === ".opencode/commands") return ".opencode/command";
+    if (normalized.startsWith(".opencode/commands/")) {
+      return normalized.replace(".opencode/commands/", ".opencode/command/");
+    }
+    if (normalized === ".opencode/agents") return ".opencode/agent";
+    if (normalized.startsWith(".opencode/agents/")) {
+      return normalized.replace(".opencode/agents/", ".opencode/agent/");
+    }
+  }
+
+  return normalized;
+}
+
 function assertClientFilePathSupported(client: string, relPath: string): void {
   // Codex conformance: repo-scoped surface is .codex/config.toml only.
   if (client === "codex" && relPath !== ".codex/config.toml") {
@@ -124,11 +142,19 @@ function resolveClientFileInjections(cfg: NexusConfigV1, dotfiles: Awaited<Retur
     const defs = dotfiles.clients.get(client)?.files ?? {};
     const definedPaths = Object.keys(defs).sort();
     const enabledPaths = cfg.enable.clients?.[client]?.files ?? definedPaths;
+    const seenNormalized = new Set<string>();
 
-    for (const relPath of enabledPaths) {
+    for (const rawRelPath of enabledPaths) {
+      const relPath = normalizeClientFilePath(client, rawRelPath);
       assertClientFilePathSupported(client, relPath);
-      const def = defs[relPath];
-      if (!def) throw new Error(`missing client file def in dotfiles: ${client}.${relPath}`);
+
+      if (seenNormalized.has(relPath)) {
+        throw new Error(`duplicate client file path after normalization: ${client}.${relPath}`);
+      }
+      seenNormalized.add(relPath);
+
+      const def = defs[rawRelPath] ?? defs[relPath];
+      if (!def) throw new Error(`missing client file def in dotfiles: ${client}.${rawRelPath}`);
       out.push({ client, relPath, def });
     }
   }
