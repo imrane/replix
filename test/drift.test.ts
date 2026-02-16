@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { diffSnapshots, toBaselineMap, type UpstreamSnapshot } from "../src/drift";
+import { assessImpact, diffSnapshots, toBaselineMap, type UpstreamSnapshot } from "../src/drift";
 
 test("drift diff > detects changed release tag", () => {
   const before: UpstreamSnapshot[] = [
@@ -29,4 +29,21 @@ test("drift diff > missing baseline target is flagged as new_target", () => {
   const diff = diffSnapshots({}, after);
   expect(diff).toHaveLength(1);
   expect(diff[0]?.changedFields).toEqual(["new_target"]);
+});
+
+test("drift impact > assigns high risk for new target", () => {
+  const after: UpstreamSnapshot[] = [{ key: "codex", repo: "openai/codex", latestTag: "v0.9.0" }];
+  const delta = diffSnapshots({}, after)[0]!;
+  const impact = assessImpact(delta);
+  expect(impact.risk).toBe("high");
+  expect(impact.affectedModules).toContain("src/emitters/codex.ts");
+});
+
+test("drift impact > assigns medium risk for release-only change", () => {
+  const before = [{ key: "opencode", repo: "sst/opencode", releaseTag: "v1.0.0" }];
+  const after = [{ key: "opencode", repo: "sst/opencode", releaseTag: "v1.0.1" }];
+  const delta = diffSnapshots(toBaselineMap(before), after)[0]!;
+  const impact = assessImpact(delta);
+  expect(impact.risk).toBe("medium");
+  expect(impact.suggestedTests).toContain("test/adapterOpenCode.test.ts");
 });

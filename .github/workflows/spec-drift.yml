@@ -52,7 +52,13 @@ jobs:
               : [
                   `Detected ${deltas.length} drift target(s).`,
                   '',
-                  ...deltas.map(d => `- **${d.key}** (${d.repo}): ${d.changedFields.join(', ')}`),
+                  ...deltas.flatMap(d => [
+                    `- **${d.key}** (${d.repo})`,
+                    `  - changed: ${d.changedFields.join(', ')}`,
+                    `  - risk: ${d.impact?.risk ?? 'unknown'}`,
+                    `  - modules: ${(d.impact?.affectedModules ?? []).join(', ')}`,
+                    `  - tests: ${(d.impact?.suggestedTests ?? []).join(', ')}`,
+                  ]),
                   '',
                   `Generated: ${report.generatedAt}`,
                 ].join('\n');

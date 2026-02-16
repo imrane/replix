@@ -2,7 +2,7 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { diffSnapshots, toBaselineMap, type DriftBaseline, type DriftTarget, type UpstreamSnapshot } from "../src/drift";
+import { assessImpact, diffSnapshots, toBaselineMap, type DriftBaseline, type DriftTarget, type UpstreamSnapshot } from "../src/drift";
 
 const DEFAULT_TARGETS: DriftTarget[] = [
   { key: "opencode", repo: "sst/opencode" },
@@ -78,10 +78,12 @@ async function main() {
   const current = await Promise.all(targets.map(fetchSnapshot));
   const deltas = diffSnapshots(baseline, current);
 
+  const enriched = deltas.map((d) => ({ ...d, impact: assessImpact(d) }));
+
   const report = {
     generatedAt: new Date().toISOString(),
     targets,
-    deltas,
+    deltas: enriched,
     current,
   };
 
@@ -97,9 +99,9 @@ async function main() {
     return;
   }
 
-  console.log(`⚠️ spec drift: ${deltas.length} target(s) changed`);
-  for (const d of deltas) {
-    console.log(`- ${d.key} (${d.repo}): ${d.changedFields.join(", ")}`);
+  console.log(`⚠️ spec drift: ${enriched.length} target(s) changed`);
+  for (const d of enriched) {
+    console.log(`- ${d.key} (${d.repo}): ${d.changedFields.join(", ")} [risk=${d.impact.risk}]`);
   }
 
   if (process.env.NEXUS_DRIFT_FAIL_ON_CHANGE === "1") {
