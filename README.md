@@ -39,6 +39,17 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
     packs = [
       { source = "github:your-org/replix-pack?rev=<sha>"; }
       { source = "path:~/.config/replix/packs/internal"; }
+
+      # DX alias: source + folder/folders (normalized to github ?include=...)
+      # lets you pull specific pack directories from one repo without long URLs.
+      {
+        source = "github:imrane/replix";
+        folders = [
+          "fixtures/packs/examples/starter"
+          "fixtures/packs/examples/security"
+        ];
+        allowUnpinned = true;
+      }
     ];
 
     # optional direct overrides

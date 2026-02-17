@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { createHash, createPublicKey, verify as verifySig } from "node:crypto";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, dirname, relative } from "node:path";
-import { loadDotfilesConfigFromPath, resolveDotfilesConfigPath, type DotfilesPackDef } from "./resolver/dotfilesConfig";
+import { loadDotfilesConfigFromPath, resolveDotfilesConfigPath, normalizePackSource, type DotfilesPackDef } from "./resolver/dotfilesConfig";
 import { resolveDotfilesSourceToPath, parseGithubSource } from "./resolver/sourceResolver";
 import { loadLocalPack } from "./resolver/localPack";
 import { execFileSync } from "node:child_process";
@@ -149,12 +149,13 @@ function verifyPackSignature(params: {
 }
 
 async function lockEntryFromPack(pack: DotfilesPackDef): Promise<LockfilePack> {
-  const root = await resolveDotfilesSourceToPath(pack.source, { allowUnpinned: pack.allowUnpinned });
+  const source = normalizePackSource(pack);
+  const root = await resolveDotfilesSourceToPath(source, { allowUnpinned: pack.allowUnpinned });
   const local = await loadLocalPack(root);
   const requiredVars = Object.keys(local.meta.vars?.required ?? {}).sort();
 
   const resolvedHead = resolveGitHead(root);
-  const sourceRev = inferRevFromSource(pack.source);
+  const sourceRev = inferRevFromSource(source);
 
   const integritySha256 = await computePackIntegritySha256(root);
 
@@ -164,7 +165,7 @@ async function lockEntryFromPack(pack: DotfilesPackDef): Promise<LockfilePack> {
   if (pack.signaturePublicKey) {
     const signatureBase64 = await readPackSignatureBase64(root);
     if (!signatureBase64) {
-      throw new Error(`pack signature required but missing pack.sig: ${pack.source}`);
+      throw new Error(`pack signature required but missing pack.sig: ${source}`);
     }
 
     const valid = verifyPackSignature({
@@ -174,7 +175,7 @@ async function lockEntryFromPack(pack: DotfilesPackDef): Promise<LockfilePack> {
     });
 
     if (!valid) {
-      throw new Error(`pack signature verification failed: ${pack.source}`);
+      throw new Error(`pack signature verification failed: ${source}`);
     }
 
     signatureKeyId = keyIdFromPublicKeyPem(pack.signaturePublicKey);
@@ -182,7 +183,7 @@ async function lockEntryFromPack(pack: DotfilesPackDef): Promise<LockfilePack> {
   }
 
   return {
-    source: pack.source,
+    source,
     rev: resolvedHead ?? sourceRev,
     version: local.meta.version,
     requiredVars,

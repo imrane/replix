@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveEnabled } from "../src/enableValidation";
-import { loadDotfilesRegistryFromEnv } from "../src/resolver/dotfilesConfig";
+import { loadDotfilesRegistryFromEnv, normalizePackSource } from "../src/resolver/dotfilesConfig";
 
 const FIXTURE = new URL("../fixtures/dotfiles/config.json", import.meta.url).pathname;
 const PACK_FIXTURE = new URL("../fixtures/packs/core", import.meta.url).pathname;
@@ -153,5 +153,20 @@ describe("dotfiles config registry", () => {
 
     process.env.REPLIX_DOTFILES_CONFIG_JSON = cfgPath;
     await expect(loadDotfilesRegistryFromEnv()).rejects.toThrow("pack reference file not found");
+  });
+
+  test("normalizePackSource supports folder/folders alias for github includes", () => {
+    expect(
+      normalizePackSource({ source: "github:imrane/replix", folder: "fixtures/packs/examples/starter" }),
+    ).toBe("github:imrane/replix?include=fixtures%2Fpacks%2Fexamples%2Fstarter");
+
+    expect(
+      normalizePackSource({
+        source: "github:imrane/replix?rev=main",
+        folders: ["fixtures/packs/examples/starter", "fixtures/packs/examples/security"],
+      }),
+    ).toBe(
+      "github:imrane/replix?rev=main&include=fixtures%2Fpacks%2Fexamples%2Fstarter%2Cfixtures%2Fpacks%2Fexamples%2Fsecurity",
+    );
   });
 });

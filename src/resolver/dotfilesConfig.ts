@@ -46,6 +46,12 @@ export type DotfilesPluginDef = {
 
 export type DotfilesPackDef = {
   source: string;
+  // DX aliases for selective pack imports from a shared source repo.
+  // Example:
+  // { source: "github:owner/repo", folders: ["packs/starter", "packs/security"] }
+  // is normalized to github include query under the hood.
+  folder?: string;
+  folders?: string[];
   allowUnpinned?: boolean;
   signaturePublicKey?: string;
 };
@@ -141,6 +147,34 @@ async function loadMcpServersFromFile(path: string): Promise<Array<{ name: strin
     .map((name) => ({ name, server: obj[name]! }));
 }
 
+export function normalizePackSource(pack: DotfilesPackDef): string {
+  const selections = [pack.folder, ...(pack.folders ?? [])]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim().replace(/^\.\//, "").replace(/^\/+/, ""));
+
+  if (selections.length === 0) return pack.source;
+  if (!pack.source.startsWith("github:")) {
+    throw new Error("pack folder/folders selectors are currently supported only for github: sources");
+  }
+
+  const [base, hash] = pack.source.split("#", 2);
+  const qIdx = base.indexOf("?");
+  const pathPart = qIdx === -1 ? base : base.slice(0, qIdx);
+  const queryPart = qIdx === -1 ? "" : base.slice(qIdx + 1);
+  const query = new URLSearchParams(queryPart);
+
+  const existing = (query.get("include") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const merged = [...new Set([...existing, ...selections])];
+  query.set("include", merged.join(","));
+
+  const rebuilt = `${pathPart}?${query.toString()}`;
+  return hash ? `${rebuilt}#${hash}` : rebuilt;
+}
+
 async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Promise<{
   skills: Map<string, DotfilesSkillDef>;
   mcp: Map<string, DotfilesMcpDef>;
@@ -151,7 +185,8 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
   const claudeFiles: Record<string, DotfilesClientFileDef> = {};
 
   for (const pack of packs ?? []) {
-    const root = await resolveDotfilesSourceToPath(pack.source, { allowUnpinned: pack.allowUnpinned });
+    const resolvedSource = normalizePackSource(pack);
+    const root = await resolveDotfilesSourceToPath(resolvedSource, { allowUnpinned: pack.allowUnpinned });
 
     const s = await stat(join(root, "pack.json")).catch(() => null);
     if (!s?.isFile()) throw new Error(`dotfiles pack source must contain pack.json: ${pack.source}`);

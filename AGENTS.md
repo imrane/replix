@@ -58,7 +58,7 @@ nix flake check
 **Stack:** Bun + TypeScript + Nix  
 **Status:** v2 config-mode is implemented and actively hardening; v1 pack mode is queued for removal (no deprecation rollout needed before removal).
 
-### ⚠️ Engineering Warning (Boss directive — 2026-02-16)
+### ⚠️ Engineering Warning (project-owner directive — 2026-02-16)
 
 The implementation has drifted into **over-engineering** for the core job (compile canonical pack spec to client-native artifacts). Delivery speed is being hurt by layered transitional abstractions and dual-mode compatibility paths.
 
@@ -257,7 +257,7 @@ nix flake check
 - **Codex scope decision (updated 2026-02-16):** Codex selectors remain **no-op** at canonical selector mapping level, but codex outputs are now compiled from canonical skill/MCP inputs.
 - **Codex conformance guard (updated 2026-02-16):** unsupported Codex repo paths are rejected; codex skill emission target is `.agents/skills/**`; direct injection of `.codex/config.toml` via `clients.codex.files` is blocked to keep a single MCP source.
 - **Testing decision:** keep fast, deterministic golden/schema/cleanup/state tests as the always-on suite; add **gated client smoke tests** (env-var opt-in) when non-interactive validation exists and no auth is required.
-- **TDD calibration (Boss directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
+- **TDD calibration (project-owner directive, 2026-02-16):** maintain lean TDD for conformance work—one failing test per behavior change, avoid harness churn, and prefer code-heavy diffs once behavior is locked.
 - **Codex conformance hardening (2026-02-16):** repo support stays strict to `.codex/config.toml`; in pack mode, emit ownership marker only (no speculative default sections like `[skills]`).
 - **CLI usability gap captured (2026-02-16):** added P1 tasks for `list skills/mcp` and flake snippet helper; added P2 task for first-class command/agent enable ergonomics beyond raw `enable.clients.<client>.files` paths.
 - **Problems encountered during ship push (2026-02-16):**
@@ -268,9 +268,9 @@ nix flake check
   - enforce one canonical MCP source and compile to each client output
   - block codex `.codex/config.toml` direct injection via `clients.codex.files`
   - trim low-signal tests; gate expensive suites behind env flags
-- **Architecture direction (2026-02-16, Boss):** move to one canonical pack/artifact spec (skills, MCP, hooks, commands, agents, settings) compiled by `mkRepo` into client-specific outputs; treat file-path client injection as temporary compatibility.
-- **Removal policy (2026-02-16, Boss):** since adoption is still pre-launch, do not spend cycles on formal deprecation rollout; queue legacy surfaces (notably pack.json mode and path-first client-file APIs) for clean removal as canonical/plugin architecture lands.
-- **Plugin split direction (2026-02-16, Boss):** clients are moving into separate plugin units; prioritize core canonical graph + adapter interface first, then peel built-ins into standalone plugins on that interface.
+- **Architecture direction (2026-02-16, project owner):** move to one canonical pack/artifact spec (skills, MCP, hooks, commands, agents, settings) compiled by `mkRepo` into client-specific outputs; treat file-path client injection as temporary compatibility.
+- **Removal policy (2026-02-16, project owner):** since adoption is still pre-launch, do not spend cycles on formal deprecation rollout; queue legacy surfaces (notably pack.json mode and path-first client-file APIs) for clean removal as canonical/plugin architecture lands.
+- **Plugin split direction (2026-02-16, project owner):** clients are moving into separate plugin units; prioritize core canonical graph + adapter interface first, then peel built-ins into standalone plugins on that interface.
 - **Adapter groundwork started (2026-02-16):** added selector adapter contract (`src/adapters/types.ts`) and built-in adapters for Claude (`src/adapters/claude.ts`), OpenCode (`src/adapters/opencode.ts`), and Codex (`src/adapters/codex.ts`), with registry lookup (`src/adapters/registry.ts`) used by `runReplix` for canonical selector → client path mapping. Current Codex adapter is intentionally selector-noop because codex repo scope in Replix remains `.codex/config.toml` only.
 - **Compile-stage extraction started (2026-02-16):** selector planning was moved out of `runReplix` into `src/compile/clientPaths.ts` (`resolveCanonicalSelectorPaths` + `resolveEnabledClientPaths`) with focused tests (`test/clientPathsCompile.test.ts`) to make plugin extraction mechanical.
 - **Concise handoff (2026-02-16):** canonical selectors are now first-class (`enable.commands/hooks/agents/settings`), adapter registry covers built-ins (claude/opencode/codex), and codex selector mapping remains intentionally empty until codex plugin scope expands beyond `.codex/config.toml`.
@@ -375,7 +375,7 @@ PRD.md remains source of truth for v2 goals.
   - writes escalation artifact: `.replix/self-heal/last-report.json`.
 
 ### Important findings
-- Boss correction: pack authoring must be explicit (agent definitions included) and not inferred from ad hoc folder scans.
+- project-owner correction: pack authoring must be explicit (agent definitions included) and not inferred from ad hoc folder scans.
 - Canonical references map solved multi-entity clarity (multiple skills/commands/agents/hooks/MCP in one pack).
 - AI loop is safest when bounded + classified + escalated (not open-ended autonomous retries).
 
