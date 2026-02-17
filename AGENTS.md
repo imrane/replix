@@ -326,5 +326,16 @@ PRD.md remains source of truth for v2 goals.
   - CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
 - Current test baseline: `89 pass, 0 fail`.
 
-**Last updated:** 2026-02-17 02:08 UTC  
-**Status:** v2 is usable tomorrow: pack-first + unified enable + artifacts namespace shipped; AI-assisted artifact metadata foundation landed (`e33b039`), and next step is emitter integration + runtime client smokes once CLI access is available.
+## Session Delta (2026-02-17, doctor/vars/lock/init)
+- Added `nexus doctor` command (config + pack mode diagnostics, non-mutating, exit 2 on blocking issues).
+- Added file-first variable resolution (`.nexus/vars`, `/run/secrets`, `/var/run/secrets`, `*_FILE`) with precedence: config > dotfiles > file > env.
+- Added pack vars contract parsing in `pack.json`: `varsSchemaVersion: 1` + `vars.required/vars.optional`.
+- Extended doctor with per-pack vars readiness + fix hints and variable source matrix.
+- Added lockfile flow: `nexus lock update` writes `nexus.lock.json` (source/rev/version/requiredVars), includes diff summaries (version/rev/new required vars).
+- Added doctor lockfile drift detection with actionable fix hint (`nexus lock update`).
+- Added `nexus init` scaffold (`--client`, `--with-lock`, `--force`) for `.nexus/repo.json` + `.nexus/vars/.example`.
+- README updated concisely to reflect init/check/doctor/lock workflow.
+- Current test baseline after these changes: `131 pass, 0 fail`.
+
+**Last updated:** 2026-02-17 04:40 UTC  
+**Status:** Core operator loop is now in place (init → emit → doctor/check → lock update) with file-first secrets and pack vars contracts; next focus remains artifact-compiler/runtime-smoke backlog.

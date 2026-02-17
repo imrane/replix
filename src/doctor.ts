@@ -6,6 +6,8 @@ import { checkNexusConfig } from "./check";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeAssets } from "./resolver/coreItems";
 import { resolveVars, type VarSource } from "./vars";
+import type { PackVarsContract } from "./packSchema";
+import { buildLockSnapshot, buildDiffSummary, readLockfile } from "./lockfile";
 
 type DoctorVarSource = VarSource | "builtin" | "missing";
 
@@ -124,6 +126,62 @@ function pushVarMatrixNotes(notes: string[], reqs: VarRequirement[]): void {
   }
 }
 
+async function evaluatePackVarsContract(params: {
+  packId: string;
+  repoRoot: string;
+  vars: PackVarsContract;
+}): Promise<{ requirements: VarRequirement[]; problems: string[]; notes: string[] }> {
+  const { packId, repoRoot, vars } = params;
+  const problems: string[] = [];
+  const notes: string[] = [];
+
+  const resolved = await resolveVars({
+    repoRoot,
+    cfgVars: {},
+    dotfilesVars: {},
+  });
+
+  const requirements: VarRequirement[] = [];
+  const requiredKeys = Object.keys(vars.required).sort();
+  const optionalKeys = Object.keys(vars.optional).sort();
+
+  for (const key of requiredKeys) {
+    const source = (resolved.sourceByVar[key] ?? "missing") as DoctorVarSource;
+    const missing = source === "missing";
+    requirements.push({
+      pack: packId,
+      variable: key,
+      source,
+      usedBy: ["pack.vars.required"],
+      missing,
+    });
+
+    if (missing) {
+      problems.push(`pack ${packId} blocked: missing required variable ${key}`);
+      problems.push(`  fix: write secret to .nexus/vars/${key} (recommended), or set ${key}_FILE, or export ${key}`);
+    }
+  }
+
+  for (const key of optionalKeys) {
+    const source = (resolved.sourceByVar[key] ?? "missing") as DoctorVarSource;
+    requirements.push({
+      pack: packId,
+      variable: key,
+      source,
+      usedBy: ["pack.vars.optional"],
+      missing: false,
+    });
+  }
+
+  if (requiredKeys.length === 0 && optionalKeys.length === 0) {
+    notes.push(`pack ${packId}: no vars contract entries`);
+  } else if (problems.length === 0) {
+    notes.push(`pack ${packId}: ready`);
+  }
+
+  return { requirements, problems, notes };
+}
+
 export async function runDoctor(args: { cwd: string; configPath?: string | null }): Promise<DoctorResult> {
   const { cwd, configPath } = args;
   const problems: string[] = [];
@@ -170,6 +228,25 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
         problems.push(`output drift detected (${drift.changes.length})`);
         for (const c of drift.changes) problems.push(`  ${c}`);
       }
+
+      const dotfilesPath = process.env.NEXUS_DOTFILES_CONFIG_JSON;
+      if (dotfilesPath) {
+        const lockPath = join(repoRoot, "nexus.lock.json");
+        const current = await buildLockSnapshot(dotfilesPath);
+        const existing = await readLockfile(lockPath);
+        if (!existing) {
+          notes.push("lockfile: missing (run `nexus lock update`)");
+        } else {
+          const lockDiff = buildDiffSummary(existing, current);
+          if (lockDiff.length > 0) {
+            problems.push(`lockfile drift detected (${lockDiff.length})`);
+            for (const d of lockDiff) problems.push(`  ${d}`);
+            problems.push("  fix: run `nexus lock update`");
+          } else {
+            notes.push("lockfile: in sync");
+          }
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       problems.push(msg);
@@ -195,6 +272,17 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
     notes.push(`pack parsed: ${pack.meta.id}@${pack.meta.version}`);
     notes.push(`pack skills: ${pack.skills.length}`);
     notes.push(`pack mcp servers: ${mcpServers.length}`);
+
+    if (pack.meta.vars) {
+      const contract = await evaluatePackVarsContract({
+        packId: pack.meta.id,
+        repoRoot: packRoot,
+        vars: pack.meta.vars,
+      });
+      pushVarMatrixNotes(notes, contract.requirements);
+      notes.push(...contract.notes);
+      problems.push(...contract.problems);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     problems.push(msg);

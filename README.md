@@ -238,24 +238,23 @@ enable.mcp = [ "mytool-dev" ];   # repo A
 ## CLI
 
 ```bash
-# Emit (config mode)
-nexus --config <path>
+# 1) Bootstrap repo (config + vars scaffold; optional lockfile)
+nexus init --client claude --with-lock
 
-# Legacy fallback mode (pack.json) if --config omitted
-nexus
+# 2) Emit outputs
+nexus --config .nexus/repo.json
 
-# Discovery
+# 3) Validate + diagnose
+nexus check --config .nexus/repo.json
+nexus doctor --config .nexus/repo.json
+
+# 4) Keep pack versions reproducible
+nexus lock update
+
+# Discovery helpers
 nexus list skills [--config <path>]
 nexus list mcp [--config <path>]
-
-# Generate mkRepo snippet
 nexus snippet --skills a,b --mcp x,y
-
-# Drift check (no mutation, CI-friendly)
-nexus check --config <path>
-
-# Diagnose config/vars/readiness (no mutation)
-nexus doctor --config <path>
 
 # Compile snapshot -> validated typed schema
 nexus spec compile --in <snapshot.json> --out <schema.json>

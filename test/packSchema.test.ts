@@ -18,4 +18,51 @@ describe("pack schema", () => {
     // @ts-expect-error
     expect(() => parsePackJson({ id: "core", version: 1 })).toThrow();
   });
+
+  it("parses vars contract with schema version", () => {
+    const pack = parsePackJson({
+      id: "core",
+      version: "1.0.0",
+      imports: [],
+      varsSchemaVersion: 1,
+      vars: {
+        required: {
+          API_TOKEN: { secret: true, source: "file|env" },
+        },
+        optional: {
+          PROFILE: { default: "dev" },
+        },
+      },
+    });
+
+    expect(pack.varsSchemaVersion).toBe(1);
+    expect(pack.vars?.required.API_TOKEN.secret).toBe(true);
+    expect(pack.vars?.optional.PROFILE.default).toBe("dev");
+  });
+
+  it("rejects unsupported vars schema version", () => {
+    expect(() =>
+      parsePackJson({
+        id: "core",
+        version: "1.0.0",
+        imports: [],
+        varsSchemaVersion: 2,
+      }),
+    ).toThrow("pack.varsSchemaVersion must be 1 when present");
+  });
+
+  it("rejects duplicate var keys across required/optional", () => {
+    expect(() =>
+      parsePackJson({
+        id: "core",
+        version: "1.0.0",
+        imports: [],
+        varsSchemaVersion: 1,
+        vars: {
+          required: { API_TOKEN: {} },
+          optional: { API_TOKEN: {} },
+        },
+      }),
+    ).toThrow("duplicates key across required/optional");
+  });
 });

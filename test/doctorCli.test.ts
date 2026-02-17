@@ -182,3 +182,64 @@ test("nexus doctor > reports file source when var is resolved from .nexus/vars",
   expect(out.stdout.toString()).toContain("source=file");
   expect(out.stdout.toString()).toContain("var=FILE_TOKEN");
 });
+
+test("nexus doctor > detects lockfile drift and suggests lock update", () => {
+  const { root, configPath } = setupProject();
+
+  const dotfilesPath = join(root, "dotfiles-lock-drift.json");
+  writeFileSync(
+    dotfilesPath,
+    JSON.stringify(
+      {
+        packs: [
+          {
+            source: `path:${root}`,
+          },
+        ],
+        skills: { humanizer: { source: `path:${join(root, "skills", "humanizer")}` } },
+        mcp: {
+          filesystem: {
+            command: "echo",
+            args: ["ok"],
+          },
+        },
+      },
+      null,
+      2,
+    ),
+  );
+
+  writeFileSync(
+    join(root, "pack.json"),
+    JSON.stringify(
+      {
+        id: "local-pack",
+        version: "1.0.0",
+        imports: [],
+        varsSchemaVersion: 1,
+        vars: { required: { API_TOKEN: { secret: true } }, optional: {} },
+      },
+      null,
+      2,
+    ),
+  );
+
+  const lockPath = join(root, "nexus.lock.json");
+  writeFileSync(
+    lockPath,
+    JSON.stringify({ version: 1, packs: [{ source: `path:${root}`, rev: "local", version: "0.9.0", requiredVars: [] }] }, null, 2),
+  );
+
+  const out = Bun.spawnSync({
+    cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
+    cwd: process.cwd(),
+    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  expect(out.exitCode).toBe(2);
+  const stderr = out.stderr.toString();
+  expect(stderr).toContain("lockfile drift detected");
+  expect(stderr).toContain("fix: run `nexus lock update`");
+});

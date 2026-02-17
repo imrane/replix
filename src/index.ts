@@ -9,6 +9,8 @@ import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
 import { runDoctor } from "./doctor";
+import { updateLockfile } from "./lockfile";
+import { runInit } from "./init";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -167,7 +169,22 @@ async function main() {
       process.exit(2);
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "lock" && sub === "update") {
+      const out = await updateLockfile({ cwd });
+      console.log(`✅ nexus lock update: ${out.path}`);
+      for (const line of out.diff) console.log(`- ${line}`);
+      return;
+    }
+
+    if (cmd === "init") {
+      const out = await runInit({ cwd });
+      console.log("✅ nexus init: scaffold ready");
+      for (const p of out.created) console.log(`- created: ${p}`);
+      for (const n of out.notes) console.log(`- note: ${n}`);
+      return;
+    }
+
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
@@ -175,6 +192,8 @@ async function main() {
       console.log("  nexus snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
       console.log("  nexus check --config <path>                # verify generated outputs are in sync");
       console.log("  nexus doctor [--config <path>]             # diagnose blocking config/pack problems");
+      console.log("  nexus lock update                          # write/update nexus.lock.json from dotfiles packs");
+      console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }
