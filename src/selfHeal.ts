@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { runNexus } from "./runNexus";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
+import { parseClientLogFromPath } from "./clientPlugins/selfHealLogRegistry";
 
 export type SelfHealIssueClass = "lock-drift" | "output-drift" | "schema-gap" | "unknown";
 
@@ -56,6 +57,8 @@ export async function runSelfHealCompile(params: {
   cwd: string;
   configPath: string;
   maxAttempts?: number;
+  client?: string;
+  clientLogPath?: string | null;
 }): Promise<SelfHealResult> {
   const maxAttempts = Math.max(1, params.maxAttempts ?? 3);
   const notes: string[] = [];
@@ -76,7 +79,14 @@ export async function runSelfHealCompile(params: {
       return { ok: true, attempts: attempt, notes, reportPath };
     }
 
-    const issueClass = classify(doctor.problems);
+    let issueClass = classify(doctor.problems);
+
+    const clientSignal = await parseClientLogFromPath({ client: params.client, path: params.clientLogPath ?? null }).catch(() => null);
+    if (clientSignal?.classHint && clientSignal.classHint !== "unknown") {
+      issueClass = clientSignal.classHint;
+      notes.push(`attempt ${attempt}: client-log-hint=${clientSignal.classHint}${clientSignal.reason ? ` (${clientSignal.reason})` : ""}`);
+    }
+
     notes.push(`attempt ${attempt}: class=${issueClass}`);
 
     if (issueClass === "lock-drift") {
