@@ -198,7 +198,7 @@ nexus spec compile --in <snapshot.json> --out <schema.json>
 
 ---
 
-## Reliability model (session highlights)
+## Reliability model
 
 - `nexus.lock.json` captures pack version/rev/required vars/checksum
 - Runtime compatibility gate blocks drift until `nexus lock update`

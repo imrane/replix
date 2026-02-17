@@ -337,5 +337,18 @@ PRD.md remains source of truth for v2 goals.
 - README updated concisely to reflect init/check/doctor/lock workflow.
 - Current test baseline after these changes: `131 pass, 0 fail`.
 
-**Last updated:** 2026-02-17 04:40 UTC  
-**Status:** Core operator loop is now in place (init → emit → doctor/check → lock update) with file-first secrets and pack vars contracts; next focus remains artifact-compiler/runtime-smoke backlog.
+## Session Delta (2026-02-17, reliability slice shipped)
+- Reliability epic `2026-02-14-nexus-uif` is complete and closed.
+- Closed items shipped:
+  - `3ju`: lockfile checksums + optional pack signature verification (`signaturePublicKey` + `pack.sig`)
+  - `cb0`: runtime lock compatibility gate blocks drift with clear remediation (`nexus lock update`)
+  - `wk7`: non-Nix lifecycle commands (`nexus pack install|list|uninstall|upgrade`) with `.nexus/packs.json` fallback
+  - `rm8`: README non-Nix lifecycle docs
+  - `yj0`: structured operation logs (`.nexus/logs/events.ndjson`) + `nexus support bundle`
+  - `t9l`: golden release gate script (`scripts/release-gate.ts`) + CI workflow (`release-gate.yml`, Linux/macOS)
+  - `93z`: static registry build (`nexus registry build`) emits `.nexus/registry/index.html` + `index.json`
+- Test baseline after landing: `137 pass, 0 fail`.
+- Handoff commit pushed: `bb04da7` (main).
+
+**Last updated:** 2026-02-17 16:22 UTC  
+**Status:** Reliability slice is fully landed and pushed; next major work returns to artifact-compiler + runtime smoke backlog unless reprioritized.
