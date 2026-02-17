@@ -168,5 +168,9 @@ describe("dotfiles config registry", () => {
     ).toBe(
       "github:imrane/replix?rev=main&include=fixtures%2Fpacks%2Fexamples%2Fstarter%2Cfixtures%2Fpacks%2Fexamples%2Fsecurity",
     );
+
+    expect(normalizePackSource({ source: "github:org/packs", pack: "starter" })).toBe(
+      "github:org/packs?packs=starter",
+    );
   });
 });

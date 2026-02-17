@@ -52,6 +52,9 @@ export type DotfilesPackDef = {
   // is normalized to github include query under the hood.
   folder?: string;
   folders?: string[];
+  // first-class alias names resolved via replix.index.json in source repo
+  pack?: string;
+  packs?: string[];
   allowUnpinned?: boolean;
   signaturePublicKey?: string;
 };
@@ -152,7 +155,11 @@ export function normalizePackSource(pack: DotfilesPackDef): string {
     .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     .map((v) => v.trim().replace(/^\.\//, "").replace(/^\/+/, ""));
 
-  if (selections.length === 0) return pack.source;
+  const aliases = [pack.pack, ...(pack.packs ?? [])]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim());
+
+  if (selections.length === 0 && aliases.length === 0) return pack.source;
   if (!pack.source.startsWith("github:")) {
     throw new Error("pack folder/folders selectors are currently supported only for github: sources");
   }
@@ -169,9 +176,24 @@ export function normalizePackSource(pack: DotfilesPackDef): string {
     .filter(Boolean);
 
   const merged = [...new Set([...existing, ...selections])];
-  query.set("include", merged.join(","));
+  if (merged.length > 0) query.set("include", merged.join(","));
 
-  const rebuilt = `${pathPart}?${query.toString()}`;
+  const existingAliases = [
+    ...query
+      .getAll("pack")
+      .flatMap((v) => v.split(","))
+      .map((s) => s.trim())
+      .filter(Boolean),
+    ...(query.get("packs") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
+  const mergedAliases = [...new Set([...existingAliases, ...aliases])];
+  if (mergedAliases.length > 0) query.set("packs", mergedAliases.join(","));
+
+  const rebuiltQuery = query.toString();
+  const rebuilt = rebuiltQuery ? `${pathPart}?${rebuiltQuery}` : pathPart;
   return hash ? `${rebuilt}#${hash}` : rebuilt;
 }
 

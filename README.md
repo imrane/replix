@@ -50,6 +50,10 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
         ];
         allowUnpinned = true;
       }
+
+      # Alias import via repo index (replix.index.json):
+      # { "packs": { "starter": "fixtures/packs/examples/starter" } }
+      { source = "github:imrane/replix"; pack = "starter"; allowUnpinned = true; }
     ];
 
     # optional direct overrides

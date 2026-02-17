@@ -9,6 +9,7 @@ test("source resolver > parse github ?rev pinned", () => {
     ref: "abc123",
     subpath: "skills/humanizer",
     include: [],
+    packs: [],
     floating: false,
   });
 });
@@ -21,6 +22,7 @@ test("source resolver > parse github branch ref", () => {
     ref: "main",
     subpath: "skills/humanizer",
     include: [],
+    packs: [],
     floating: true,
   });
 });
@@ -33,6 +35,7 @@ test("source resolver > parse github unpinned default", () => {
     ref: null,
     subpath: "skills/humanizer",
     include: [],
+    packs: [],
     floating: true,
   });
 });
@@ -45,6 +48,20 @@ test("source resolver > parse github include allowlist", () => {
     ref: "abc123",
     subpath: "skills/humanizer",
     include: ["skills/humanizer", "commands/review.md"],
+    packs: [],
+    floating: false,
+  });
+});
+
+test("source resolver > parse github pack aliases", () => {
+  const p = parseGithubSource("github:acme/humanizer?rev=abc123&pack=starter&packs=security,content");
+  expect(p).toEqual({
+    owner: "acme",
+    repo: "humanizer",
+    ref: "abc123",
+    subpath: null,
+    include: [],
+    packs: ["starter", "security", "content"],
     floating: false,
   });
 });

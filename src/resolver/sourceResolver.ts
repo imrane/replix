@@ -9,6 +9,7 @@ export type ParsedGithubSource = {
   ref: string | null;
   subpath: string | null;
   include: string[];
+  packs: string[];
   floating: boolean;
 };
 
@@ -16,6 +17,8 @@ export type ParsedGithubSource = {
 // - github:owner/repo@<rev>[#sub/dir]                      (legacy pinned)
 // - github:owner/repo?rev=<rev>[#sub/dir]                  (pinned)
 // - github:owner/repo?rev=<rev>&include=a,b[#sub/dir]      (pinned + selective include)
+// - github:owner/repo?rev=<rev>&pack=starter[#sub/dir]     (pinned + alias from replix.index.json)
+// - github:owner/repo?rev=<rev>&packs=a,b[#sub/dir]        (pinned + many aliases)
 // - github:owner/repo/<branch>[#sub/dir]                   (floating branch)
 // - github:owner/repo[#sub/dir]                            (floating default branch)
 export function parseGithubSource(src: string): ParsedGithubSource | null {
@@ -37,6 +40,18 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
     .filter(Boolean)
     .map((s) => s.replace(/^\.\//, "").replace(/^\/+/, ""));
 
+  const packs = [
+    ...query
+      .getAll("pack")
+      .flatMap((v) => v.split(","))
+      .map((s) => s.trim())
+      .filter(Boolean),
+    ...(query.get("packs") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
+
   const legacyPinned = /^([^/]+)\/([^@/]+)@([0-9a-f]+)$/.exec(pathPart);
   if (legacyPinned) {
     return {
@@ -45,6 +60,7 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
       ref: legacyPinned[3]!,
       subpath,
       include,
+      packs,
       floating: false,
     };
   }
@@ -60,14 +76,14 @@ export function parseGithubSource(src: string): ParsedGithubSource | null {
   }
 
   if (revFromQuery) {
-    return { owner: owner!, repo: repo!, ref: revFromQuery, subpath, include, floating: false };
+    return { owner: owner!, repo: repo!, ref: revFromQuery, subpath, include, packs, floating: false };
   }
 
   if (branchRef) {
-    return { owner: owner!, repo: repo!, ref: branchRef, subpath, include, floating: true };
+    return { owner: owner!, repo: repo!, ref: branchRef, subpath, include, packs, floating: true };
   }
 
-  return { owner: owner!, repo: repo!, ref: null, subpath, include, floating: true };
+  return { owner: owner!, repo: repo!, ref: null, subpath, include, packs, floating: true };
 }
 
 function cacheRoot(): string {
@@ -125,6 +141,40 @@ function materializeSelectiveInclude(root: string, include: string[]): string {
   return out;
 }
 
+async function resolvePackAliases(root: string, aliases: string[]): Promise<string[]> {
+  if (aliases.length === 0) return [];
+
+  const indexPath = join(root, "replix.index.json");
+  if (!existsSync(indexPath)) {
+    throw new Error(
+      `github source uses pack alias but replix.index.json not found at repo root (aliases: ${aliases.join(", ")})`,
+    );
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(await Bun.file(indexPath).text());
+  } catch {
+    throw new Error("invalid replix.index.json (must be valid JSON with a packs map)");
+  }
+
+  const packMap = parsed?.packs;
+  if (!packMap || typeof packMap !== "object") {
+    throw new Error("invalid replix.index.json (expected: { \"packs\": { \"name\": \"path\" } })");
+  }
+
+  const paths: string[] = [];
+  for (const alias of aliases) {
+    const rel = packMap[alias];
+    if (typeof rel !== "string" || rel.trim() === "") {
+      throw new Error(`pack alias not found in replix.index.json: ${alias}`);
+    }
+    paths.push(rel.trim().replace(/^\.\//, "").replace(/^\/+/, ""));
+  }
+
+  return paths;
+}
+
 export async function resolveDotfilesSourceToPath(
   source: string,
   opts?: { allowUnpinned?: boolean },
@@ -145,6 +195,8 @@ export async function resolveDotfilesSourceToPath(
           "  github:owner/repo?rev=<rev>",
           "  github:owner/repo?rev=<rev>#sub/dir",
           "  github:owner/repo?rev=<rev>&include=path1,path2#sub/dir",
+          "  github:owner/repo?rev=<rev>&pack=starter",
+          "  github:owner/repo?rev=<rev>&packs=starter,security",
           "  github:owner/repo/<branch>",
           "  github:owner/repo/<branch>#sub/dir",
           "  github:owner/repo",
@@ -189,7 +241,9 @@ export async function resolveDotfilesSourceToPath(
       }
     }
 
-    const sourceRoot = g.include.length > 0 ? materializeSelectiveInclude(root, g.include) : root;
+    const aliasIncludes = await resolvePackAliases(root, g.packs);
+    const includes = [...new Set([...g.include, ...aliasIncludes])];
+    const sourceRoot = includes.length > 0 ? materializeSelectiveInclude(root, includes) : root;
     const resolved = g.subpath ? join(sourceRoot, g.subpath) : sourceRoot;
     if (!existsSync(resolved)) {
       throw new Error(`resolved github source path does not exist: ${resolved}`);
