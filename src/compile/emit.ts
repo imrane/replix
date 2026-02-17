@@ -4,6 +4,14 @@ import type { EmitPlan, ClientFileInjection } from "./plan";
 import { getOutputPlugin } from "../outputPlugins/registry";
 import { cleanupFull, cleanupOwnedOnly } from "../cleanup";
 import { resolveDotfilesSourceToPath } from "../resolver/sourceResolver";
+import {
+  validateArtifactFromFile,
+  logValidationResults,
+  hasHardErrors,
+  inferArtifactType,
+  type ArtifactValidationInput,
+  type ArtifactValidationResult,
+} from "./metadataValidation";
 
 const CUSTOM_FILES_MANIFEST = join(".nexus", "custom-files-owned.json");
 
@@ -116,5 +124,30 @@ export async function emitPlan(plan: EmitPlan): Promise<void> {
 
   if (clientFileInjections.length > 0) {
     await writeCustomFilesManifest(emitRoot, clientFileInjections.map((inj) => inj.relPath));
+  }
+
+  // Validate artifact metadata for client files
+  const validationInputs: ArtifactValidationInput[] = [];
+  for (const inj of clientFileInjections) {
+    const artifactType = inferArtifactType(inj.relPath);
+    if (artifactType) {
+      validationInputs.push({
+        client: inj.client,
+        artifactType,
+        artifactPath: join(emitRoot, inj.relPath),
+      });
+    }
+  }
+
+  if (validationInputs.length > 0) {
+    const validationResults: ArtifactValidationResult[] = await Promise.all(
+      validationInputs.map((input) => validateArtifactFromFile(input))
+    );
+
+    logValidationResults(validationResults);
+
+    if (hasHardErrors(validationResults)) {
+      throw new Error("Artifact metadata validation failed with hard errors");
+    }
   }
 }
