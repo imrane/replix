@@ -1,1 +1,12 @@
-{"id":"dataops-pack","version":"1.0.0","imports":[]}
+{
+  "id": "dataops-pack",
+  "version": "1.0.0",
+  "imports": [],
+  "specVersion": "nexus.canonical.v1-draft",
+  "references": {
+    "commands": ["commands/report.md"],
+    "agents": ["agents/analyst.md"],
+    "hooks": ["hooks/pre-commit.sh"],
+    "mcp": ["mcp/servers.json"]
+  }
+}

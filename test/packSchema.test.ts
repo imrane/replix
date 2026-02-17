@@ -96,4 +96,15 @@ describe("pack schema", () => {
       }),
     ).toThrow("pack.references.commands must be string[]");
   });
+
+  it("requires references for canonical v1 packs", () => {
+    expect(() =>
+      parsePackJson({
+        id: "core",
+        version: "1.0.0",
+        imports: [],
+        specVersion: "nexus.canonical.v1-draft",
+      }),
+    ).toThrow("pack.references required for nexus.canonical.v1 packs");
+  });
 });

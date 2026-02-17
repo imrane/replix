@@ -29,6 +29,7 @@ export type PackJson = {
   id: string;
   version: string;
   imports: PackImportPointer[];
+  specVersion?: string;
   enable?: unknown;
   varsSchemaVersion?: number;
   vars?: PackVarsContract;
@@ -94,6 +95,11 @@ export function parsePackJson(input: unknown): PackJson {
   if (typeof version !== "string" || version.length === 0)
     throw new Error("pack.version required");
 
+  const specVersion = input.specVersion;
+  if (!(specVersion === undefined || typeof specVersion === "string")) {
+    throw new Error("pack.specVersion must be a string when present");
+  }
+
   const varsSchemaVersion = input.varsSchemaVersion;
   if (!(varsSchemaVersion === undefined || varsSchemaVersion === 1)) {
     throw new Error("pack.varsSchemaVersion must be 1 when present");
@@ -152,5 +158,9 @@ export function parsePackJson(input: unknown): PackJson {
       }
     : undefined;
 
-  return { id, version, imports: parsedImports, enable: input.enable, varsSchemaVersion, vars, references };
+  if (specVersion?.startsWith("nexus.canonical.v1") && !references) {
+    throw new Error("pack.references required for nexus.canonical.v1 packs");
+  }
+
+  return { id, version, imports: parsedImports, specVersion, enable: input.enable, varsSchemaVersion, vars, references };
 }
