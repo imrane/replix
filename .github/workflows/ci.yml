@@ -27,10 +27,10 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v14
 
-      - name: Run tests (JUnit + coverage)
+      - name: Run core tests (JUnit + coverage)
         run: |
           mkdir -p test-results coverage
-          bun test \
+          bun run test:core \
             --reporter=junit \
             --reporter-outfile=test-results/junit.xml \
             --coverage \
@@ -61,6 +61,10 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           fail_ci_if_error: false
+
+      - name: Optional full suite (gated)
+        if: vars.NEXUS_FULL_CI == '1'
+        run: bun test
 
       - name: Optional client smoke tests (gated)
         if: vars.NEXUS_CLIENT_SMOKE == '1'
