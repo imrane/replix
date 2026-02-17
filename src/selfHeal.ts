@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { runNexus } from "./runNexus";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
@@ -9,6 +11,7 @@ export type SelfHealResult = {
   attempts: number;
   issueClass?: SelfHealIssueClass;
   notes: string[];
+  reportPath: string;
 };
 
 function classify(problems: string[]): SelfHealIssueClass {
@@ -19,6 +22,34 @@ function classify(problems: string[]): SelfHealIssueClass {
     return "schema-gap";
   }
   return "unknown";
+}
+
+async function writeReport(params: {
+  cwd: string;
+  ok: boolean;
+  attempts: number;
+  issueClass?: SelfHealIssueClass;
+  notes: string[];
+}): Promise<string> {
+  const dir = join(params.cwd, ".nexus", "self-heal");
+  await mkdir(dir, { recursive: true });
+  const path = join(dir, "last-report.json");
+  await writeFile(
+    path,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        ok: params.ok,
+        attempts: params.attempts,
+        issueClass: params.issueClass,
+        notes: params.notes,
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+  return path;
 }
 
 export async function runSelfHealCompile(params: {
@@ -41,7 +72,8 @@ export async function runSelfHealCompile(params: {
     const doctor = await runDoctor({ cwd: params.cwd, configPath: params.configPath });
     if (doctor.ok) {
       notes.push(`attempt ${attempt}: doctor ok`);
-      return { ok: true, attempts: attempt, notes };
+      const reportPath = await writeReport({ cwd: params.cwd, ok: true, attempts: attempt, notes });
+      return { ok: true, attempts: attempt, notes, reportPath };
     }
 
     const issueClass = classify(doctor.problems);
@@ -58,8 +90,10 @@ export async function runSelfHealCompile(params: {
       continue;
     }
 
-    return { ok: false, attempts: attempt, issueClass, notes };
+    const reportPath = await writeReport({ cwd: params.cwd, ok: false, attempts: attempt, issueClass, notes });
+    return { ok: false, attempts: attempt, issueClass, notes, reportPath };
   }
 
-  return { ok: false, attempts: maxAttempts, issueClass: "unknown", notes };
+  const reportPath = await writeReport({ cwd: params.cwd, ok: false, attempts: maxAttempts, issueClass: "unknown", notes });
+  return { ok: false, attempts: maxAttempts, issueClass: "unknown", notes, reportPath };
 }

@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -74,7 +74,17 @@ test("nexus compile self-heal > auto-recovers lock drift", () => {
     });
 
     expect(out.exitCode).toBe(0);
-    expect(out.stdout.toString()).toContain("nexus compile self-heal: recovered");
+    const stdout = out.stdout.toString();
+    expect(stdout).toContain("nexus compile self-heal: recovered");
+    expect(stdout).toContain("- report:");
+
+    const reportPath = stdout
+      .split(/\r?\n/)
+      .find((l) => l.startsWith("- report:"))
+      ?.replace("- report:", "")
+      .trim();
+    expect(typeof reportPath).toBe("string");
+    expect(existsSync(reportPath!)).toBe(true);
 
     const lock = JSON.parse(readFileSync(join(repoRoot, "nexus.lock.json"), "utf8"));
     expect(lock.packs[0].version).toBe("1.0.1");

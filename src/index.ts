@@ -213,11 +213,13 @@ async function main() {
       const out = await runSelfHealCompile({ cwd, configPath, maxAttempts });
       if (out.ok) {
         console.log(`✅ nexus compile self-heal: recovered in ${out.attempts} attempt(s)`);
+        console.log(`- report: ${out.reportPath}`);
         for (const n of out.notes) console.log(`- ${n}`);
         return;
       }
       console.error(`❌ nexus compile self-heal: failed after ${out.attempts} attempt(s)`);
       if (out.issueClass) console.error(`- issue class: ${out.issueClass}`);
+      console.error(`- report: ${out.reportPath}`);
       for (const n of out.notes) console.error(`- ${n}`);
       process.exit(2);
     }
