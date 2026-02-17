@@ -17,6 +17,14 @@ export type PackVarsContract = {
   optional: Record<string, PackVarSpec>;
 };
 
+export type PackReferences = {
+  skills?: string[];
+  commands?: string[];
+  agents?: string[];
+  hooks?: string[];
+  mcp?: string[];
+};
+
 export type PackJson = {
   id: string;
   version: string;
@@ -24,6 +32,7 @@ export type PackJson = {
   enable?: unknown;
   varsSchemaVersion?: number;
   vars?: PackVarsContract;
+  references?: PackReferences;
 };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -64,6 +73,14 @@ function parseVarMap(input: unknown, name: string): Record<string, PackVarSpec> 
     out[k] = parseVarSpec(v, `${name}.${k}`);
   }
   return out;
+}
+
+function parseStringArray(input: unknown, name: string): string[] {
+  if (input === undefined) return [];
+  if (!Array.isArray(input) || !input.every((x) => typeof x === "string" && x.length > 0)) {
+    throw new Error(`${name} must be string[]`);
+  }
+  return input as string[];
 }
 
 export function parsePackJson(input: unknown): PackJson {
@@ -120,5 +137,20 @@ export function parsePackJson(input: unknown): PackJson {
     vars = { required, optional };
   }
 
-  return { id, version, imports: parsedImports, enable: input.enable, varsSchemaVersion, vars };
+  const refsRaw = input.references;
+  if (!(refsRaw === undefined || isRecord(refsRaw))) {
+    throw new Error("pack.references must be an object");
+  }
+
+  const references: PackReferences | undefined = refsRaw
+    ? {
+        skills: parseStringArray(refsRaw.skills, "pack.references.skills"),
+        commands: parseStringArray(refsRaw.commands, "pack.references.commands"),
+        agents: parseStringArray(refsRaw.agents, "pack.references.agents"),
+        hooks: parseStringArray(refsRaw.hooks, "pack.references.hooks"),
+        mcp: parseStringArray(refsRaw.mcp, "pack.references.mcp"),
+      }
+    : undefined;
+
+  return { id, version, imports: parsedImports, enable: input.enable, varsSchemaVersion, vars, references };
 }

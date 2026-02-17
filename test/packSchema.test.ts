@@ -65,4 +65,35 @@ describe("pack schema", () => {
       }),
     ).toThrow("duplicates key across required/optional");
   });
+
+  it("parses canonical references map", () => {
+    const pack = parsePackJson({
+      id: "core",
+      version: "1.0.0",
+      imports: [],
+      references: {
+        skills: ["skills/reviewer/SKILL.md"],
+        commands: ["commands/review.md"],
+        agents: ["agents/reviewer.md"],
+        hooks: ["hooks/before-tool.json"],
+        mcp: ["mcp/servers.json"],
+      },
+    });
+
+    expect(pack.references?.skills?.length).toBe(1);
+    expect(pack.references?.commands?.[0]).toBe("commands/review.md");
+  });
+
+  it("rejects invalid references shape", () => {
+    expect(() =>
+      parsePackJson({
+        id: "core",
+        version: "1.0.0",
+        imports: [],
+        references: {
+          commands: [123],
+        },
+      }),
+    ).toThrow("pack.references.commands must be string[]");
+  });
 });

@@ -7,6 +7,7 @@ import { loadDotfilesRegistryFromEnv } from "../src/resolver/dotfilesConfig";
 
 const FIXTURE = new URL("../fixtures/dotfiles/config.json", import.meta.url).pathname;
 const PACK_FIXTURE = new URL("../fixtures/packs/core", import.meta.url).pathname;
+const CANONICAL_V1_FIXTURE = new URL("../fixtures/packs/examples/canonical-v1", import.meta.url).pathname;
 
 describe("dotfiles config registry", () => {
   test("loads registry from NEXUS_DOTFILES_CONFIG_JSON", async () => {
@@ -92,5 +93,31 @@ describe("dotfiles config registry", () => {
     expect(reg.clients.get("claude")?.files?.[".claude/commands/review.md"]?.source).toContain("fixtures/packs/core/commands/review.md");
     expect(reg.clients.get("claude")?.files?.[".claude/hooks/pre-commit.sh"]?.executable).toBe(true);
     expect(reg.clients.get("claude")?.files?.[".claude/agents/security.md"]?.source).toContain("fixtures/packs/core/agents/security.md");
+  });
+
+  test("loads canonical-v1 pack references for commands/hooks/agents/skills", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-v1-"));
+    const cfgPath = join(dir, "registry.json");
+
+    writeFileSync(
+      cfgPath,
+      JSON.stringify(
+        {
+          packs: [{ source: `path:${CANONICAL_V1_FIXTURE}` }],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    const reg = await loadDotfilesRegistryFromEnv();
+
+    expect(reg.skills.has("reviewer")).toBe(true);
+    expect(reg.skills.has("triage")).toBe(true);
+    expect(reg.clients.get("claude")?.files?.[".claude/commands/review-pr.md"]?.source).toContain("canonical-v1/commands/review-pr.md");
+    expect(reg.clients.get("claude")?.files?.[".claude/hooks/before-tool.json"]?.source).toContain("canonical-v1/hooks/before-tool.json");
+    expect(reg.clients.get("claude")?.files?.[".claude/agents/reviewer.md"]?.source).toContain("canonical-v1/agents/reviewer.md");
   });
 });

@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { loadPackMcpServers } from "./coreItems";
 import { loadLocalPack } from "./localPack";
 import { resolveDotfilesSourceToPath } from "./sourceResolver";
@@ -139,8 +139,21 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
     if (!s?.isFile()) throw new Error(`dotfiles pack source must contain pack.json: ${pack.source}`);
 
     const localPack = await loadLocalPack(root);
-    for (const skill of localPack.skills) {
-      skills.set(skill.itemId, { source: `path:${skill.dir}` });
+
+    const refSkills = localPack.meta.references?.skills ?? [];
+    if (refSkills.length > 0) {
+      for (const rel of refSkills) {
+        const fileName = basename(rel);
+        if (fileName !== "SKILL.md") {
+          throw new Error(`pack.references.skills entries must point to SKILL.md: ${rel}`);
+        }
+        const itemId = basename(join(rel, ".."));
+        skills.set(itemId, { source: `path:${join(root, rel, "..")}` });
+      }
+    } else {
+      for (const skill of localPack.skills) {
+        skills.set(skill.itemId, { source: `path:${skill.dir}` });
+      }
     }
 
     const mcpServers = await loadPackMcpServers(root);
@@ -148,22 +161,25 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
       mcp.set(entry.name, entry.server);
     }
 
-    const commands = await listFiles(join(root, "commands"), { markdownOnly: true });
-    for (const name of commands) {
-      claudeFiles[`.claude/commands/${name}`] = { source: `path:${join(root, "commands", name)}` };
+    const commandRefs = localPack.meta.references?.commands ?? (await listFiles(join(root, "commands"), { markdownOnly: true })).map((n) => `commands/${n}`);
+    for (const rel of commandRefs) {
+      const name = basename(rel);
+      claudeFiles[`.claude/commands/${name}`] = { source: `path:${join(root, rel)}` };
     }
 
-    const hooks = await listFiles(join(root, "hooks"));
-    for (const name of hooks) {
+    const hookRefs = localPack.meta.references?.hooks ?? (await listFiles(join(root, "hooks"))).map((n) => `hooks/${n}`);
+    for (const rel of hookRefs) {
+      const name = basename(rel);
       claudeFiles[`.claude/hooks/${name}`] = {
-        source: `path:${join(root, "hooks", name)}`,
+        source: `path:${join(root, rel)}`,
         executable: true,
       };
     }
 
-    const agents = await listFiles(join(root, "agents"), { markdownOnly: true });
-    for (const name of agents) {
-      claudeFiles[`.claude/agents/${name}`] = { source: `path:${join(root, "agents", name)}` };
+    const agentRefs = localPack.meta.references?.agents ?? (await listFiles(join(root, "agents"), { markdownOnly: true })).map((n) => `agents/${n}`);
+    for (const rel of agentRefs) {
+      const name = basename(rel);
+      claudeFiles[`.claude/agents/${name}`] = { source: `path:${join(root, rel)}` };
     }
   }
 
