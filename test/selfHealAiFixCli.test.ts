@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-test("nexus compile self-heal > uses ai fix command for schema-gap recovery", () => {
+test("nexus compile self-heal > uses ai fix ts script for schema-gap recovery", () => {
   const root = mkdtempSync(join(tmpdir(), "nexus-self-heal-aifix-"));
   try {
     const repoRoot = join(root, "repo");
@@ -26,10 +26,17 @@ test("nexus compile self-heal > uses ai fix command for schema-gap recovery", ()
       ),
     );
 
-    const fixScript = join(repoRoot, "fix.sh");
+    const fixScript = join(repoRoot, "fix.ts");
     writeFileSync(
       fixScript,
-      "#!/usr/bin/env bash\nset -euo pipefail\nnode -e 'const fs=require(\"fs\"); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,\"utf8\")); j.enable.skills=[]; fs.writeFileSync(p, JSON.stringify(j,null,2));' \"$1\"\n",
+      [
+        "import { readFileSync, writeFileSync } from 'node:fs';",
+        "const payload = JSON.parse(process.env.NEXUS_SELF_HEAL_PAYLOAD ?? '{}');",
+        "const p = payload.configPath as string;",
+        "const j = JSON.parse(readFileSync(p, 'utf8'));",
+        "j.enable.skills = [];",
+        "writeFileSync(p, JSON.stringify(j, null, 2));",
+      ].join("\n"),
       "utf8",
     );
 
@@ -43,8 +50,8 @@ test("nexus compile self-heal > uses ai fix command for schema-gap recovery", ()
         cfgPath,
         "--max-attempts",
         "2",
-        "--ai-fix-cmd",
-        `bash ${fixScript} ${cfgPath}`,
+        "--ai-fix-ts",
+        fixScript,
       ],
       cwd: repoRoot,
       stdout: "pipe",

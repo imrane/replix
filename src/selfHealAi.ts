@@ -5,18 +5,16 @@ export type AiFixResult = {
   exitCode: number;
 };
 
-export function runAiFixCommand(params: {
-  cwd: string;
-  command: string;
-  payload: {
-    issueClass: string;
-    notes: string[];
-    configPath: string;
-    client?: string;
-  };
-}): AiFixResult {
-  const out2 = Bun.spawnSync({
-    cmd: ["bash", "-lc", params.command],
+type AiFixPayload = {
+  issueClass: string;
+  notes: string[];
+  configPath: string;
+  client?: string;
+};
+
+function runWithEnv(params: { cwd: string; cmd: string[]; payload: AiFixPayload }): AiFixResult {
+  const out = Bun.spawnSync({
+    cmd: params.cmd,
     cwd: params.cwd,
     env: {
       ...process.env,
@@ -27,9 +25,25 @@ export function runAiFixCommand(params: {
   });
 
   return {
-    ok: out2.exitCode === 0,
-    stdout: out2.stdout.toString(),
-    stderr: out2.stderr.toString(),
-    exitCode: out2.exitCode,
+    ok: out.exitCode === 0,
+    stdout: out.stdout.toString(),
+    stderr: out.stderr.toString(),
+    exitCode: out.exitCode,
   };
+}
+
+export function runAiFixCommand(params: {
+  cwd: string;
+  command: string;
+  payload: AiFixPayload;
+}): AiFixResult {
+  return runWithEnv({ cwd: params.cwd, cmd: ["bash", "-lc", params.command], payload: params.payload });
+}
+
+export function runAiFixTsScript(params: {
+  cwd: string;
+  scriptPath: string;
+  payload: AiFixPayload;
+}): AiFixResult {
+  return runWithEnv({ cwd: params.cwd, cmd: ["bun", params.scriptPath], payload: params.payload });
 }
