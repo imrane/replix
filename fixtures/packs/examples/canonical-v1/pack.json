@@ -1,0 +1,27 @@
+{
+  "id": "canonical-v1-pack",
+  "version": "1.0.0",
+  "imports": [],
+  "specVersion": "nexus.canonical.v1-draft",
+  "references": {
+    "skills": [
+      "skills/reviewer/SKILL.md",
+      "skills/triage/SKILL.md"
+    ],
+    "commands": [
+      "commands/review-pr.md",
+      "commands/summarize-diff.md"
+    ],
+    "agents": [
+      "agents/reviewer.md",
+      "agents/planner.md"
+    ],
+    "hooks": [
+      "hooks/on-user-prompt.json",
+      "hooks/before-tool.json"
+    ],
+    "mcp": [
+      "mcp/servers.json"
+    ]
+  }
+}

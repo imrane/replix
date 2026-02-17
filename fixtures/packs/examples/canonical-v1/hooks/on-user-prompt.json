@@ -1,0 +1,10 @@
+{
+  "id": "classify-on-prompt",
+  "event": "on_user_prompt",
+  "matcher": "*",
+  "handler": {
+    "type": "agent",
+    "agent": "planner"
+  },
+  "blocking": false
+}

@@ -1,0 +1,10 @@
+{
+  "id": "safe-before-tool",
+  "event": "before_tool",
+  "matcher": "Bash",
+  "handler": {
+    "type": "command",
+    "command": "./hooks/scripts/safe-bash-check.sh"
+  },
+  "blocking": true
+}
