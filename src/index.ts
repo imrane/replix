@@ -18,6 +18,7 @@ import { buildRegistrySite } from "./registrySite";
 import { runSelfHealCompile } from "./selfHeal";
 import { compileCanonicalPackToClient, summarizeCanonicalPlan } from "./compile/canonicalArtifacts";
 import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
+import { validateCanonicalPackV1 } from "./clientPlugins/canonical/validatePack";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -245,6 +246,18 @@ async function main() {
       return;
     }
 
+    if (cmd === "spec" && sub === "validate-canonical-pack") {
+      const packRoot = readArgValue("--pack") ?? cwd;
+      const result = await validateCanonicalPackV1(packRoot);
+      if (result.ok) {
+        console.log(`✅ canonical pack valid: ${packRoot}`);
+        return;
+      }
+      console.error(`❌ canonical pack invalid: ${packRoot}`);
+      for (const e of result.errors) console.error(`- ${e}`);
+      process.exit(2);
+    }
+
     if (cmd === "spec" && sub === "validate-client-shapes") {
       const maxAgeDays = readArgInt("--max-age-days") ?? 30;
       const paths = [
@@ -347,6 +360,7 @@ async function main() {
       console.log("  nexus compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn] # compile canonical pack refs into client artifact plan");
       console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-ts <script.ts>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
+      console.log("  nexus spec validate-canonical-pack [--pack <path>] # validate canonical v1 pack structure/references");
       console.log("  nexus spec validate-client-shapes [--max-age-days N] # validate client snapshot provenance/freshness");
       return;
     }

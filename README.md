@@ -94,14 +94,28 @@ nix develop
 
 ---
 
-## Pack shape
+## Pack shape (canonical v1 draft)
 
-A pack source must contain `pack.json`; optionally:
+A canonical pack must define `pack.json` with:
 
-- `skills/<id>/SKILL.md`
-- `mcp/servers.json`
-- `opencode/command/*.md`, `opencode/hooks/*`, `opencode/agent/*.md`
-- `commands/*.md`, `hooks/*`, `agents/*.md` (artifact ingestion path)
+- `specVersion: "nexus.canonical.v1-draft"`
+- `references` map (source of truth for what to compile)
+
+Example references:
+
+```json
+{
+  "references": {
+    "skills": ["skills/reviewer/SKILL.md"],
+    "commands": ["commands/review-pr.md"],
+    "agents": ["agents/reviewer.md"],
+    "hooks": ["hooks/before-tool.json"],
+    "mcp": ["mcp/servers.json"]
+  }
+}
+```
+
+Files are still stored under pack folders (`skills/`, `commands/`, `agents/`, `hooks/`, `mcp/`), but compilation reads `references` first and validates file existence/type.
 
 In-repo examples:
 
@@ -189,6 +203,16 @@ nexus pack upgrade
 nexus support bundle
 nexus registry build [--out <dir>]
 
+# Canonical compile + validation gates
+nexus compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn]
+nexus spec validate-canonical-pack [--pack <path>]
+nexus spec validate-client-shapes [--max-age-days N]
+
+# Self-healing compile loop (TS-first AI hook)
+nexus compile self-heal --config .nexus/repo.json --max-attempts 3 \
+  --client <claude|opencode|codex> --client-log <path> \
+  --ai-fix-ts <script.ts>
+
 # Discovery/helpers
 nexus list skills [--config <path>]
 nexus list mcp [--config <path>]
@@ -207,8 +231,11 @@ nexus spec compile --in <snapshot.json> --out <schema.json>
   - include `pack.sig` in pack root
   - lock/update verifies signature over integrity checksum
 - Structured ops log: `.nexus/logs/events.ndjson`
+- Client-specific self-heal log parsers in plugins (`src/clientPlugins/*/selfHealLog.ts`)
 - Support snapshot: `nexus support bundle` → `.nexus/support/*.json`
 - Static pack registry: `nexus registry build` → `index.html` + `index.json`
+- Canonical compile quality gates: warning summary + `--fail-on-warn`
+- Canonical pack validator + client shape provenance validator
 - Golden release gate script + CI workflow for Linux/macOS
 
 ---
