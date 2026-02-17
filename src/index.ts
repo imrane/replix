@@ -6,7 +6,7 @@ import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
 import { parseEnableSpec } from "./enable";
 import { checkNexusConfig } from "./check";
 import { mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
@@ -17,6 +17,7 @@ import { createSupportBundle } from "./supportBundle";
 import { buildRegistrySite } from "./registrySite";
 import { runSelfHealCompile } from "./selfHeal";
 import { compileCanonicalPackToClient } from "./compile/canonicalArtifacts";
+import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -241,6 +242,30 @@ async function main() {
       return;
     }
 
+    if (cmd === "spec" && sub === "validate-client-shapes") {
+      const maxAgeDays = readArgInt("--max-age-days") ?? 30;
+      const paths = [
+        "src/clientPlugins/claude/client-shape.snapshot.json",
+        "src/clientPlugins/opencode/client-shape.snapshot.json",
+        "src/clientPlugins/codex/client-shape.snapshot.json",
+      ];
+
+      let bad = 0;
+      for (const p of paths) {
+        const errs = await validateShapeSnapshot(join(cwd, p), maxAgeDays);
+        if (errs.length === 0) {
+          console.log(`✅ ${p}`);
+        } else {
+          bad++;
+          console.error(`❌ ${p}`);
+          for (const e of errs) console.error(`- ${e}`);
+        }
+      }
+
+      if (bad > 0) process.exit(2);
+      return;
+    }
+
     if (cmd === "spec" && sub === "compile") {
       const inPath = readArgValue("--in");
       const outPath = readArgValue("--out");
@@ -319,6 +344,7 @@ async function main() {
       console.log("  nexus compile canonical --client <claude|opencode|codex> [--pack <path>] # compile canonical pack refs into client artifact plan");
       console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-ts <script.ts>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
+      console.log("  nexus spec validate-client-shapes [--max-age-days N] # validate client snapshot provenance/freshness");
       return;
     }
 
