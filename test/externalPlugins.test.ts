@@ -22,7 +22,7 @@ function makeRegistry(modulePath: string): DotfilesRegistry {
 
 describe("external plugins", () => {
   test("loads plugin module from dotfiles registry by client name", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nexus-ext-plugin-"));
+    const dir = await mkdtemp(join(tmpdir(), "replix-ext-plugin-"));
     const pluginMod = join(dir, "acme2.mjs");
 
     await writeFile(

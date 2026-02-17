@@ -103,8 +103,8 @@ describe("pack schema", () => {
         id: "core",
         version: "1.0.0",
         imports: [],
-        specVersion: "nexus.canonical.v1-draft",
+        specVersion: "replix.canonical.v1-draft",
       }),
-    ).toThrow("pack.references required for nexus.canonical.v1 packs");
+    ).toThrow("pack.references required for replix.canonical.v1 packs");
   });
 });

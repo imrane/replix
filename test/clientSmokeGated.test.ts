@@ -11,9 +11,9 @@ function hasBin(bin: string): boolean {
   return p.exitCode === 0;
 }
 
-test("client smoke (gated) > runs only when NEXUS_CLIENT_SMOKE=1", () => {
-  if (process.env.NEXUS_CLIENT_SMOKE !== "1") {
-    console.log("⏭️  client smoke skipped (set NEXUS_CLIENT_SMOKE=1 to enable)");
+test("client smoke (gated) > runs only when REPLIX_CLIENT_SMOKE=1", () => {
+  if (process.env.REPLIX_CLIENT_SMOKE !== "1") {
+    console.log("⏭️  client smoke skipped (set REPLIX_CLIENT_SMOKE=1 to enable)");
     expect(true).toBe(true);
     return;
   }

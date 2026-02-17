@@ -1,19 +1,19 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > mcp templating merges process < dotfiles < project vars", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-template-");
+  const tmp = mkdtempSync("/tmp/replix-config-template-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
 
-    process.env.NEXUS_TEMPLATE_TEST = "from-process";
+    process.env.REPLIX_TEMPLATE_TEST = "from-process";
 
     const dotfilesCfg = {
       vars: {
-        NEXUS_TEMPLATE_TEST: "from-dotfiles",
+        REPLIX_TEMPLATE_TEST: "from-dotfiles",
         ONLY_DOTFILES: "dot",
       },
       strictEnv: true,
@@ -21,33 +21,33 @@ test("config mode (v2) > mcp templating merges process < dotfiles < project vars
       mcp: {
         filesystem: {
           command: "npx",
-          args: ["${PROJECT_ROOT}", "${ENV:NEXUS_TEMPLATE_TEST}", "${ONLY_DOTFILES}"],
+          args: ["${PROJECT_ROOT}", "${ENV:REPLIX_TEMPLATE_TEST}", "${ONLY_DOTFILES}"],
           env: {
             ROOT: "${PROJECT_ROOT}",
-            VALUE: "${NEXUS_TEMPLATE_TEST}",
+            VALUE: "${REPLIX_TEMPLATE_TEST}",
           },
         },
       },
     };
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: [],
       enable: { skills: [], mcp: ["filesystem"] },
       vars: {
-        NEXUS_TEMPLATE_TEST: "from-project",
+        REPLIX_TEMPLATE_TEST: "from-project",
       },
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const m = JSON.parse(await Bun.file(join(repoRoot, ".mcp.json")).text());
     const fsServer = m.mcpServers.filesystem;
@@ -63,7 +63,7 @@ test("config mode (v2) > mcp templating merges process < dotfiles < project vars
 });
 
 test("config mode (v2) > strictEnv false allows missing vars", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-template-missing-");
+  const tmp = mkdtempSync("/tmp/replix-config-template-missing-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -80,9 +80,9 @@ test("config mode (v2) > strictEnv false allows missing vars", async () => {
     };
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: [],
@@ -90,10 +90,10 @@ test("config mode (v2) > strictEnv false allows missing vars", async () => {
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const m = JSON.parse(await Bun.file(join(repoRoot, ".mcp.json")).text());
     expect(m.mcpServers.filesystem.args[0]).toBe("");
@@ -103,7 +103,7 @@ test("config mode (v2) > strictEnv false allows missing vars", async () => {
 });
 
 test("config mode (v2) > strictEnv true errors on missing vars", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-template-strict-");
+  const tmp = mkdtempSync("/tmp/replix-config-template-strict-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -120,9 +120,9 @@ test("config mode (v2) > strictEnv true errors on missing vars", async () => {
     };
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: [],
@@ -130,10 +130,10 @@ test("config mode (v2) > strictEnv true errors on missing vars", async () => {
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await expect(runNexus({ cwd: repoRoot, configPath: nexusCfgPath })).rejects.toThrow(
+    await expect(runReplix({ cwd: repoRoot, configPath: replixCfgPath })).rejects.toThrow(
       "missing template variable: MISSING_VAR",
     );
   } finally {
@@ -142,10 +142,10 @@ test("config mode (v2) > strictEnv true errors on missing vars", async () => {
 });
 
 test("config mode (v2) > file vars are default and override process env", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-template-file-default-");
+  const tmp = mkdtempSync("/tmp/replix-config-template-file-default-");
   try {
     const repoRoot = join(tmp, "repo");
-    const varsDir = join(repoRoot, ".nexus", "vars");
+    const varsDir = join(repoRoot, ".replix", "vars");
     mkdirSync(varsDir, { recursive: true });
     writeFileSync(join(varsDir, "API_TOKEN"), "from-file\n");
 
@@ -163,9 +163,9 @@ test("config mode (v2) > file vars are default and override process env", async 
     };
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: [],
@@ -173,10 +173,10 @@ test("config mode (v2) > file vars are default and override process env", async 
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const m = JSON.parse(await Bun.file(join(repoRoot, ".mcp.json")).text());
     expect(m.mcpServers.filesystem.args[0]).toBe("from-file");

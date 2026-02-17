@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import { parseNexusConfig } from "./configSchema";
+import { parseReplixConfig } from "./configSchema";
 import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
 import { compilePlanFromConfig, compilePlanFromPack } from "./compile/plan";
-import { checkNexusConfig } from "./check";
+import { checkReplixConfig } from "./check";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeAssets } from "./resolver/coreItems";
 import { resolveVars, type VarSource } from "./vars";
@@ -158,7 +158,7 @@ async function evaluatePackVarsContract(params: {
 
     if (missing) {
       problems.push(`pack ${packId} blocked: missing required variable ${key}`);
-      problems.push(`  fix: write secret to .nexus/vars/${key} (recommended), or set ${key}_FILE, or export ${key}`);
+      problems.push(`  fix: write secret to .replix/vars/${key} (recommended), or set ${key}_FILE, or export ${key}`);
     }
   }
 
@@ -190,7 +190,7 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
   if (configPath) {
     try {
       const raw = await Bun.file(configPath).text();
-      const cfg = parseNexusConfig(JSON.parse(raw));
+      const cfg = parseReplixConfig(JSON.parse(raw));
       notes.push(`config parsed: ${configPath}`);
 
       const dotfiles = await loadDotfilesRegistryFromEnv();
@@ -221,7 +221,7 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
         notes.push("compile plan check: ok");
       }
 
-      const drift = await checkNexusConfig(configPath, cwd);
+      const drift = await checkReplixConfig(configPath, cwd);
       if (drift.ok) {
         notes.push("output drift: none");
       } else {
@@ -229,19 +229,19 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
         for (const c of drift.changes) problems.push(`  ${c}`);
       }
 
-      const dotfilesPath = process.env.NEXUS_DOTFILES_CONFIG_JSON;
+      const dotfilesPath = process.env.REPLIX_DOTFILES_CONFIG_JSON;
       if (dotfilesPath) {
-        const lockPath = join(repoRoot, "nexus.lock.json");
+        const lockPath = join(repoRoot, "replix.lock.json");
         const current = await buildLockSnapshot(dotfilesPath);
         const existing = await readLockfile(lockPath);
         if (!existing) {
-          notes.push("lockfile: missing (run `nexus lock update`)");
+          notes.push("lockfile: missing (run `replix lock update`)");
         } else {
           const lockDiff = buildDiffSummary(existing, current);
           if (lockDiff.length > 0) {
             problems.push(`lockfile drift detected (${lockDiff.length})`);
             for (const d of lockDiff) problems.push(`  ${d}`);
-            problems.push("  fix: run `nexus lock update`");
+            problems.push("  fix: run `replix lock update`");
           } else {
             notes.push("lockfile: in sync");
           }

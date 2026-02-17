@@ -2,7 +2,7 @@
   "id": "starter-pack",
   "version": "1.0.0",
   "imports": [],
-  "specVersion": "nexus.canonical.v1-draft",
+  "specVersion": "replix.canonical.v1-draft",
   "references": {
     "commands": ["commands/review.md"],
     "agents": ["agents/security.md"],

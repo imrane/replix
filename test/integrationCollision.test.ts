@@ -24,7 +24,7 @@ async function runCli(cwd: string): Promise<{ stdout: string; stderr: string; ex
 
 describe("integration: collision detection", () => {
   it("errors when skill and mcp have same id", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     // Create a skill with id "collision"
     const skillDir = join(packRoot, "skills", "collision");

@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 function writeJson(path: string, value: unknown) {
   writeFileSync(path, JSON.stringify(value));
@@ -18,13 +18,13 @@ function baseConfig(repoRoot: string) {
 }
 
 test("config mode (v2) > claude first-class artifacts emit command/hook/agent", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-claude-artifacts-");
+  const tmp = mkdtempSync("/tmp/replix-config-claude-artifacts-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
 
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
 
     writeJson(dotfilesCfgPath, {
       claude: {
@@ -33,30 +33,30 @@ test("config mode (v2) > claude first-class artifacts emit command/hook/agent", 
         agents: { "planner.md": { text: "# planner\n" } },
       },
     });
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    writeJson(nexusCfgPath, baseConfig(repoRoot));
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    writeJson(replixCfgPath, baseConfig(repoRoot));
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text()).toContain("# review");
     expect(await Bun.file(join(repoRoot, ".claude", "hooks", "pre-commit.sh")).text()).toContain("echo ok");
     expect(await Bun.file(join(repoRoot, ".claude", "agents", "planner.md")).text()).toContain("# planner");
   } finally {
-    delete process.env.NEXUS_DOTFILES_CONFIG_JSON;
+    delete process.env.REPLIX_DOTFILES_CONFIG_JSON;
     rmSync(tmp, { recursive: true, force: true });
   }
 });
 
 test("config mode (v2) > claude first-class files support create/update/remove lifecycle", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-claude-lifecycle-");
+  const tmp = mkdtempSync("/tmp/replix-config-claude-lifecycle-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
 
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeJson(nexusCfgPath, baseConfig(repoRoot));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    const replixCfgPath = join(tmp, "replix.json");
+    writeJson(replixCfgPath, baseConfig(repoRoot));
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
     writeJson(dotfilesCfgPath, {
       claude: {
@@ -65,7 +65,7 @@ test("config mode (v2) > claude first-class files support create/update/remove l
         agents: { "planner.md": { text: "# planner v1\n" } },
       },
     });
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text()).toContain("v1");
     expect(await Bun.file(join(repoRoot, ".claude", "hooks", "pre-commit.sh")).text()).toContain("v1");
@@ -78,32 +78,32 @@ test("config mode (v2) > claude first-class files support create/update/remove l
         agents: { "planner.md": { text: "# planner v2\n" } },
       },
     });
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text()).toContain("v2");
     expect(await Bun.file(join(repoRoot, ".claude", "agents", "planner.md")).text()).toContain("v2");
     expect(existsSync(join(repoRoot, ".claude", "hooks", "pre-commit.sh"))).toBe(false);
 
     writeJson(dotfilesCfgPath, { claude: {} });
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(existsSync(join(repoRoot, ".claude", "commands", "review.md"))).toBe(false);
     expect(existsSync(join(repoRoot, ".claude", "agents", "planner.md"))).toBe(false);
   } finally {
-    delete process.env.NEXUS_DOTFILES_CONFIG_JSON;
+    delete process.env.REPLIX_DOTFILES_CONFIG_JSON;
     rmSync(tmp, { recursive: true, force: true });
   }
 });
 
 test("config mode (v2) > claude settings convenience emits settings files and cleanup", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-claude-settings-");
+  const tmp = mkdtempSync("/tmp/replix-config-claude-settings-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
 
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
-    const nexusCfgPath = join(tmp, "nexus.json");
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    const replixCfgPath = join(tmp, "replix.json");
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
     writeJson(dotfilesCfgPath, {
       claude: {
@@ -112,27 +112,27 @@ test("config mode (v2) > claude settings convenience emits settings files and cl
       },
     });
 
-    writeJson(nexusCfgPath, {
+    writeJson(replixCfgPath, {
       ...baseConfig(repoRoot),
       enable: { skills: [], mcp: [], clients: { claude: { files: [".claude/settings.local.json"] } } },
     });
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(existsSync(join(repoRoot, ".claude", "settings.local.json"))).toBeTrue();
     expect(existsSync(join(repoRoot, ".claude", "settings.json"))).toBeFalse();
     expect(await Bun.file(join(repoRoot, ".claude", "settings.local.json")).text()).toContain("echo local");
 
-    writeJson(nexusCfgPath, {
+    writeJson(replixCfgPath, {
       ...baseConfig(repoRoot),
       enable: { skills: [], mcp: [], clients: { claude: { files: [".claude/settings.json"] } } },
     });
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(existsSync(join(repoRoot, ".claude", "settings.local.json"))).toBeFalse();
     expect(existsSync(join(repoRoot, ".claude", "settings.json"))).toBeTrue();
     expect(await Bun.file(join(repoRoot, ".claude", "settings.json")).text()).toContain("hooks");
   } finally {
-    delete process.env.NEXUS_DOTFILES_CONFIG_JSON;
+    delete process.env.REPLIX_DOTFILES_CONFIG_JSON;
     rmSync(tmp, { recursive: true, force: true });
   }
 });

@@ -65,7 +65,7 @@ function makePack(root: string, version: string, skillBody = "# alpha\n") {
 }
 
 async function main() {
-  const root = mkdtempSync(join(tmpdir(), "nexus-release-gate-"));
+  const root = mkdtempSync(join(tmpdir(), "replix-release-gate-"));
   try {
     const repoRoot = join(root, "repo");
     const packRoot = join(root, "packs", "golden");
@@ -78,12 +78,12 @@ async function main() {
     run(["bun", cli, "init", "--client", "claude"], repoRoot);
     run(["bun", cli, "pack", "install", `path:${packRoot}`], repoRoot);
     run(["bun", cli, "lock", "update"], repoRoot);
-    run(["bun", cli, "--config", ".nexus/repo.json"], repoRoot);
-    run(["bun", cli, "doctor", "--config", ".nexus/repo.json"], repoRoot);
+    run(["bun", cli, "--config", ".replix/repo.json"], repoRoot);
+    run(["bun", cli, "doctor", "--config", ".replix/repo.json"], repoRoot);
 
     // compatibility gate should fail if pack content tampered without lock refresh
     makePack(packRoot, "1.0.0", "# alpha\n\nTampered\n");
-    const drift = runExpectFail(["bun", cli, "--config", ".nexus/repo.json"], repoRoot);
+    const drift = runExpectFail(["bun", cli, "--config", ".replix/repo.json"], repoRoot);
     if (drift.exitCode === 0) {
       throw new Error("expected lock compatibility gate to fail after tamper, but command succeeded");
     }
@@ -93,14 +93,14 @@ async function main() {
 
     // upgrade lock to trust current artifacts
     run(["bun", cli, "pack", "upgrade"], repoRoot);
-    run(["bun", cli, "--config", ".nexus/repo.json"], repoRoot);
-    run(["bun", cli, "doctor", "--config", ".nexus/repo.json"], repoRoot);
+    run(["bun", cli, "--config", ".replix/repo.json"], repoRoot);
+    run(["bun", cli, "doctor", "--config", ".replix/repo.json"], repoRoot);
 
     // uninstall lifecycle + doctor still functional
     run(["bun", cli, "pack", "uninstall", `path:${packRoot}`], repoRoot);
     run(["bun", cli, "lock", "update"], repoRoot);
-    run(["bun", cli, "--config", ".nexus/repo.json"], repoRoot);
-    run(["bun", cli, "doctor", "--config", ".nexus/repo.json"], repoRoot);
+    run(["bun", cli, "--config", ".replix/repo.json"], repoRoot);
+    run(["bun", cli, "doctor", "--config", ".replix/repo.json"], repoRoot);
 
     console.log("✅ release gate passed: doctor + compatibility + pack install/uninstall/upgrade lifecycle");
   } finally {

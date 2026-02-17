@@ -1,7 +1,7 @@
 {
   "skills": {
-    "humanizer": { "source": "path:/tmp/nexus-skills/humanizer" },
-    "repo-status": { "source": "path:/tmp/nexus-skills/repo-status" }
+    "humanizer": { "source": "path:/tmp/replix-skills/humanizer" },
+    "repo-status": { "source": "path:/tmp/replix-skills/repo-status" }
   },
   "mcp": {
     "filesystem": {
@@ -10,6 +10,6 @@
     }
   },
   "plugins": {
-    "acme2": { "module": "./nexus-plugins/acme2.mjs" }
+    "acme2": { "module": "./replix-plugins/acme2.mjs" }
   }
 }

@@ -10,8 +10,8 @@ const PACK_FIXTURE = new URL("../fixtures/packs/core", import.meta.url).pathname
 const CANONICAL_V1_FIXTURE = new URL("../fixtures/packs/examples/canonical-v1", import.meta.url).pathname;
 
 describe("dotfiles config registry", () => {
-  test("loads registry from NEXUS_DOTFILES_CONFIG_JSON", async () => {
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = FIXTURE;
+  test("loads registry from REPLIX_DOTFILES_CONFIG_JSON", async () => {
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = FIXTURE;
     const reg = await loadDotfilesRegistryFromEnv();
 
     expect([...reg.skills.keys()]).toEqual(["humanizer", "repo-status"]);
@@ -21,11 +21,11 @@ describe("dotfiles config registry", () => {
     expect(reg.mcp.get("filesystem")?.command).toBe("npx");
 
     expect([...reg.plugins.keys()]).toEqual(["acme2"]);
-    expect(reg.plugins.get("acme2")?.module).toBe("./nexus-plugins/acme2.mjs");
+    expect(reg.plugins.get("acme2")?.module).toBe("./replix-plugins/acme2.mjs");
   });
 
   test("enableValidation fails when enabled skill missing", async () => {
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = FIXTURE;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = FIXTURE;
     const reg = await loadDotfilesRegistryFromEnv();
 
     expect(() =>
@@ -37,7 +37,7 @@ describe("dotfiles config registry", () => {
   });
 
   test("artifacts namespace overrides legacy claude namespace when both are set", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-artifacts-"));
+    const dir = mkdtempSync(join(tmpdir(), "replix-dotfiles-artifacts-"));
     const cfgPath = join(dir, "registry.json");
 
     writeFileSync(
@@ -61,13 +61,13 @@ describe("dotfiles config registry", () => {
       "utf8",
     );
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = cfgPath;
     const reg = await loadDotfilesRegistryFromEnv();
     expect(reg.clients.get("claude")?.files?.[".claude/commands/review.md"]?.text).toBe("canonical");
   });
 
   test("loads pack-first registry and allows direct overrides", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-"));
+    const dir = mkdtempSync(join(tmpdir(), "replix-dotfiles-pack-"));
     const cfgPath = join(dir, "registry.json");
 
     writeFileSync(
@@ -85,7 +85,7 @@ describe("dotfiles config registry", () => {
       "utf8",
     );
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = cfgPath;
     const reg = await loadDotfilesRegistryFromEnv();
 
     expect(reg.skills.get("repo-status")?.source).toBe("path:/override/repo-status");
@@ -96,7 +96,7 @@ describe("dotfiles config registry", () => {
   });
 
   test("loads canonical-v1 pack references for commands/hooks/agents/skills", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-v1-"));
+    const dir = mkdtempSync(join(tmpdir(), "replix-dotfiles-pack-v1-"));
     const cfgPath = join(dir, "registry.json");
 
     writeFileSync(
@@ -111,7 +111,7 @@ describe("dotfiles config registry", () => {
       "utf8",
     );
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = cfgPath;
     const reg = await loadDotfilesRegistryFromEnv();
 
     expect(reg.skills.has("reviewer")).toBe(true);
@@ -123,7 +123,7 @@ describe("dotfiles config registry", () => {
   });
 
   test("fails fast when canonical references point to missing files", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-badref-"));
+    const dir = mkdtempSync(join(tmpdir(), "replix-dotfiles-pack-badref-"));
     const packDir = join(dir, "pack");
     mkdirSync(join(packDir, "mcp"), { recursive: true });
 
@@ -134,7 +134,7 @@ describe("dotfiles config registry", () => {
           id: "bad-pack",
           version: "1.0.0",
           imports: [],
-          specVersion: "nexus.canonical.v1-draft",
+          specVersion: "replix.canonical.v1-draft",
           references: {
             commands: ["commands/missing.md"],
             mcp: ["mcp/servers.json"],
@@ -151,7 +151,7 @@ describe("dotfiles config registry", () => {
     const cfgPath = join(dir, "registry.json");
     writeFileSync(cfgPath, JSON.stringify({ packs: [{ source: `path:${packDir}` }] }, null, 2), "utf8");
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = cfgPath;
     await expect(loadDotfilesRegistryFromEnv()).rejects.toThrow("pack reference file not found");
   });
 });

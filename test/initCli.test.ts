@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-test("nexus init > scaffolds .nexus config and vars example", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-init-cli-"));
+test("replix init > scaffolds .replix config and vars example", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-init-cli-"));
   try {
     const out = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "init", "--client", "opencode"],
@@ -15,10 +15,10 @@ test("nexus init > scaffolds .nexus config and vars example", () => {
     });
 
     expect(out.exitCode).toBe(0);
-    expect(out.stdout.toString()).toContain("nexus init: scaffold ready");
+    expect(out.stdout.toString()).toContain("replix init: scaffold ready");
 
-    const cfgPath = join(root, ".nexus", "repo.json");
-    const varsExamplePath = join(root, ".nexus", "vars", ".example");
+    const cfgPath = join(root, ".replix", "repo.json");
+    const varsExamplePath = join(root, ".replix", "vars", ".example");
 
     expect(existsSync(cfgPath)).toBe(true);
     expect(existsSync(varsExamplePath)).toBe(true);
@@ -30,8 +30,8 @@ test("nexus init > scaffolds .nexus config and vars example", () => {
   }
 });
 
-test("nexus init --with-lock > writes lockfile when dotfiles packs are available", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-init-lock-"));
+test("replix init --with-lock > writes lockfile when dotfiles packs are available", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-init-lock-"));
   try {
     const pack = join(root, "packs", "starter");
     mkdirSync(pack, { recursive: true });
@@ -46,13 +46,13 @@ test("nexus init --with-lock > writes lockfile when dotfiles packs are available
     const out = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "init", "--with-lock"],
       cwd: root,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
 
     expect(out.exitCode).toBe(0);
-    expect(existsSync(join(root, "nexus.lock.json"))).toBe(true);
+    expect(existsSync(join(root, "replix.lock.json"))).toBe(true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

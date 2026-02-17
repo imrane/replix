@@ -11,11 +11,11 @@ function makePack(root: string, id: string, version: string) {
   );
 }
 
-test("nexus registry build > writes static index from installed packs", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-registry-"));
+test("replix registry build > writes static index from installed packs", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-registry-"));
   try {
     const repoRoot = join(root, "repo");
-    mkdirSync(join(repoRoot, ".nexus"), { recursive: true });
+    mkdirSync(join(repoRoot, ".replix"), { recursive: true });
 
     const p1 = join(root, "packs", "security");
     const p2 = join(root, "packs", "content");
@@ -23,7 +23,7 @@ test("nexus registry build > writes static index from installed packs", () => {
     makePack(p2, "content-pack", "0.4.2");
 
     writeFileSync(
-      join(repoRoot, ".nexus", "packs.json"),
+      join(repoRoot, ".replix", "packs.json"),
       JSON.stringify({ packs: [{ source: `path:${p1}` }, { source: `path:${p2}` }] }, null, 2),
     );
 
@@ -35,13 +35,13 @@ test("nexus registry build > writes static index from installed packs", () => {
     });
 
     expect(out.exitCode).toBe(0);
-    const dir = join(repoRoot, ".nexus", "registry");
+    const dir = join(repoRoot, ".replix", "registry");
     expect(existsSync(join(dir, "index.html"))).toBe(true);
     expect(existsSync(join(dir, "index.json"))).toBe(true);
 
     const json = JSON.parse(readFileSync(join(dir, "index.json"), "utf8"));
     expect(json.packs.length).toBe(2);
-    expect(json.packs[0].install).toContain("nexus pack install");
+    expect(json.packs[0].install).toContain("replix pack install");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

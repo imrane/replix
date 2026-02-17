@@ -16,8 +16,8 @@ function read(p: string) {
 
 describe("claude emitter", () => {
   it("writes skill directory and ownership marker", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
-    const srcRoot = mkdtempSync(join(tmpdir(), "nexus-skill-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-repo-"));
+    const srcRoot = mkdtempSync(join(tmpdir(), "replix-skill-"));
     mkdirSync(join(srcRoot, "skill"), { recursive: true });
     writeFileSync(join(srcRoot, "skill", "SKILL.md"), "# Code review\n");
 
@@ -32,9 +32,9 @@ describe("claude emitter", () => {
       ],
     });
 
-    const managed = join(repoRoot, ".claude", "skills", ".nexus-managed");
+    const managed = join(repoRoot, ".claude", "skills", ".replix-managed");
     expect(existsSync(managed)).toBeTrue();
-    expect(read(managed)).toContain("nexus");
+    expect(read(managed)).toContain("replix");
 
     const outSkill = join(repoRoot, ".claude", "skills", "code-review", "SKILL.md");
     expect(existsSync(outSkill)).toBeTrue();
@@ -42,8 +42,8 @@ describe("claude emitter", () => {
   });
 
   it("skips VCS metadata directories inside skill sources", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
-    const srcRoot = mkdtempSync(join(tmpdir(), "nexus-skill-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-repo-"));
+    const srcRoot = mkdtempSync(join(tmpdir(), "replix-skill-"));
     const skillDir = join(srcRoot, "skill");
     mkdirSync(skillDir, { recursive: true });
     writeFileSync(join(skillDir, "SKILL.md"), "# Code review\n");

@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
-import { parseNexusConfig } from "../src/configSchema";
+import { parseReplixConfig } from "../src/configSchema";
 
 test("config schema > accepts legacy config.sources (normalized to overrides)", () => {
-  const cfg = parseNexusConfig({
+  const cfg = parseReplixConfig({
     version: 1,
     repoRoot: null,
     clients: ["claude"],
@@ -14,7 +14,7 @@ test("config schema > accepts legacy config.sources (normalized to overrides)", 
 });
 
 test("config schema > accepts layout + cleanup enums", () => {
-  const cfg = parseNexusConfig({
+  const cfg = parseReplixConfig({
     version: 1,
     repoRoot: null,
     clients: ["claude"],
@@ -38,7 +38,7 @@ test("config schema > accepts layout + cleanup enums", () => {
 });
 
 test("config schema > codex client accepts config + skill shim roots", () => {
-  const cfg = parseNexusConfig({
+  const cfg = parseReplixConfig({
     version: 1,
     repoRoot: null,
     clients: ["codex"],
@@ -63,7 +63,7 @@ test("config schema > codex client accepts config + skill shim roots", () => {
 
 test("config schema > rejects unsupported codex client file paths", () => {
   expect(() =>
-    parseNexusConfig({
+    parseReplixConfig({
       version: 1,
       repoRoot: null,
       clients: ["codex"],
@@ -83,7 +83,7 @@ test("config schema > rejects unsupported codex client file paths", () => {
 
 test("config schema > rejects unsupported codex repo roots outside allowed shim paths", () => {
   expect(() =>
-    parseNexusConfig({
+    parseReplixConfig({
       version: 1,
       repoRoot: null,
       clients: ["codex"],

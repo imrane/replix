@@ -1,5 +1,5 @@
 {
-  "name": "nexus-canonical-spec",
+  "name": "replix-canonical-spec",
   "version": "0.1.0-proposed",
   "intent": "Single provider-agnostic pack shape compiled by client plugins into valid client-native outputs.",
   "pack": {

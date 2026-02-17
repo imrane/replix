@@ -63,13 +63,13 @@ jobs:
           fail_ci_if_error: false
 
       - name: Optional full suite (gated)
-        if: vars.NEXUS_FULL_CI == '1'
+        if: vars.REPLIX_FULL_CI == '1'
         run: bun test
 
       - name: Optional client smoke tests (gated)
-        if: vars.NEXUS_CLIENT_SMOKE == '1'
+        if: vars.REPLIX_CLIENT_SMOKE == '1'
         run: bun run test:smoke:clients
 
       - name: Optional e2e pack/client matrix (gated)
-        if: vars.NEXUS_E2E_PACK_MATRIX == '1'
+        if: vars.REPLIX_E2E_PACK_MATRIX == '1'
         run: bun run test:e2e:pack-matrix

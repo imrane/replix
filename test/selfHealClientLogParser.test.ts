@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { parseClientLogFromPath } from "../src/clientPlugins/selfHealLogRegistry";
 
 test("client log parser > returns schema-gap hint for codex invalid config log", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "nexus-log-parser-"));
+  const dir = mkdtempSync(join(tmpdir(), "replix-log-parser-"));
   try {
     const p = join(dir, "codex.log");
     writeFileSync(p, "ERROR: config.toml invalid near mcp_servers");

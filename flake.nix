@@ -1,5 +1,5 @@
 {
-  description = "Nexus - Agent skill/MCP config manager";
+  description = "Replix - Agent skill/MCP config manager";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -36,7 +36,7 @@
       {
         packages = {
           default = pkgs.callPackage ./package.nix { src = cleanSrc; };
-          nexus = pkgs.callPackage ./package.nix { src = cleanSrc; };
+          replix = pkgs.callPackage ./package.nix { src = cleanSrc; };
         };
 
         # Home-manager module for global installation
@@ -49,9 +49,9 @@
           ];
 
           shellHook = ''
-            echo "🔧 Nexus devShell"
+            echo "🔧 Replix devShell"
             if [ -f pack.json ]; then
-              echo "📦 Running nexus..."
+              echo "📦 Running replix..."
               bun run src/index.ts
             else
               echo "ℹ️  No pack.json found in current directory"
@@ -60,7 +60,7 @@
         };
 
         checks = {
-          test = pkgs.runCommand "nexus-tests" {
+          test = pkgs.runCommand "replix-tests" {
             buildInputs = [ pkgs.bun ];
             src = cleanSrc;
           } ''
@@ -74,7 +74,7 @@
     ))
     // {
       # Top-level library API (v2 direction).
-      # mkRepo can infer pkgs + nexus package from this flake; callers may still override explicitly.
+      # mkRepo can infer pkgs + replix package from this flake; callers may still override explicitly.
       lib = import ./lib { inherit self nixpkgs; };
     };
 }

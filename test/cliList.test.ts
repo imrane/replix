@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 function setupFixture() {
-  const dir = mkdtempSync(join(tmpdir(), "nexus-cli-list-"));
+  const dir = mkdtempSync(join(tmpdir(), "replix-cli-list-"));
 
   const dotfilesPath = join(dir, "dotfiles.json");
   writeFileSync(
@@ -59,7 +59,7 @@ test("cli list skills > shows status + source hints", () => {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath,
+      REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath,
       HOME: dir,
     },
     stdout: "pipe",
@@ -82,7 +82,7 @@ test("cli list mcp > shows status + command hints", () => {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath,
+      REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath,
       HOME: dir,
     },
     stdout: "pipe",
@@ -108,7 +108,7 @@ test("cli snippet > renders mkRepo enable block for selected skills and mcp", ()
 
   const stdout = out.stdout.toString();
   expect(out.exitCode).toBe(0);
-  expect(stdout).toContain("nexus.lib.mkRepo {");
+  expect(stdout).toContain("replix.lib.mkRepo {");
   expect(stdout).toContain('skills = [ "alpha" "beta" ];');
   expect(stdout).toContain('mcp = [ "filesystem" ];');
 });

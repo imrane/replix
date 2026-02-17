@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 const FIX = join(import.meta.dir, "..", "fixtures");
 
@@ -23,7 +23,7 @@ function readTree(root: string, rel = ""): Record<string, string> {
 
 describe("golden: v2 config-mode", () => {
   it("direct layout matches golden outputs", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-golden-v2-direct-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-golden-v2-direct-"));
     try {
       const dotfilesCfgPath = join(repoRoot, "dotfiles.json");
       writeFileSync(
@@ -43,7 +43,7 @@ describe("golden: v2 config-mode", () => {
         }),
       );
 
-      process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+      process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
       const cfgPath = join(repoRoot, "config.json");
       writeFileSync(
@@ -58,7 +58,7 @@ describe("golden: v2 config-mode", () => {
         }),
       );
 
-      await runNexus({ cwd: repoRoot, configPath: cfgPath });
+      await runReplix({ cwd: repoRoot, configPath: cfgPath });
 
       const expected = readTree(join(FIX, "golden", "v2", "direct"));
       const actual = readTree(repoRoot);
@@ -73,7 +73,7 @@ describe("golden: v2 config-mode", () => {
   });
 
   it("generated layout matches golden outputs", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-golden-v2-generated-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-golden-v2-generated-"));
     try {
       const dotfilesCfgPath = join(repoRoot, "dotfiles.json");
       writeFileSync(
@@ -93,7 +93,7 @@ describe("golden: v2 config-mode", () => {
         }),
       );
 
-      process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+      process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
       const cfgPath = join(repoRoot, "config.json");
       writeFileSync(
@@ -108,7 +108,7 @@ describe("golden: v2 config-mode", () => {
         }),
       );
 
-      await runNexus({ cwd: repoRoot, configPath: cfgPath });
+      await runReplix({ cwd: repoRoot, configPath: cfgPath });
 
       const expected = readTree(join(FIX, "golden", "v2", "generated"));
       const actual = readTree(repoRoot);

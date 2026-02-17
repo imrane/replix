@@ -17,7 +17,7 @@ export type LockfilePack = {
   integritySignature?: string;
 };
 
-export type NexusLockfile = {
+export type ReplixLockfile = {
   version: 1;
   packs: LockfilePack[];
 };
@@ -192,7 +192,7 @@ async function lockEntryFromPack(pack: DotfilesPackDef): Promise<LockfilePack> {
   };
 }
 
-export async function buildLockSnapshot(dotfilesConfigPath: string): Promise<NexusLockfile> {
+export async function buildLockSnapshot(dotfilesConfigPath: string): Promise<ReplixLockfile> {
   const dotfiles = await loadDotfilesConfigFromPath(dotfilesConfigPath);
   const packDefs = dotfiles.packs ?? [];
 
@@ -203,11 +203,11 @@ export async function buildLockSnapshot(dotfilesConfigPath: string): Promise<Nex
   return { version: 1, packs };
 }
 
-export async function readLockfile(path: string): Promise<NexusLockfile | null> {
+export async function readLockfile(path: string): Promise<ReplixLockfile | null> {
   if (!existsSync(path)) return null;
   try {
     const raw = await readFile(path, "utf8");
-    const parsed = JSON.parse(raw) as NexusLockfile;
+    const parsed = JSON.parse(raw) as ReplixLockfile;
     if (parsed?.version !== 1 || !Array.isArray(parsed.packs)) return null;
     return parsed;
   } catch {
@@ -215,7 +215,7 @@ export async function readLockfile(path: string): Promise<NexusLockfile | null> 
   }
 }
 
-export function buildDiffSummary(prev: NexusLockfile | null, next: NexusLockfile): string[] {
+export function buildDiffSummary(prev: ReplixLockfile | null, next: ReplixLockfile): string[] {
   if (!prev) return ["new lockfile created"];
 
   const out: string[] = [];
@@ -260,7 +260,7 @@ export async function assertLockfileCompatibilityIfPresent(params: {
   const dotfilesConfigPath = resolveDotfilesConfigPath({ cwd: params.cwd, explicitPath: params.dotfilesConfigPath ?? null });
   if (!dotfilesConfigPath) return;
 
-  const lockPath = join(params.cwd, "nexus.lock.json");
+  const lockPath = join(params.cwd, "replix.lock.json");
   const existing = await readLockfile(lockPath);
   if (!existing) return;
 
@@ -272,7 +272,7 @@ export async function assertLockfileCompatibilityIfPresent(params: {
     [
       "lockfile compatibility gate failed: pack metadata/checksum drift detected.",
       ...drift.map((d) => `  ${d}`),
-      "fix: run `nexus lock update` to trust the current pack artifacts (or revert tampered changes).",
+      "fix: run `replix lock update` to trust the current pack artifacts (or revert tampered changes).",
     ].join("\n"),
   );
 }
@@ -280,14 +280,14 @@ export async function assertLockfileCompatibilityIfPresent(params: {
 export async function updateLockfile(params: {
   cwd: string;
   dotfilesConfigPath?: string;
-}): Promise<{ path: string; lock: NexusLockfile; diff: string[] }> {
+}): Promise<{ path: string; lock: ReplixLockfile; diff: string[] }> {
   const dotfilesConfigPath = resolveDotfilesConfigPath({ cwd: params.cwd, explicitPath: params.dotfilesConfigPath ?? null });
   if (!dotfilesConfigPath) {
-    throw new Error("lock update requires dotfiles packs config (.nexus/packs.json or NEXUS_DOTFILES_CONFIG_JSON)");
+    throw new Error("lock update requires dotfiles packs config (.replix/packs.json or REPLIX_DOTFILES_CONFIG_JSON)");
   }
 
   const lock = await buildLockSnapshot(dotfilesConfigPath);
-  const lockPath = join(params.cwd, "nexus.lock.json");
+  const lockPath = join(params.cwd, "replix.lock.json");
 
   const prev = await readLockfile(lockPath);
   const diff = buildDiffSummary(prev, lock);

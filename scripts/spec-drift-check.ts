@@ -47,7 +47,7 @@ async function fetchJson<T>(url: string): Promise<T | null> {
       Accept: "application/vnd.github+json",
       ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
       ...(process.env.GH_TOKEN ? { Authorization: `Bearer ${process.env.GH_TOKEN}` } : {}),
-      "User-Agent": "nexus-spec-drift-check",
+      "User-Agent": "replix-spec-drift-check",
     },
   });
 
@@ -62,7 +62,7 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 async function fetchText(url: string): Promise<string | null> {
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "nexus-spec-drift-check",
+      "User-Agent": "replix-spec-drift-check",
     },
   });
 
@@ -114,7 +114,7 @@ async function readBaseline(path: string): Promise<DriftBaseline> {
 }
 
 function parseTargets(): DriftTarget[] {
-  const raw = process.env.NEXUS_DRIFT_TARGETS_JSON;
+  const raw = process.env.REPLIX_DRIFT_TARGETS_JSON;
   if (!raw) return DEFAULT_TARGETS;
   const parsed = JSON.parse(raw) as DriftTarget[];
   return parsed;
@@ -124,7 +124,7 @@ async function main() {
   const cwd = process.cwd();
   const targets = parseTargets();
 
-  const outDir = join(cwd, ".nexus");
+  const outDir = join(cwd, ".replix");
   const baselinePath = join(outDir, "spec-drift-baseline.json");
   const reportPath = join(outDir, "spec-drift-report.json");
 
@@ -144,7 +144,7 @@ async function main() {
   await mkdir(dirname(reportPath), { recursive: true });
   await writeFile(reportPath, JSON.stringify(report, null, 2) + "\n", "utf8");
 
-  if (process.env.NEXUS_DRIFT_UPDATE_BASELINE === "1") {
+  if (process.env.REPLIX_DRIFT_UPDATE_BASELINE === "1") {
     await writeFile(baselinePath, JSON.stringify(toBaselineMap(current), null, 2) + "\n", "utf8");
   }
 
@@ -158,7 +158,7 @@ async function main() {
     console.log(`- ${d.key} (${d.repo}): ${d.changedFields.join(", ")} [risk=${d.impact.risk}]`);
   }
 
-  if (process.env.NEXUS_DRIFT_FAIL_ON_CHANGE === "1") {
+  if (process.env.REPLIX_DRIFT_FAIL_ON_CHANGE === "1") {
     process.exit(2);
   }
 }

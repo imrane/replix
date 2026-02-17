@@ -28,7 +28,7 @@ export async function emitMcp(input: EmitMcpInput): Promise<void> {
   }
 
   const payload = {
-    __generated_by: "nexus",
+    __generated_by: "replix",
     mcpServers,
   };
 

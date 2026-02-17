@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nexus.local/spec/canonical-v1",
-  "title": "Nexus Canonical Pack v1 (draft)",
+  "$id": "https://replix.local/spec/canonical-v1",
+  "title": "Replix Canonical Pack v1 (draft)",
   "type": "object",
   "required": ["id", "version", "imports", "specVersion", "references"],
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "version": { "type": "string", "minLength": 1 },
-    "specVersion": { "type": "string", "pattern": "^nexus\\.canonical\\.v1" },
+    "specVersion": { "type": "string", "pattern": "^replix\\.canonical\\.v1" },
     "imports": {
       "type": "array",
       "items": {

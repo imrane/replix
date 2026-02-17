@@ -11,8 +11,8 @@ function makePack(root: string, id: string, version: string) {
   );
 }
 
-test("nexus pack install/list/uninstall > manages .nexus/packs.json", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-pack-cli-"));
+test("replix pack install/list/uninstall > manages .replix/packs.json", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-cli-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -26,7 +26,7 @@ test("nexus pack install/list/uninstall > manages .nexus/packs.json", () => {
     });
     expect(install.exitCode).toBe(0);
 
-    const packsPath = join(repoRoot, ".nexus", "packs.json");
+    const packsPath = join(repoRoot, ".replix", "packs.json");
     expect(existsSync(packsPath)).toBe(true);
     const cfg = JSON.parse(readFileSync(packsPath, "utf8"));
     expect(cfg.packs[0].source).toBe(source);
@@ -55,8 +55,8 @@ test("nexus pack install/list/uninstall > manages .nexus/packs.json", () => {
   }
 });
 
-test("nexus lock update > uses .nexus/packs.json when env is unset", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-pack-lock-local-"));
+test("replix lock update > uses .replix/packs.json when env is unset", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-lock-local-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -64,20 +64,20 @@ test("nexus lock update > uses .nexus/packs.json when env is unset", () => {
     const packRoot = join(root, "packs", "local");
     makePack(packRoot, "local-pack", "0.1.0");
 
-    const packsPath = join(repoRoot, ".nexus", "packs.json");
-    mkdirSync(join(repoRoot, ".nexus"), { recursive: true });
+    const packsPath = join(repoRoot, ".replix", "packs.json");
+    mkdirSync(join(repoRoot, ".replix"), { recursive: true });
     writeFileSync(packsPath, JSON.stringify({ packs: [{ source: `path:${packRoot}` }] }, null, 2));
 
     const out = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: "" },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: "" },
       stdout: "pipe",
       stderr: "pipe",
     });
 
     expect(out.exitCode).toBe(0);
-    const lock = JSON.parse(readFileSync(join(repoRoot, "nexus.lock.json"), "utf8"));
+    const lock = JSON.parse(readFileSync(join(repoRoot, "replix.lock.json"), "utf8"));
     expect(lock.packs.length).toBe(1);
     expect(lock.packs[0].source).toBe(`path:${packRoot}`);
   } finally {

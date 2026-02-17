@@ -19,7 +19,7 @@ async function readVarFile(path: string): Promise<string | null> {
 
 async function collectDefaultFileVars(repoRoot: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
-  const dirs = [join(repoRoot, ".nexus", "vars"), "/run/secrets", "/var/run/secrets"];
+  const dirs = [join(repoRoot, ".replix", "vars"), "/run/secrets", "/var/run/secrets"];
 
   for (const dir of dirs) {
     let names: string[] = [];

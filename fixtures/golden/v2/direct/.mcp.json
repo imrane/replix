@@ -1,5 +1,5 @@
 {
-  "__generated_by": "nexus",
+  "__generated_by": "replix",
   "mcpServers": {
     "filesystem": {
       "command": "npx",

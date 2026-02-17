@@ -2,7 +2,7 @@
   "id": "canonical-v1-pack",
   "version": "1.0.0",
   "imports": [],
-  "specVersion": "nexus.canonical.v1-draft",
+  "specVersion": "replix.canonical.v1-draft",
   "references": {
     "skills": [
       "skills/reviewer/SKILL.md",

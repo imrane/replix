@@ -1,10 +1,10 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > resolves skills+mcp from dotfiles registry", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-dotfiles-");
+  const tmp = mkdtempSync("/tmp/replix-config-dotfiles-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -28,9 +28,9 @@ test("config mode (v2) > resolves skills+mcp from dotfiles registry", async () =
     };
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: ["claude"],
@@ -39,10 +39,10 @@ test("config mode (v2) > resolves skills+mcp from dotfiles registry", async () =
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("name: humanizer");

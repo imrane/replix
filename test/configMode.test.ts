@@ -1,11 +1,11 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode > emits claude skill without pack.json", async () => {
-  process.env.NEXUS_DOTFILES_CONFIG_JSON = "";
-  const tmp = mkdtempSync("/tmp/nexus-config-mode-");
+  process.env.REPLIX_DOTFILES_CONFIG_JSON = "";
+  const tmp = mkdtempSync("/tmp/replix-config-mode-");
   try {
     const repoRoot = join(tmp, "repo");
     const skillRoot = join(tmp, "humanizer");
@@ -25,7 +25,7 @@ test("config mode > emits claude skill without pack.json", async () => {
     const cfgPath = join(tmp, "config.json");
     writeFileSync(cfgPath, JSON.stringify(cfg));
 
-    await runNexus({ cwd: repoRoot, configPath: cfgPath });
+    await runReplix({ cwd: repoRoot, configPath: cfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("name: humanizer");

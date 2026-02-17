@@ -18,7 +18,7 @@ function runWithEnv(params: { cwd: string; cmd: string[]; payload: AiFixPayload 
     cwd: params.cwd,
     env: {
       ...process.env,
-      NEXUS_SELF_HEAL_PAYLOAD: JSON.stringify(params.payload),
+      REPLIX_SELF_HEAL_PAYLOAD: JSON.stringify(params.payload),
     },
     stdout: "pipe",
     stderr: "pipe",

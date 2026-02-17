@@ -6,7 +6,7 @@ import { emitPlan, type EmitPlan } from "../src/compile/emit";
 import { validateArtifactFromFile, inferArtifactType, logValidationResults } from "../src/compile/metadataValidation";
 import "../src/outputPlugins/builtins"; // Ensure plugins are registered
 
-const testDir = join(tmpdir(), `nexus-test-${Date.now()}`);
+const testDir = join(tmpdir(), `replix-test-${Date.now()}`);
 
 beforeEach(async () => {
   await mkdir(testDir, { recursive: true });

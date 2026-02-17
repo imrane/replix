@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { join } from "node:path";
 
-test("nexus compile canonical > emits plan entries for claude", () => {
+test("replix compile canonical > emits plan entries for claude", () => {
   const packRoot = join(process.cwd(), "fixtures", "packs", "examples", "canonical-v1");
 
   const out = Bun.spawnSync({
@@ -20,7 +20,7 @@ test("nexus compile canonical > emits plan entries for claude", () => {
   expect(parsed.entries.some((e: any) => e.kind === "hook" && e.target?.includes(".claude/hooks"))).toBe(true);
 });
 
-test("nexus compile canonical > codex warns for unsupported command/agent/hook artifacts", () => {
+test("replix compile canonical > codex warns for unsupported command/agent/hook artifacts", () => {
   const packRoot = join(process.cwd(), "fixtures", "packs", "examples", "canonical-v1");
 
   const out = Bun.spawnSync({
@@ -38,7 +38,7 @@ test("nexus compile canonical > codex warns for unsupported command/agent/hook a
   expect(parsed.entries.some((e: any) => e.kind === "hook" && e.warning)).toBe(true);
 });
 
-test("nexus compile canonical --fail-on-warn > exits non-zero when warnings exist", () => {
+test("replix compile canonical --fail-on-warn > exits non-zero when warnings exist", () => {
   const packRoot = join(process.cwd(), "fixtures", "packs", "examples", "canonical-v1");
   const out = Bun.spawnSync({
     cmd: [

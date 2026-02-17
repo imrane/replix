@@ -2,9 +2,9 @@ import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
-const RUN_GITHUB_INTEGRATION = process.env.NEXUS_GITHUB_INTEGRATION === "1";
+const RUN_GITHUB_INTEGRATION = process.env.REPLIX_GITHUB_INTEGRATION === "1";
 
 function sh(cmd: string[], opts?: { cwd?: string }) {
   execFileSync(cmd[0]!, cmd.slice(1), { cwd: opts?.cwd, stdio: "inherit" });
@@ -12,12 +12,12 @@ function sh(cmd: string[], opts?: { cwd?: string }) {
 
 test("config mode (v2) > resolves github: pinned dotfiles skill source", async () => {
   if (!RUN_GITHUB_INTEGRATION) {
-    console.log("⏭️  github integration skipped (set NEXUS_GITHUB_INTEGRATION=1 to enable)");
+    console.log("⏭️  github integration skipped (set REPLIX_GITHUB_INTEGRATION=1 to enable)");
     expect(true).toBe(true);
     return;
   }
 
-  const tmp = mkdtempSync("/tmp/nexus-config-dotfiles-gh-");
+  const tmp = mkdtempSync("/tmp/replix-config-dotfiles-gh-");
   try {
     const ghRoot = join(tmp, "gh", "acme");
     mkdirSync(ghRoot, { recursive: true });
@@ -51,10 +51,10 @@ test("config mode (v2) > resolves github: pinned dotfiles skill source", async (
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
-    process.env.NEXUS_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: ["claude"],
@@ -62,10 +62,10 @@ test("config mode (v2) > resolves github: pinned dotfiles skill source", async (
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("hi from git");
@@ -76,12 +76,12 @@ test("config mode (v2) > resolves github: pinned dotfiles skill source", async (
 
 test("config mode (v2) > resolves github: ?rev= pinned source", async () => {
   if (!RUN_GITHUB_INTEGRATION) {
-    console.log("⏭️  github integration skipped (set NEXUS_GITHUB_INTEGRATION=1 to enable)");
+    console.log("⏭️  github integration skipped (set REPLIX_GITHUB_INTEGRATION=1 to enable)");
     expect(true).toBe(true);
     return;
   }
 
-  const tmp = mkdtempSync("/tmp/nexus-config-dotfiles-gh-qrev-");
+  const tmp = mkdtempSync("/tmp/replix-config-dotfiles-gh-qrev-");
   try {
     const ghRoot = join(tmp, "gh", "acme");
     mkdirSync(ghRoot, { recursive: true });
@@ -115,10 +115,10 @@ test("config mode (v2) > resolves github: ?rev= pinned source", async () => {
     const dotfilesCfgPath = join(tmp, "dotfiles.json");
     writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
 
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
-    process.env.NEXUS_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
 
-    const nexusCfg = {
+    const replixCfg = {
       version: 1,
       repoRoot,
       clients: ["claude"],
@@ -126,10 +126,10 @@ test("config mode (v2) > resolves github: ?rev= pinned source", async () => {
       overrides: { skills: {}, mcp: {} },
     };
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(replixCfg));
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("hi from git qrev");
@@ -140,12 +140,12 @@ test("config mode (v2) > resolves github: ?rev= pinned source", async () => {
 
 test("config mode (v2) > rejects github unpinned source unless allowUnpinned=true", async () => {
   if (!RUN_GITHUB_INTEGRATION) {
-    console.log("⏭️  github integration skipped (set NEXUS_GITHUB_INTEGRATION=1 to enable)");
+    console.log("⏭️  github integration skipped (set REPLIX_GITHUB_INTEGRATION=1 to enable)");
     expect(true).toBe(true);
     return;
   }
 
-  const tmp = mkdtempSync("/tmp/nexus-config-dotfiles-gh-unpinned-");
+  const tmp = mkdtempSync("/tmp/replix-config-dotfiles-gh-unpinned-");
   try {
     const ghRoot = join(tmp, "gh", "acme");
     mkdirSync(ghRoot, { recursive: true });
@@ -169,7 +169,7 @@ test("config mode (v2) > rejects github unpinned source unless allowUnpinned=tru
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
 
-    process.env.NEXUS_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
+    process.env.REPLIX_GITHUB_BASE_URL = `file://${join(tmp, "gh")}`;
 
     const baseCfg = {
       version: 1,
@@ -187,12 +187,12 @@ test("config mode (v2) > rejects github unpinned source unless allowUnpinned=tru
     };
     const failPath = join(tmp, "dotfiles-fail.json");
     writeFileSync(failPath, JSON.stringify(dotfilesCfgFail));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = failPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = failPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
-    writeFileSync(nexusCfgPath, JSON.stringify(baseCfg));
+    const replixCfgPath = join(tmp, "replix.json");
+    writeFileSync(replixCfgPath, JSON.stringify(baseCfg));
 
-    await expect(runNexus({ cwd: repoRoot, configPath: nexusCfgPath })).rejects.toThrow("allowUnpinned");
+    await expect(runReplix({ cwd: repoRoot, configPath: replixCfgPath })).rejects.toThrow("allowUnpinned");
 
     const dotfilesCfgOk = {
       skills: {
@@ -202,9 +202,9 @@ test("config mode (v2) > rejects github unpinned source unless allowUnpinned=tru
     };
     const okPath = join(tmp, "dotfiles-ok.json");
     writeFileSync(okPath, JSON.stringify(dotfilesCfgOk));
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = okPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = okPath;
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const t = await Bun.file(join(repoRoot, ".claude", "skills", "humanizer", "SKILL.md")).text();
     expect(t).toContain("hi from git unpinned");

@@ -51,7 +51,7 @@ function runCli(cwd: string, args: string[]) {
     env: {
       ...process.env,
       ...REQUIRED_ENV,
-      NEXUS_DOTFILES_CONFIG_JSON: "",
+      REPLIX_DOTFILES_CONFIG_JSON: "",
     },
     stdout: "pipe",
     stderr: "pipe",
@@ -59,13 +59,13 @@ function runCli(cwd: string, args: string[]) {
 }
 
 test("e2e matrix (gated) > sample canonical packs emit/check/doctor in a fresh repo for all clients", () => {
-  if (process.env.NEXUS_E2E_PACK_MATRIX !== "1") {
-    console.log("⏭️  e2e pack/client matrix skipped (set NEXUS_E2E_PACK_MATRIX=1 to enable)");
+  if (process.env.REPLIX_E2E_PACK_MATRIX !== "1") {
+    console.log("⏭️  e2e pack/client matrix skipped (set REPLIX_E2E_PACK_MATRIX=1 to enable)");
     expect(true).toBe(true);
     return;
   }
 
-  const root = mkdtempSync(join(tmpdir(), "nexus-e2e-pack-client-matrix-"));
+  const root = mkdtempSync(join(tmpdir(), "replix-e2e-pack-client-matrix-"));
 
   try {
     for (const pack of PACKS) {
@@ -73,15 +73,15 @@ test("e2e matrix (gated) > sample canonical packs emit/check/doctor in a fresh r
 
       for (const client of CLIENTS) {
         const repoRoot = join(root, `${pack.name}-${client}`);
-        mkdirSync(join(repoRoot, ".nexus"), { recursive: true });
+        mkdirSync(join(repoRoot, ".replix"), { recursive: true });
 
         writeFileSync(
-          join(repoRoot, ".nexus", "packs.json"),
+          join(repoRoot, ".replix", "packs.json"),
           JSON.stringify({ packs: [{ source: `path:${pack.root}` }] }, null, 2) + "\n",
         );
 
         writeFileSync(
-          join(repoRoot, "nexus.json"),
+          join(repoRoot, "replix.json"),
           JSON.stringify(
             {
               version: 1,
@@ -125,13 +125,13 @@ test("e2e matrix (gated) > sample canonical packs emit/check/doctor in a fresh r
           expect(compilePlan.summary.warnings).toBeGreaterThan(0);
         }
 
-        const emit = runCli(repoRoot, ["--config", "nexus.json"]);
+        const emit = runCli(repoRoot, ["--config", "replix.json"]);
         expect(emit.exitCode).toBe(0);
 
-        const check = runCli(repoRoot, ["check", "--config", "nexus.json"]);
+        const check = runCli(repoRoot, ["check", "--config", "replix.json"]);
         expect(check.exitCode).toBe(0);
 
-        const doctor = runCli(repoRoot, ["doctor", "--config", "nexus.json"]);
+        const doctor = runCli(repoRoot, ["doctor", "--config", "replix.json"]);
         expect(doctor.exitCode).toBe(0);
 
         if (client === "claude") {

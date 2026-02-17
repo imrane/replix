@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { runNexus } from "./runNexus";
+import { runReplix } from "./runReplix";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
 import { parseClientLogFromPath } from "./clientPlugins/selfHealLogRegistry";
@@ -33,7 +33,7 @@ async function writeReport(params: {
   issueClass?: SelfHealIssueClass;
   notes: string[];
 }): Promise<string> {
-  const dir = join(params.cwd, ".nexus", "self-heal");
+  const dir = join(params.cwd, ".replix", "self-heal");
   await mkdir(dir, { recursive: true });
   const path = join(dir, "last-report.json");
   await writeFile(
@@ -69,7 +69,7 @@ export async function runSelfHealCompile(params: {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     notes.push(`attempt ${attempt}/${maxAttempts}: emit`);
     try {
-      await runNexus({ cwd: params.cwd, configPath: params.configPath });
+      await runReplix({ cwd: params.cwd, configPath: params.configPath });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       notes.push(`emit failed: ${msg}`);

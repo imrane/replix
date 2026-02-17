@@ -11,7 +11,7 @@ registerOutputPlugin({
     const skillsRoot = join(repoRoot, ".claude", "skills");
     return [
       ...claudeSkills.flatMap((s) => [join(skillsRoot, s.itemId), join(skillsRoot, s.itemId, "SKILL.md")]),
-      join(skillsRoot, ".nexus-managed"),
+      join(skillsRoot, ".replix-managed"),
     ];
   },
   emit: async ({ repoRoot, claudeSkills = [] }) => {
@@ -49,7 +49,7 @@ registerOutputPlugin({
     const root = join(repoRoot, ".opencode");
     const skillPaths = claudeSkills.flatMap((s) => [join(root, "skills", s.itemId), join(root, "skills", s.itemId, "SKILL.md")]);
     const mcpConfig = mcpServers.length > 0 ? [join(repoRoot, "opencode.json")] : [];
-    return [join(root, ".nexus-managed"), ...openCodeAssets.map((asset) => join(root, asset.kind, asset.fileName)), ...skillPaths, ...mcpConfig];
+    return [join(root, ".replix-managed"), ...openCodeAssets.map((asset) => join(root, asset.kind, asset.fileName)), ...skillPaths, ...mcpConfig];
   },
   emit: async ({ repoRoot, openCodeAssets = [], claudeSkills = [], mcpServers = [] }) => {
     await emitOpenCode({ repoRoot, assets: openCodeAssets, skills: claudeSkills, mcpServers });

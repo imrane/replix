@@ -108,7 +108,7 @@ function includeCacheKey(include: string[]): string {
 }
 
 function materializeSelectiveInclude(root: string, include: string[]): string {
-  const out = join(root, ".nexus-includes", includeCacheKey(include));
+  const out = join(root, ".replix-includes", includeCacheKey(include));
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
 
@@ -160,10 +160,10 @@ export async function resolveDotfilesSourceToPath(
       );
     }
 
-    const base = (process.env.NEXUS_GITHUB_BASE_URL ?? "https://github.com").replace(/\/$/, "");
+    const base = (process.env.REPLIX_GITHUB_BASE_URL ?? "https://github.com").replace(/\/$/, "");
     const url = `${base}/${g.owner}/${g.repo}.git`;
 
-    const root = join(cacheRoot(), "nexus", "github", g.owner, g.repo, sourceCacheKey(g));
+    const root = join(cacheRoot(), "replix", "github", g.owner, g.repo, sourceCacheKey(g));
     mkdirSync(root, { recursive: true });
 
     if (!existsSync(join(root, ".git"))) {

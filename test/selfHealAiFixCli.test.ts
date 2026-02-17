@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-test("nexus compile self-heal > uses ai fix ts script for schema-gap recovery", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-self-heal-aifix-"));
+test("replix compile self-heal > uses ai fix ts script for schema-gap recovery", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-self-heal-aifix-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -31,7 +31,7 @@ test("nexus compile self-heal > uses ai fix ts script for schema-gap recovery", 
       fixScript,
       [
         "import { readFileSync, writeFileSync } from 'node:fs';",
-        "const payload = JSON.parse(process.env.NEXUS_SELF_HEAL_PAYLOAD ?? '{}');",
+        "const payload = JSON.parse(process.env.REPLIX_SELF_HEAL_PAYLOAD ?? '{}');",
         "const p = payload.configPath as string;",
         "const j = JSON.parse(readFileSync(p, 'utf8'));",
         "j.enable.skills = [];",
@@ -59,7 +59,7 @@ test("nexus compile self-heal > uses ai fix ts script for schema-gap recovery", 
     });
 
     expect(out.exitCode).toBe(0);
-    expect(out.stdout.toString()).toContain("nexus compile self-heal: recovered");
+    expect(out.stdout.toString()).toContain("replix compile self-heal: recovered");
 
     const cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
     expect(cfg.enable.skills).toEqual([]);

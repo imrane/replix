@@ -32,7 +32,7 @@ function html(entries: RegistryEntry[]): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Nexus Pack Registry</title>
+  <title>Replix Pack Registry</title>
   <style>
     body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; }
     table { border-collapse: collapse; width: 100%; }
@@ -42,7 +42,7 @@ function html(entries: RegistryEntry[]): string {
   </style>
 </head>
 <body>
-  <h1>Nexus Pack Registry</h1>
+  <h1>Replix Pack Registry</h1>
   <p>Download/install packs with pinned sources:</p>
   <table>
     <thead><tr><th>Pack</th><th>Version</th><th>Checksum</th><th>Signer</th><th>Install</th></tr></thead>
@@ -54,7 +54,7 @@ function html(entries: RegistryEntry[]): string {
 
 export async function buildRegistrySite(params: { cwd: string; outDir?: string }): Promise<{ outDir: string; count: number }> {
   const cfgPath = resolveDotfilesConfigPath({ cwd: params.cwd });
-  if (!cfgPath) throw new Error("registry build requires .nexus/packs.json or NEXUS_DOTFILES_CONFIG_JSON");
+  if (!cfgPath) throw new Error("registry build requires .replix/packs.json or REPLIX_DOTFILES_CONFIG_JSON");
 
   const cfg = await loadDotfilesConfigFromPath(cfgPath);
   const packs = cfg.packs ?? [];
@@ -72,12 +72,12 @@ export async function buildRegistrySite(params: { cwd: string; outDir?: string }
       source: p.source,
       checksum: lockEntry?.integritySha256,
       signer: lockEntry?.signatureKeyId,
-      install: `nexus pack install ${p.source}`,
+      install: `replix pack install ${p.source}`,
     });
   }
 
   entries.sort((a, b) => a.id.localeCompare(b.id));
-  const outDir = params.outDir ?? join(params.cwd, ".nexus", "registry");
+  const outDir = params.outDir ?? join(params.cwd, ".replix", "registry");
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, "index.json"), JSON.stringify({ generatedAt: new Date().toISOString(), packs: entries }, null, 2) + "\n", "utf8");
   await writeFile(join(outDir, "index.html"), html(entries), "utf8");

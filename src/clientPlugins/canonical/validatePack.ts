@@ -20,8 +20,8 @@ export async function validateCanonicalPackV1(packRoot: string): Promise<Canonic
   const parsed = parsePackJson(JSON.parse(raw));
 
   const errors: string[] = [];
-  if (!parsed.specVersion?.startsWith("nexus.canonical.v1")) {
-    errors.push("specVersion must start with nexus.canonical.v1");
+  if (!parsed.specVersion?.startsWith("replix.canonical.v1")) {
+    errors.push("specVersion must start with replix.canonical.v1");
   }
   if (!parsed.references) {
     errors.push("references required");

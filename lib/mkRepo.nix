@@ -1,9 +1,9 @@
-{ pkgs, nexusPackage }:
+{ pkgs, replixPackage }:
 
 # Minimal mkRepo implementation (v2 direction):
 # - No local pack.json required
 # - Skills are defined by source strings (github:, path:)
-# - Enabled skills are resolved by Nix (fetchGit for github) and passed to nexus via --config JSON
+# - Enabled skills are resolved by Nix (fetchGit for github) and passed to replix via --config JSON
 
 { system
 , clients ? [ "claude" "codex" "opencode" ]
@@ -41,7 +41,7 @@ let
       let g = parseGithub src; in
       if g == null then
         throw ''
-          nexus.mkRepo: invalid github source: ${src}
+          replix.mkRepo: invalid github source: ${src}
 
           Expected pinned form (required in pure evaluation):
             github:owner/repo@<rev>
@@ -59,7 +59,7 @@ let
       in
         if g.subpath == null then fetched else "${fetched}/${g.subpath}"
     else
-      throw "nexus.mkRepo: unsupported source scheme (expected path: or github:): ${src}";
+      throw "replix.mkRepo: unsupported source scheme (expected path: or github:): ${src}";
 
   enableNormalized =
     let
@@ -91,16 +91,16 @@ let
   );
 
   _ = if !(builtins.elem layout [ "direct" "generated" ]) then
-    throw "nexus.mkRepo: layout must be \"direct\" or \"generated\""
+    throw "replix.mkRepo: layout must be \"direct\" or \"generated\""
   else null;
 
   __ = if !(builtins.elem cleanup [ "owned-only" "full" ]) then
-    throw "nexus.mkRepo: cleanup must be \"owned-only\" or \"full\""
+    throw "replix.mkRepo: cleanup must be \"owned-only\" or \"full\""
   else null;
 
   configJson = builtins.toJSON ({
     version = 1;
-    repoRoot = repoRoot; # if null, nexus uses cwd
+    repoRoot = repoRoot; # if null, replix uses cwd
     clients = clients;
     enable = enableNormalized;
     vars = vars;
@@ -114,14 +114,14 @@ let
     strictEnv = strictEnv;
   });
 
-  configFile = pkgs.writeText "nexus-config.json" configJson;
+  configFile = pkgs.writeText "replix-config.json" configJson;
 
 in
 pkgs.mkShell {
-  packages = [ nexusPackage ];
+  packages = [ replixPackage ];
 
   shellHook = ''
-    export NEXUS_REPO_ROOT="${if repoRoot == null then "" else repoRoot}"
-    ${nexusPackage}/bin/nexus --config ${configFile}
+    export REPLIX_REPO_ROOT="${if repoRoot == null then "" else repoRoot}"
+    ${replixPackage}/bin/replix --config ${configFile}
   '';
 }

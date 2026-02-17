@@ -6,10 +6,10 @@
     "https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/config.schema.json"
   ],
   "repoScope": {
-    "supportedByNexusCore": [
+    "supportedByReplixCore": [
       ".codex/config.toml"
     ],
-    "notInNexusCore": [
+    "notInReplixCore": [
       ".agents/skills/**",
       ".codex/skills/**"
     ],
@@ -23,7 +23,7 @@
     "minimumFiles": [
       "SKILL.md"
     ],
-    "status": "fixture-only (not emitted by nexus core)"
+    "status": "fixture-only (not emitted by replix core)"
   },
   "selectorMapping": {
     "commands": [],

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "2026-02-14-nexus",
+      "name": "2026-02-14-replix",
       "devDependencies": {
         "@types/bun": "latest",
       },

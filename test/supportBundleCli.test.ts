@@ -3,17 +3,17 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-test("nexus support bundle > captures config/lock/log snapshots", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-support-bundle-"));
+test("replix support bundle > captures config/lock/log snapshots", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-support-bundle-"));
   try {
     const repoRoot = join(root, "repo");
-    mkdirSync(join(repoRoot, ".nexus"), { recursive: true });
+    mkdirSync(join(repoRoot, ".replix"), { recursive: true });
 
     writeFileSync(
-      join(repoRoot, ".nexus", "repo.json"),
+      join(repoRoot, ".replix", "repo.json"),
       JSON.stringify({ version: 1, repoRoot, clients: ["claude"], enable: { skills: [], mcp: [] }, overrides: { skills: {}, mcp: {} } }, null, 2),
     );
-    writeFileSync(join(repoRoot, "nexus.lock.json"), JSON.stringify({ version: 1, packs: [] }, null, 2));
+    writeFileSync(join(repoRoot, "replix.lock.json"), JSON.stringify({ version: 1, packs: [] }, null, 2));
 
     const install = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "pack", "install", "path:/tmp/demo-pack"],
@@ -32,7 +32,7 @@ test("nexus support bundle > captures config/lock/log snapshots", () => {
 
     expect(bundleOut.exitCode).toBe(0);
     const line = bundleOut.stdout.toString().trim();
-    expect(line).toContain("nexus support bundle:");
+    expect(line).toContain("replix support bundle:");
 
     const bundlePath = line.split(": ").pop()!;
     const bundle = JSON.parse(readFileSync(bundlePath, "utf8"));

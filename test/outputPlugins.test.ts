@@ -11,7 +11,7 @@ describe("output plugins", () => {
 
     expect(paths).toContain("/tmp/repo/.claude/skills/writer");
     expect(paths).toContain("/tmp/repo/.claude/skills/writer/SKILL.md");
-    expect(paths).toContain("/tmp/repo/.claude/skills/.nexus-managed");
+    expect(paths).toContain("/tmp/repo/.claude/skills/.replix-managed");
   });
 
   test("mcp plugin omits paths when empty", () => {

@@ -1,13 +1,13 @@
-# Nexus — dotfiles-first AI tooling for repos
+# Replix — dotfiles-first AI tooling for repos
 
-[![CI](https://github.com/imrane/nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/imrane/nexus/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/imrane/nexus/graph/badge.svg?token=VPKG1SPQRK)](https://codecov.io/github/imrane/nexus)
+[![CI](https://github.com/imrane/replix/actions/workflows/ci.yml/badge.svg)](https://github.com/imrane/replix/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/imrane/replix/graph/badge.svg?token=VPKG1SPQRK)](https://codecov.io/github/imrane/replix)
 
 Define tooling once, enable per repo, emit client-native artifacts deterministically.
 
-## What Nexus gives you
+## What Replix gives you
 
-- Dotfiles-first config (`programs.nexus.*`)
+- Dotfiles-first config (`programs.replix.*`)
 - Pack-first distribution with per-repo enable selectors
 - Multi-client emitters: Claude, OpenCode, Codex, MCP
 - Idempotent output + cleanup ownership
@@ -18,8 +18,8 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
 ## Mental model (60s)
 
 1. Define packs/skills/MCP/artifacts in dotfiles.
-2. In repo flake, call `nexus.lib.mkRepo` and set `enable.*` selectors.
-3. Run Nexus to emit `.claude/*`, `.opencode/*`, `.codex/*`, `.mcp.json`.
+2. In repo flake, call `replix.lib.mkRepo` and set `enable.*` selectors.
+3. Run Replix to emit `.claude/*`, `.opencode/*`, `.codex/*`, `.mcp.json`.
 4. Lock + doctor keep outputs reproducible and safe.
 
 ---
@@ -27,18 +27,18 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
 ## Dotfiles (define once)
 
 ```nix
-# ~/.config/home-manager/nexus.nix
+# ~/.config/home-manager/replix.nix
 {
-  inputs.nexus.url = "github:imrane/nexus";
-  imports = [ nexus.homeManagerModules.default ];
+  inputs.replix.url = "github:imrane/replix";
+  imports = [ replix.homeManagerModules.default ];
 
-  programs.nexus = {
+  programs.replix = {
     enable = true;
 
     # pack-first
     packs = [
-      { source = "github:your-org/nexus-pack?rev=<sha>"; }
-      { source = "path:~/.config/nexus/packs/internal"; }
+      { source = "github:your-org/replix-pack?rev=<sha>"; }
+      { source = "path:~/.config/replix/packs/internal"; }
     ];
 
     # optional direct overrides
@@ -50,7 +50,7 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
 
     # client-agnostic artifact namespace
     artifacts.commands."review.md" = {
-      source = "path:~/.config/nexus/artifacts/commands/review.md";
+      source = "path:~/.config/replix/artifacts/commands/review.md";
     };
 
     vars = { FS_ROOT = "/home/imrane"; };
@@ -67,10 +67,10 @@ Merge order: `packs < direct dotfiles defs` on key collision.
 
 ```nix
 {
-  inputs.nexus.url = "github:imrane/nexus";
+  inputs.replix.url = "github:imrane/replix";
 
-  outputs = { nexus, ... }: {
-    devShells.x86_64-linux.default = nexus.lib.mkRepo {
+  outputs = { replix, ... }: {
+    devShells.x86_64-linux.default = replix.lib.mkRepo {
       system = "x86_64-linux";
       clients = [ "claude" "opencode" "codex" ];
       enable = {
@@ -98,7 +98,7 @@ nix develop
 
 A canonical pack must define `pack.json` with:
 
-- `specVersion: "nexus.canonical.v1-draft"`
+- `specVersion: "replix.canonical.v1-draft"`
 - `references` map (source of truth for what to compile)
 
 Example references:
@@ -164,13 +164,13 @@ Templates:
 Resolution precedence (high → low):
 
 1. repo config `vars`
-2. dotfiles `programs.nexus.vars`
+2. dotfiles `programs.replix.vars`
 3. file-backed vars
 4. process env
 
 File-backed sources:
 
-- `<repo>/.nexus/vars/<VAR_NAME>`
+- `<repo>/.replix/vars/<VAR_NAME>`
 - `/run/secrets/<VAR_NAME>`
 - `/var/run/secrets/<VAR_NAME>`
 - `*_FILE` env pointers (e.g. `API_TOKEN_FILE=/run/secrets/API_TOKEN`)
@@ -183,57 +183,57 @@ File-backed sources:
 
 ```bash
 # Bootstrap
-nexus init --client claude --with-lock
+replix init --client claude --with-lock
 
 # Emit + verify
-nexus --config .nexus/repo.json
-nexus check --config .nexus/repo.json
-nexus doctor --config .nexus/repo.json
+replix --config .replix/repo.json
+replix check --config .replix/repo.json
+replix doctor --config .replix/repo.json
 
 # Locking
-nexus lock update
+replix lock update
 
-# Non-Nix pack lifecycle (repo-local .nexus/packs.json)
-nexus pack install github:owner/repo?rev=<sha>
-nexus pack list
-nexus pack uninstall github:owner/repo?rev=<sha>
-nexus pack upgrade
+# Non-Nix pack lifecycle (repo-local .replix/packs.json)
+replix pack install github:owner/repo?rev=<sha>
+replix pack list
+replix pack uninstall github:owner/repo?rev=<sha>
+replix pack upgrade
 
 # Reliability + support
-nexus support bundle
-nexus registry build [--out <dir>]
+replix support bundle
+replix registry build [--out <dir>]
 
 # Canonical compile + validation gates
-nexus compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn]
-nexus spec validate-canonical-pack [--pack <path>]
-nexus spec validate-client-shapes [--max-age-days N]
+replix compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn]
+replix spec validate-canonical-pack [--pack <path>]
+replix spec validate-client-shapes [--max-age-days N]
 
 # Self-healing compile loop (TS-first AI hook)
-nexus compile self-heal --config .nexus/repo.json --max-attempts 3 \
+replix compile self-heal --config .replix/repo.json --max-attempts 3 \
   --client <claude|opencode|codex> --client-log <path> \
   --ai-fix-ts <script.ts>
 
 # Discovery/helpers
-nexus list skills [--config <path>]
-nexus list mcp [--config <path>]
-nexus snippet --skills a,b --mcp x,y
-nexus spec compile --in <snapshot.json> --out <schema.json>
+replix list skills [--config <path>]
+replix list mcp [--config <path>]
+replix snippet --skills a,b --mcp x,y
+replix spec compile --in <snapshot.json> --out <schema.json>
 ```
 
 ---
 
 ## Reliability model
 
-- `nexus.lock.json` captures pack version/rev/required vars/checksum
-- Runtime compatibility gate blocks drift until `nexus lock update`
+- `replix.lock.json` captures pack version/rev/required vars/checksum
+- Runtime compatibility gate blocks drift until `replix lock update`
 - Optional pack signatures:
   - set `signaturePublicKey` in pack source config
   - include `pack.sig` in pack root
   - lock/update verifies signature over integrity checksum
-- Structured ops log: `.nexus/logs/events.ndjson`
+- Structured ops log: `.replix/logs/events.ndjson`
 - Client-specific self-heal log parsers in plugins (`src/clientPlugins/*/selfHealLog.ts`)
-- Support snapshot: `nexus support bundle` → `.nexus/support/*.json`
-- Static pack registry: `nexus registry build` → `index.html` + `index.json`
+- Support snapshot: `replix support bundle` → `.replix/support/*.json`
+- Static pack registry: `replix registry build` → `index.html` + `index.json`
 - Canonical compile quality gates: warning summary + `--fail-on-warn`
 - Canonical pack validator + client shape provenance validator
 - Golden release gate script + CI workflow for Linux/macOS
@@ -241,20 +241,20 @@ nexus spec compile --in <snapshot.json> --out <schema.json>
 ### New canonical process (author -> compile -> validate -> self-heal)
 
 1. **Author canonical pack only** (`specVersion` + `references` in `pack.json`).
-2. **Compile plan per client** with `nexus compile canonical --client ...`.
+2. **Compile plan per client** with `replix compile canonical --client ...`.
 3. **Gate quality** using `--fail-on-warn` in CI.
-4. **Validate canonical shape** (`nexus spec validate-canonical-pack`).
-5. **Validate client snapshot provenance/freshness** (`nexus spec validate-client-shapes`).
-6. **Run bounded self-heal** (`nexus compile self-heal ... --ai-fix-ts ...`) when compilation/runtime issues appear.
-7. **Escalate to human** when loop can’t recover within max attempts (see `.nexus/self-heal/last-report.json`).
+4. **Validate canonical shape** (`replix spec validate-canonical-pack`).
+5. **Validate client snapshot provenance/freshness** (`replix spec validate-client-shapes`).
+6. **Run bounded self-heal** (`replix compile self-heal ... --ai-fix-ts ...`) when compilation/runtime issues appear.
+7. **Escalate to human** when loop can’t recover within max attempts (see `.replix/self-heal/last-report.json`).
 
 ---
 
 ## Status
 
 - ✅ v2 config mode is primary
-- ✅ Pack-first registry enabled (`programs.nexus.packs`)
-- ✅ Non-Nix lifecycle supported via `.nexus/packs.json`
+- ✅ Pack-first registry enabled (`programs.replix.packs`)
+- ✅ Non-Nix lifecycle supported via `.replix/packs.json`
 - ✅ Lock/checksum/signature reliability gates active
 - ✅ Support bundle + structured logs + static registry generator shipped
 - ✅ Golden reliability gate shipped (`scripts/release-gate.ts`, workflow)
@@ -275,9 +275,9 @@ nix flake check
 
 Optional gated suites:
 
-- `NEXUS_CLIENT_SMOKE=1`
-- `NEXUS_NIX_SMOKE=1`
-- `NEXUS_GITHUB_INTEGRATION=1`
+- `REPLIX_CLIENT_SMOKE=1`
+- `REPLIX_NIX_SMOKE=1`
+- `REPLIX_GITHUB_INTEGRATION=1`
 
 ---
 

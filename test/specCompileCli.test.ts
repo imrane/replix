@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-test("nexus spec compile CLI > compiles snapshot to schema", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-spec-cli-"));
+test("replix spec compile CLI > compiles snapshot to schema", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-spec-cli-"));
   const inPath = join(process.cwd(), "fixtures", "spec", "claude.snapshot.json");
   const outPath = join(root, "claude.schema.json");
 
@@ -17,7 +17,7 @@ test("nexus spec compile CLI > compiles snapshot to schema", () => {
   });
 
   expect(run.exitCode).toBe(0);
-  expect(run.stdout.toString()).toContain("nexus spec compile");
+  expect(run.stdout.toString()).toContain("replix spec compile");
 
   const out = readFileSync(outPath, "utf8");
   expect(out).toContain('"client": "claude"');

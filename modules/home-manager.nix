@@ -3,21 +3,21 @@
 with lib;
 
 let
-  cfg = config.programs.nexus;
+  cfg = config.programs.replix;
 in {
-  options.programs.nexus = {
-    enable = mkEnableOption "Nexus agent skill manager";
+  options.programs.replix = {
+    enable = mkEnableOption "Replix agent skill manager";
 
     package = mkOption {
       type = types.package;
       default = pkgs.callPackage ../package.nix {};
-      description = "The nexus package to use";
+      description = "The replix package to use";
     };
 
     autoRun = mkOption {
       type = types.bool;
       default = true;
-      description = "Automatically run nexus when entering directories with pack.json";
+      description = "Automatically run replix when entering directories with pack.json";
     };
 
     packs = mkOption {
@@ -134,7 +134,7 @@ in {
 
     registryPath = mkOption {
       type = types.str;
-      default = "${config.xdg.configHome}/nexus/registry.json";
+      default = "${config.xdg.configHome}/replix/registry.json";
       description = "Path to the generated dotfiles registry JSON.";
     };
   };
@@ -167,41 +167,41 @@ in {
       strictEnv = cfg.strictEnv;
     };
 
-    home.sessionVariables.NEXUS_DOTFILES_CONFIG_JSON = cfg.registryPath;
+    home.sessionVariables.REPLIX_DOTFILES_CONFIG_JSON = cfg.registryPath;
 
     # Add shell hook for auto-activation
     programs.bash.initExtra = mkIf cfg.autoRun ''
-      # Nexus auto-activation
-      _nexus_auto() {
-        if [ -f pack.json ] && [ -x "$(command -v nexus)" ]; then
-          nexus 2>/dev/null || true
+      # Replix auto-activation
+      _replix_auto() {
+        if [ -f pack.json ] && [ -x "$(command -v replix)" ]; then
+          replix 2>/dev/null || true
         fi
       }
       
       # Run on cd
-      _nexus_cd() {
-        builtin cd "$@" && _nexus_auto
+      _replix_cd() {
+        builtin cd "$@" && _replix_auto
       }
-      alias cd='_nexus_cd'
+      alias cd='_replix_cd'
       
       # Run on shell startup if in a pack directory
-      _nexus_auto
+      _replix_auto
     '';
 
     programs.zsh.initExtra = mkIf cfg.autoRun ''
-      # Nexus auto-activation
-      _nexus_auto() {
-        if [ -f pack.json ] && [ -x "$(command -v nexus)" ]; then
-          nexus 2>/dev/null || true
+      # Replix auto-activation
+      _replix_auto() {
+        if [ -f pack.json ] && [ -x "$(command -v replix)" ]; then
+          replix 2>/dev/null || true
         fi
       }
       
       # Run on directory change
       autoload -U add-zsh-hook
-      add-zsh-hook chpwd _nexus_auto
+      add-zsh-hook chpwd _replix_auto
       
       # Run on shell startup if in a pack directory
-      _nexus_auto
+      _replix_auto
     '';
   };
 }

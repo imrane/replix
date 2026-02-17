@@ -13,7 +13,7 @@ import {
   type ArtifactValidationResult,
 } from "./metadataValidation";
 
-const CUSTOM_FILES_MANIFEST = join(".nexus", "custom-files-owned.json");
+const CUSTOM_FILES_MANIFEST = join(".replix", "custom-files-owned.json");
 
 async function readCustomFilesManifest(repoRoot: string): Promise<string[]> {
   try {
@@ -84,7 +84,7 @@ export async function emitPlan(plan: EmitPlan): Promise<void> {
     ...(clients.includes("codex")
       ? getOutputPlugin("codex").desiredPaths({
           repoRoot: emitRoot,
-          codexConfigToml: "# nexus-managed\n",
+          codexConfigToml: "# replix-managed\n",
           claudeSkills,
           mcpServers,
         })
@@ -112,7 +112,7 @@ export async function emitPlan(plan: EmitPlan): Promise<void> {
   if (clients.includes("codex")) {
     await getOutputPlugin("codex").emit({
       repoRoot: emitRoot,
-      codexConfigToml: "# nexus-managed\n",
+      codexConfigToml: "# replix-managed\n",
       claudeSkills,
       mcpServers,
     });

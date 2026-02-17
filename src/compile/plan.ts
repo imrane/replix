@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { NexusConfigV1 } from "../configSchema";
+import type { ReplixConfigV1 } from "../configSchema";
 import type { EnableSpec } from "../enable";
 import type { ClaudeSkillInput } from "../emitters/claude";
 import type { McpServerInput } from "../emitters/mcp";
@@ -49,7 +49,7 @@ async function sourcePathFromDotfiles(source: string, allowUnpinned?: boolean): 
 }
 
 function resolveClientFileInjections(
-  cfg: NexusConfigV1,
+  cfg: ReplixConfigV1,
   dotfiles: DotfilesRegistry,
   enableSpec: EnableSpec,
 ): ClientFileInjection[] {
@@ -93,7 +93,7 @@ function resolveClientFileInjections(
 }
 
 export async function compilePlanFromConfig(params: {
-  cfg: NexusConfigV1;
+  cfg: ReplixConfigV1;
   dotfiles: DotfilesRegistry;
   cwd: string;
 }): Promise<EmitPlan> {
@@ -101,7 +101,7 @@ export async function compilePlanFromConfig(params: {
   const repoRoot = cfg.repoRoot ?? cwd;
   const layout = cfg.layout ?? "direct";
   const cleanupMode = cfg.cleanup ?? "owned-only";
-  const emitRoot = layout === "generated" ? join(repoRoot, ".nexus", "generated") : repoRoot;
+  const emitRoot = layout === "generated" ? join(repoRoot, ".replix", "generated") : repoRoot;
 
   const enableSpec = parseEnableSpec(cfg.enable);
 

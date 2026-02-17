@@ -14,23 +14,23 @@ function run(cmd: string[], opts?: { cwd?: string; env?: Record<string, string> 
 test(
   "nix develop smoke > mkRepo claude selector ergonomics enables commands+agents",
   () => {
-    if (process.env.NEXUS_NIX_SMOKE !== "1") {
-      console.log("⏭️  nix smoke skipped (set NEXUS_NIX_SMOKE=1 to enable)");
+    if (process.env.REPLIX_NIX_SMOKE !== "1") {
+      console.log("⏭️  nix smoke skipped (set REPLIX_NIX_SMOKE=1 to enable)");
       expect(true).toBe(true);
       return;
     }
 
-    const tmp = mkdtempSync("/tmp/nexus-mkRepo-claude-ergonomics-");
-    const nexusRoot = resolve(__dirname, "..");
+    const tmp = mkdtempSync("/tmp/replix-mkRepo-claude-ergonomics-");
+    const replixRoot = resolve(__dirname, "..");
 
     try {
-      const nexusClean = join(tmp, "nexus-clean");
+      const replixClean = join(tmp, "replix-clean");
       run([
         "bash",
         "-lc",
         [
-          `mkdir -p ${JSON.stringify(nexusClean)}`,
-          `tar -C ${JSON.stringify(nexusRoot)} \
+          `mkdir -p ${JSON.stringify(replixClean)}`,
+          `tar -C ${JSON.stringify(replixRoot)} \
             --exclude=.beads/bd.sock \
             --exclude=.beads/daemon.pid \
             --exclude=.beads/daemon.lock \
@@ -38,7 +38,7 @@ test(
             --exclude=.beads/.jsonl.lock \
             --exclude=node_modules \
             --exclude=.direnv \
-            -cf - . | tar -C ${JSON.stringify(nexusClean)} -xf -`,
+            -cf - . | tar -C ${JSON.stringify(replixClean)} -xf -`,
         ].join(" && "),
       ]);
 
@@ -74,17 +74,17 @@ test(
       );
 
       const flake = `{
-  description = "nexus mkRepo claude selector ergonomics smoke";
+  description = "replix mkRepo claude selector ergonomics smoke";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    nexus.url = "path:${nexusClean}";
+    replix.url = "path:${replixClean}";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nexus }:
+  outputs = { self, nixpkgs, flake-utils, replix }:
     flake-utils.lib.eachDefaultSystem (system: {
-      devShells.default = nexus.lib.mkRepo {
+      devShells.default = replix.lib.mkRepo {
         inherit system;
         clients = [ "claude" ];
         enable = { skills = []; mcp = []; };
@@ -113,7 +113,7 @@ test(
         {
           cwd: repoRoot,
           env: {
-            NEXUS_DOTFILES_CONFIG_JSON: dotfilesCfgPath,
+            REPLIX_DOTFILES_CONFIG_JSON: dotfilesCfgPath,
           },
         },
       );

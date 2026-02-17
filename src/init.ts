@@ -32,9 +32,9 @@ export async function runInit(params: { cwd: string }): Promise<{ created: strin
   const force = isFlagPresent("--force");
   const withLock = isFlagPresent("--with-lock");
 
-  const nexusDir = join(cwd, ".nexus");
-  const varsDir = join(nexusDir, "vars");
-  const configPath = join(nexusDir, "repo.json");
+  const replixDir = join(cwd, ".replix");
+  const varsDir = join(replixDir, "vars");
+  const configPath = join(replixDir, "repo.json");
   const varsExamplePath = join(varsDir, ".example");
 
   await mkdir(varsDir, { recursive: true });
@@ -63,7 +63,7 @@ export async function runInit(params: { cwd: string }): Promise<{ created: strin
   const varsExample = [
     "# Put one secret per file in this directory",
     "# Example:",
-    "# echo -n \"your-token\" > .nexus/vars/API_TOKEN",
+    "# echo -n \"your-token\" > .replix/vars/API_TOKEN",
     "#",
     "# File-based vars are preferred and loaded before plain env.",
     "",

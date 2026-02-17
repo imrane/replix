@@ -73,7 +73,7 @@
     "filesystemConventions": {
       "commands": ".opencode/commands",
       "agents": ".opencode/agents",
-      "canonicalInNexusEmit": ".opencode/command + .opencode/agent"
+      "canonicalInReplixEmit": ".opencode/command + .opencode/agent"
     }
   }
 }

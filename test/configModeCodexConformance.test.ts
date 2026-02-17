@@ -1,10 +1,10 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > codex client accepts skill shim paths and blocks config.toml injection", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-codex-conformance-");
+  const tmp = mkdtempSync("/tmp/replix-config-codex-conformance-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -22,11 +22,11 @@ test("config mode (v2) > codex client accepts skill shim paths and blocks config
         },
       }),
     );
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -42,7 +42,7 @@ test("config mode (v2) > codex client accepts skill shim paths and blocks config
       }),
     );
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
     expect(existsSync(join(repoRoot, ".codex", "config.toml"))).toBeTrue();
     expect(existsSync(join(repoRoot, ".agents", "skills", "humanizer", "SKILL.md"))).toBeTrue();
 
@@ -61,7 +61,7 @@ test("config mode (v2) > codex client accepts skill shim paths and blocks config
     );
 
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -77,7 +77,7 @@ test("config mode (v2) > codex client accepts skill shim paths and blocks config
       }),
     );
 
-    await expect(runNexus({ cwd: repoRoot, configPath: nexusCfgPath })).rejects.toThrow(
+    await expect(runReplix({ cwd: repoRoot, configPath: replixCfgPath })).rejects.toThrow(
       "generated from canonical mcp/skills",
     );
   } finally {

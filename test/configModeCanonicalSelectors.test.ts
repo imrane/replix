@@ -1,10 +1,10 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > canonical selectors enable claude artifacts without path-level files list", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-canonical-selectors-");
+  const tmp = mkdtempSync("/tmp/replix-config-canonical-selectors-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -28,11 +28,11 @@ test("config mode (v2) > canonical selectors enable claude artifacts without pat
         },
       }),
     );
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -49,7 +49,7 @@ test("config mode (v2) > canonical selectors enable claude artifacts without pat
       }),
     );
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text()).toContain("# review");
     expect(existsSync(join(repoRoot, ".claude", "commands", "ship.md"))).toBe(false);
@@ -62,7 +62,7 @@ test("config mode (v2) > canonical selectors enable claude artifacts without pat
 });
 
 test("config mode (v2) > canonical selectors do not require non-claude client file defs", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-canonical-selectors-multiclient-");
+  const tmp = mkdtempSync("/tmp/replix-config-canonical-selectors-multiclient-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -78,11 +78,11 @@ test("config mode (v2) > canonical selectors do not require non-claude client fi
         },
       }),
     );
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -96,7 +96,7 @@ test("config mode (v2) > canonical selectors do not require non-claude client fi
       }),
     );
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text()).toContain("# review");
   } finally {

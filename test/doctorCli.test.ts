@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 function setupProject() {
-  const root = mkdtempSync(join(tmpdir(), "nexus-doctor-cli-"));
+  const root = mkdtempSync(join(tmpdir(), "replix-doctor-cli-"));
   const skillDir = join(root, "skills", "humanizer");
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(join(skillDir, "SKILL.md"), "---\nname: humanizer\n---\n\n# humanizer\n");
@@ -44,13 +44,13 @@ function setupProject() {
   return { root, dotfilesPath, configPath };
 }
 
-test("nexus doctor > returns success when config is healthy", () => {
+test("replix doctor > returns success when config is healthy", () => {
   const { dotfilesPath, configPath } = setupProject();
 
   const emit = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -59,7 +59,7 @@ test("nexus doctor > returns success when config is healthy", () => {
   const out = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -68,7 +68,7 @@ test("nexus doctor > returns success when config is healthy", () => {
   expect(out.stdout.toString()).toContain("no blocking problems found");
 });
 
-test("nexus doctor > returns non-zero when enabled skill is missing", () => {
+test("replix doctor > returns non-zero when enabled skill is missing", () => {
   const { dotfilesPath, configPath } = setupProject();
 
   writeFileSync(
@@ -76,7 +76,7 @@ test("nexus doctor > returns non-zero when enabled skill is missing", () => {
     JSON.stringify(
       {
         version: 1,
-        repoRoot: join(tmpdir(), "nexus-doctor-missing-skill"),
+        repoRoot: join(tmpdir(), "replix-doctor-missing-skill"),
         clients: ["claude"],
         enable: {
           skills: ["does-not-exist"],
@@ -92,7 +92,7 @@ test("nexus doctor > returns non-zero when enabled skill is missing", () => {
   const out = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -101,7 +101,7 @@ test("nexus doctor > returns non-zero when enabled skill is missing", () => {
   expect(out.stderr.toString()).toContain("problems found");
 });
 
-test("nexus doctor > prints variable matrix and flags missing vars", () => {
+test("replix doctor > prints variable matrix and flags missing vars", () => {
   const { root, configPath } = setupProject();
 
   const dotfilesPath = join(root, "dotfiles-vars.json");
@@ -125,7 +125,7 @@ test("nexus doctor > prints variable matrix and flags missing vars", () => {
   const out = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -137,9 +137,9 @@ test("nexus doctor > prints variable matrix and flags missing vars", () => {
   expect(stderr).toContain("var=MISSING_TOKEN");
 });
 
-test("nexus doctor > reports file source when var is resolved from .nexus/vars", () => {
+test("replix doctor > reports file source when var is resolved from .replix/vars", () => {
   const { root, configPath } = setupProject();
-  const varsDir = join(root, ".nexus", "vars");
+  const varsDir = join(root, ".replix", "vars");
   mkdirSync(varsDir, { recursive: true });
   writeFileSync(join(varsDir, "FILE_TOKEN"), "from-file\n");
 
@@ -164,7 +164,7 @@ test("nexus doctor > reports file source when var is resolved from .nexus/vars",
   const emit = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -173,7 +173,7 @@ test("nexus doctor > reports file source when var is resolved from .nexus/vars",
   const out = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -183,7 +183,7 @@ test("nexus doctor > reports file source when var is resolved from .nexus/vars",
   expect(out.stdout.toString()).toContain("var=FILE_TOKEN");
 });
 
-test("nexus doctor > detects lockfile drift and suggests lock update", () => {
+test("replix doctor > detects lockfile drift and suggests lock update", () => {
   const { root, configPath } = setupProject();
 
   const dotfilesPath = join(root, "dotfiles-lock-drift.json");
@@ -224,7 +224,7 @@ test("nexus doctor > detects lockfile drift and suggests lock update", () => {
     ),
   );
 
-  const lockPath = join(root, "nexus.lock.json");
+  const lockPath = join(root, "replix.lock.json");
   writeFileSync(
     lockPath,
     JSON.stringify({ version: 1, packs: [{ source: `path:${root}`, rev: "local", version: "0.9.0", requiredVars: [] }] }, null, 2),
@@ -233,7 +233,7 @@ test("nexus doctor > detects lockfile drift and suggests lock update", () => {
   const out = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "doctor", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -241,5 +241,5 @@ test("nexus doctor > detects lockfile drift and suggests lock update", () => {
   expect(out.exitCode).toBe(2);
   const stderr = out.stderr.toString();
   expect(stderr).toContain("lockfile compatibility gate failed");
-  expect(stderr).toContain("fix: run `nexus lock update`");
+  expect(stderr).toContain("fix: run `replix lock update`");
 });

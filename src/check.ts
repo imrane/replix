@@ -2,8 +2,8 @@ import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { existsSync, type Dirent } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
-import { runNexus } from "./runNexus";
-import { parseNexusConfig } from "./configSchema";
+import { runReplix } from "./runReplix";
+import { parseReplixConfig } from "./configSchema";
 
 async function listFilesRec(root: string, rel = ""): Promise<string[]> {
   const dir = rel ? join(root, rel) : root;
@@ -39,12 +39,12 @@ async function managedPaths(repoRoot: string): Promise<Set<string>> {
   const mcpPath = join(repoRoot, ".mcp.json");
   if (existsSync(mcpPath)) {
     const raw = await readTextSafe(mcpPath);
-    if (raw?.includes('"__generated_by": "nexus"')) out.add(".mcp.json");
+    if (raw?.includes('"__generated_by": "replix"')) out.add(".mcp.json");
   }
 
-  const manifestPath = join(repoRoot, ".nexus", "custom-files-owned.json");
+  const manifestPath = join(repoRoot, ".replix", "custom-files-owned.json");
   if (existsSync(manifestPath)) {
-    out.add(join(".nexus", "custom-files-owned.json"));
+    out.add(join(".replix", "custom-files-owned.json"));
     const raw = await readTextSafe(manifestPath);
     try {
       const parsed = JSON.parse(raw ?? "{}");
@@ -60,12 +60,12 @@ async function managedPaths(repoRoot: string): Promise<Set<string>> {
   return out;
 }
 
-export async function checkNexusConfig(configPath: string, cwd: string): Promise<{ ok: boolean; changes: string[] }> {
+export async function checkReplixConfig(configPath: string, cwd: string): Promise<{ ok: boolean; changes: string[] }> {
   const raw = await readFile(configPath, "utf8");
-  const cfg = parseNexusConfig(JSON.parse(raw));
+  const cfg = parseReplixConfig(JSON.parse(raw));
   const realRoot = cfg.repoRoot ?? cwd;
 
-  const tmp = await mkdtemp(join(tmpdir(), "nexus-check-"));
+  const tmp = await mkdtemp(join(tmpdir(), "replix-check-"));
   const tmpRepo = join(tmp, "repo");
 
   try {
@@ -87,8 +87,8 @@ export async function checkNexusConfig(configPath: string, cwd: string): Promise
     await writeFile(checkCfgPath, JSON.stringify(checkCfg, null, 2), "utf8");
 
     // Force recomputation in check mode so stale/edited outputs are detected even if state hash matches.
-    await rm(join(tmpRepo, ".claude", ".nexus-state"), { force: true });
-    await runNexus({ cwd: tmpRepo, configPath: checkCfgPath });
+    await rm(join(tmpRepo, ".claude", ".replix-state"), { force: true });
+    await runReplix({ cwd: tmpRepo, configPath: checkCfgPath });
 
     const desired = await managedPaths(tmpRepo);
     const existing = await managedPaths(realRoot);

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 function setupProject() {
-  const root = mkdtempSync(join(tmpdir(), "nexus-check-cli-"));
+  const root = mkdtempSync(join(tmpdir(), "replix-check-cli-"));
   const skillDir = join(root, "skills", "humanizer");
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(join(skillDir, "SKILL.md"), "---\nname: humanizer\n---\n\n# humanizer\n");
@@ -44,13 +44,13 @@ function setupProject() {
   return { root, dotfilesPath, configPath };
 }
 
-test("nexus check > returns success when outputs are in sync", () => {
+test("replix check > returns success when outputs are in sync", () => {
   const { root, dotfilesPath, configPath } = setupProject();
 
   const emit = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -59,7 +59,7 @@ test("nexus check > returns success when outputs are in sync", () => {
   const check = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "check", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -71,13 +71,13 @@ test("nexus check > returns success when outputs are in sync", () => {
   expect(readFileSync(join(root, ".mcp.json"), "utf8")).toContain("server-filesystem");
 });
 
-test("nexus check > returns non-zero and lists drifted files", () => {
+test("replix check > returns non-zero and lists drifted files", () => {
   const { root, dotfilesPath, configPath } = setupProject();
 
   const emit = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -88,7 +88,7 @@ test("nexus check > returns non-zero and lists drifted files", () => {
   const check = Bun.spawnSync({
     cmd: ["bun", "src/index.ts", "check", "--config", configPath],
     cwd: process.cwd(),
-    env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+    env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
     stdout: "pipe",
     stderr: "pipe",
   });

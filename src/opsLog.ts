@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-export type NexusLogEvent = {
+export type ReplixLogEvent = {
   ts: string;
   op: string;
   status: "ok" | "error";
@@ -11,7 +11,7 @@ export type NexusLogEvent = {
 };
 
 export function logFilePath(cwd: string): string {
-  return join(cwd, ".nexus", "logs", "events.ndjson");
+  return join(cwd, ".replix", "logs", "events.ndjson");
 }
 
 export async function appendLogEvent(params: {
@@ -24,7 +24,7 @@ export async function appendLogEvent(params: {
   const path = logFilePath(params.cwd);
   await mkdir(dirname(path), { recursive: true });
 
-  const event: NexusLogEvent = {
+  const event: ReplixLogEvent = {
     ts: new Date().toISOString(),
     op: params.op,
     status: params.status,

@@ -10,7 +10,7 @@ test("example packs > canonical-v1 fixtures declare references", () => {
   for (const dir of dirs) {
     const packPath = join(root, dir, "pack.json");
     const parsed = parsePackJson(JSON.parse(readFileSync(packPath, "utf8")));
-    expect(parsed.specVersion).toBe("nexus.canonical.v1-draft");
+    expect(parsed.specVersion).toBe("replix.canonical.v1-draft");
     expect(parsed.references).toBeDefined();
   }
 });

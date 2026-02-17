@@ -13,7 +13,7 @@ function makePack(root: string, version: string) {
         id: "selfheal-pack",
         version,
         imports: [],
-        specVersion: "nexus.canonical.v1-draft",
+        specVersion: "replix.canonical.v1-draft",
         references: {
           skills: ["skills/alpha/SKILL.md"],
         },
@@ -24,8 +24,8 @@ function makePack(root: string, version: string) {
   );
 }
 
-test("nexus compile self-heal > auto-recovers lock drift", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-self-heal-"));
+test("replix compile self-heal > auto-recovers lock drift", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-self-heal-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -57,7 +57,7 @@ test("nexus compile self-heal > auto-recovers lock drift", () => {
     const lockOut = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -68,14 +68,14 @@ test("nexus compile self-heal > auto-recovers lock drift", () => {
     const out = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "compile", "self-heal", "--config", cfgPath],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
 
     expect(out.exitCode).toBe(0);
     const stdout = out.stdout.toString();
-    expect(stdout).toContain("nexus compile self-heal: recovered");
+    expect(stdout).toContain("replix compile self-heal: recovered");
     expect(stdout).toContain("- report:");
 
     const reportPath = stdout
@@ -86,7 +86,7 @@ test("nexus compile self-heal > auto-recovers lock drift", () => {
     expect(typeof reportPath).toBe("string");
     expect(existsSync(reportPath!)).toBe(true);
 
-    const lock = JSON.parse(readFileSync(join(repoRoot, "nexus.lock.json"), "utf8"));
+    const lock = JSON.parse(readFileSync(join(repoRoot, "replix.lock.json"), "utf8"));
     expect(lock.packs[0].version).toBe("1.0.1");
   } finally {
     rmSync(root, { recursive: true, force: true });

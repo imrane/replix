@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 
-import { runNexus } from "./runNexus";
+import { runReplix } from "./runReplix";
 import { loadDotfilesRegistryFromEnv } from "./resolver/dotfilesConfig";
-import { parseNexusConfig, type NexusConfigV1 } from "./configSchema";
+import { parseReplixConfig, type ReplixConfigV1 } from "./configSchema";
 import { parseEnableSpec } from "./enable";
-import { checkNexusConfig } from "./check";
+import { checkReplixConfig } from "./check";
 import { mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
@@ -47,10 +47,10 @@ function readArgInt(flag: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function loadConfig(configPath: string | null): Promise<NexusConfigV1 | null> {
+async function loadConfig(configPath: string | null): Promise<ReplixConfigV1 | null> {
   if (!configPath) return null;
   const raw = await Bun.file(configPath).text();
-  return parseNexusConfig(JSON.parse(raw));
+  return parseReplixConfig(JSON.parse(raw));
 }
 
 function printListHeader(kind: "skills" | "mcp"): void {
@@ -103,7 +103,7 @@ async function listAvailable(kind: "skills" | "mcp", configPath: string | null):
 
 function renderSnippet(skills: string[], mcp: string[]): string {
   const lines: string[] = [];
-  lines.push("nexus.lib.mkRepo {");
+  lines.push("replix.lib.mkRepo {");
   lines.push('  system = "x86_64-linux";');
   lines.push('  clients = [ "claude" ];');
   lines.push("  enable = {");
@@ -121,7 +121,7 @@ async function compileSpec(inPath: string, outPath: string): Promise<void> {
   const outAbs = resolve(outPath);
   await mkdir(dirname(outAbs), { recursive: true });
   await Bun.write(outAbs, JSON.stringify(schema, null, 2) + "\n");
-  console.log(`✅ nexus spec compile: ${outAbs}`);
+  console.log(`✅ replix spec compile: ${outAbs}`);
 }
 
 async function main() {
@@ -134,7 +134,7 @@ async function main() {
     if (cmd === "pack" && sub === "list") {
       const packs = await listInstalledPacks({ cwd });
       if (packs.length === 0) {
-        console.log("(no packs installed; use `nexus pack install <source>`)");
+        console.log("(no packs installed; use `replix pack install <source>`)");
         return;
       }
       for (const p of packs) {
@@ -146,12 +146,12 @@ async function main() {
     if (cmd === "pack" && sub === "install") {
       const source = third ?? readArgValue("--source");
       if (!source) {
-        console.error("❌ nexus pack install requires <source> or --source <source>");
+        console.error("❌ replix pack install requires <source> or --source <source>");
         process.exit(1);
       }
       const out = await installPack({ cwd, source, allowUnpinned: isFlagPresent("--allow-unpinned") });
       await appendLogEvent({ cwd, op: "pack.install", status: "ok", details: { source, added: out.added } });
-      console.log(`✅ nexus pack install: ${out.added ? "added" : "already present"}`);
+      console.log(`✅ replix pack install: ${out.added ? "added" : "already present"}`);
       console.log(`- source: ${source}`);
       console.log(`- config: ${out.path}`);
       return;
@@ -160,12 +160,12 @@ async function main() {
     if (cmd === "pack" && sub === "uninstall") {
       const source = third ?? readArgValue("--source");
       if (!source) {
-        console.error("❌ nexus pack uninstall requires <source> or --source <source>");
+        console.error("❌ replix pack uninstall requires <source> or --source <source>");
         process.exit(1);
       }
       const out = await uninstallPack({ cwd, source });
       await appendLogEvent({ cwd, op: "pack.uninstall", status: "ok", details: { source, removed: out.removed } });
-      console.log(`✅ nexus pack uninstall: ${out.removed ? "removed" : "not installed"}`);
+      console.log(`✅ replix pack uninstall: ${out.removed ? "removed" : "not installed"}`);
       console.log(`- source: ${source}`);
       console.log(`- config: ${out.path}`);
       return;
@@ -174,7 +174,7 @@ async function main() {
     if (cmd === "pack" && sub === "upgrade") {
       const out = await updateLockfile({ cwd });
       await appendLogEvent({ cwd, op: "pack.upgrade", status: "ok", details: { path: out.path, diffCount: out.diff.length } });
-      console.log(`✅ nexus pack upgrade: refreshed lockfile`);
+      console.log(`✅ replix pack upgrade: refreshed lockfile`);
       console.log(`- lockfile: ${out.path}`);
       for (const line of out.diff) console.log(`- ${line}`);
       return;
@@ -194,22 +194,22 @@ async function main() {
 
     if (cmd === "check") {
       if (!configPath) {
-        console.error("❌ nexus check requires --config <path>");
+        console.error("❌ replix check requires --config <path>");
         process.exit(1);
       }
-      const result = await checkNexusConfig(configPath, cwd);
+      const result = await checkReplixConfig(configPath, cwd);
       if (result.ok) {
-        console.log("✅ nexus check: outputs are in sync");
+        console.log("✅ replix check: outputs are in sync");
         return;
       }
-      console.error("❌ nexus check: outputs drifted from config");
+      console.error("❌ replix check: outputs drifted from config");
       for (const line of result.changes) console.error(`- ${line}`);
       process.exit(2);
     }
 
     if (cmd === "compile" && sub === "self-heal") {
       if (!configPath) {
-        console.error("❌ nexus compile self-heal requires --config <path>");
+        console.error("❌ replix compile self-heal requires --config <path>");
         process.exit(1);
       }
       const maxAttempts = readArgInt("--max-attempts") ?? 3;
@@ -219,12 +219,12 @@ async function main() {
       const aiFixTsScript = readArgValue("--ai-fix-ts") ?? null;
       const out = await runSelfHealCompile({ cwd, configPath, maxAttempts, client, clientLogPath, aiFixCommand, aiFixTsScript });
       if (out.ok) {
-        console.log(`✅ nexus compile self-heal: recovered in ${out.attempts} attempt(s)`);
+        console.log(`✅ replix compile self-heal: recovered in ${out.attempts} attempt(s)`);
         console.log(`- report: ${out.reportPath}`);
         for (const n of out.notes) console.log(`- ${n}`);
         return;
       }
-      console.error(`❌ nexus compile self-heal: failed after ${out.attempts} attempt(s)`);
+      console.error(`❌ replix compile self-heal: failed after ${out.attempts} attempt(s)`);
       if (out.issueClass) console.error(`- issue class: ${out.issueClass}`);
       console.error(`- report: ${out.reportPath}`);
       for (const n of out.notes) console.error(`- ${n}`);
@@ -236,7 +236,7 @@ async function main() {
       const packRoot = readArgValue("--pack") ?? cwd;
       const failOnWarn = isFlagPresent("--fail-on-warn");
       if (!client || !["claude", "opencode", "codex"].includes(client)) {
-        console.error("❌ nexus compile canonical requires --client <claude|opencode|codex>");
+        console.error("❌ replix compile canonical requires --client <claude|opencode|codex>");
         process.exit(1);
       }
       const entries = await compileCanonicalPackToClient({ packRoot, client });
@@ -286,7 +286,7 @@ async function main() {
       const inPath = readArgValue("--in");
       const outPath = readArgValue("--out");
       if (!inPath || !outPath) {
-        console.error("❌ nexus spec compile requires --in <snapshot.json> --out <schema.json>");
+        console.error("❌ replix spec compile requires --in <snapshot.json> --out <schema.json>");
         process.exit(1);
       }
       await compileSpec(inPath, outPath);
@@ -296,11 +296,11 @@ async function main() {
     if (cmd === "doctor") {
       const result = await runDoctor({ cwd, configPath });
       if (result.ok) {
-        console.log("✅ nexus doctor: no blocking problems found");
+        console.log("✅ replix doctor: no blocking problems found");
         for (const note of result.notes) console.log(`- ${note}`);
         return;
       }
-      console.error("❌ nexus doctor: problems found");
+      console.error("❌ replix doctor: problems found");
       for (const problem of result.problems) console.error(`- ${problem}`);
       if (result.notes.length > 0) {
         console.error("Notes:");
@@ -312,7 +312,7 @@ async function main() {
     if (cmd === "lock" && sub === "update") {
       const out = await updateLockfile({ cwd });
       await appendLogEvent({ cwd, op: "lock.update", status: "ok", details: { path: out.path, diffCount: out.diff.length } });
-      console.log(`✅ nexus lock update: ${out.path}`);
+      console.log(`✅ replix lock update: ${out.path}`);
       for (const line of out.diff) console.log(`- ${line}`);
       return;
     }
@@ -320,7 +320,7 @@ async function main() {
     if (cmd === "support" && sub === "bundle") {
       const out = await createSupportBundle({ cwd });
       await appendLogEvent({ cwd, op: "support.bundle", status: "ok", details: { path: out.path } });
-      console.log(`✅ nexus support bundle: ${out.path}`);
+      console.log(`✅ replix support bundle: ${out.path}`);
       return;
     }
 
@@ -328,14 +328,14 @@ async function main() {
       const outDir = readArgValue("--out") ?? undefined;
       const out = await buildRegistrySite({ cwd, outDir });
       await appendLogEvent({ cwd, op: "registry.build", status: "ok", details: { outDir: out.outDir, count: out.count } });
-      console.log(`✅ nexus registry build: ${out.outDir}`);
+      console.log(`✅ replix registry build: ${out.outDir}`);
       console.log(`- packs: ${out.count}`);
       return;
     }
 
     if (cmd === "init") {
       const out = await runInit({ cwd });
-      console.log("✅ nexus init: scaffold ready");
+      console.log("✅ replix init: scaffold ready");
       for (const p of out.created) console.log(`- created: ${p}`);
       for (const n of out.notes) console.log(`- note: ${n}`);
       return;
@@ -343,36 +343,36 @@ async function main() {
 
     if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "support" || cmd === "registry" || cmd === "compile" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
-      console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
-      console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
-      console.log("  nexus list mcp [--config <path>]           # list MCP servers available in this repo context");
-      console.log("  nexus snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
-      console.log("  nexus check --config <path>                # verify generated outputs are in sync");
-      console.log("  nexus doctor [--config <path>]             # diagnose blocking config/pack problems");
-      console.log("  nexus lock update                          # write/update nexus.lock.json from dotfiles packs");
-      console.log("  nexus pack list                            # list installed local packs (.nexus/packs.json)");
-      console.log("  nexus pack install <source>                # install pack source for this repo");
-      console.log("  nexus pack uninstall <source>              # uninstall pack source for this repo");
-      console.log("  nexus pack upgrade                         # refresh lockfile against installed packs");
-      console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
-      console.log("  nexus support bundle                        # write support bundle with config/lock/log snapshots");
-      console.log("  nexus registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
-      console.log("  nexus compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn] # compile canonical pack refs into client artifact plan");
-      console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-ts <script.ts>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
-      console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
-      console.log("  nexus spec validate-canonical-pack [--pack <path>] # validate canonical v1 pack structure/references");
-      console.log("  nexus spec validate-client-shapes [--max-age-days N] # validate client snapshot provenance/freshness");
+      console.log("  replix [--config <path>]                    # emit Replix artifacts");
+      console.log("  replix list skills [--config <path>]        # list skills available in this repo context");
+      console.log("  replix list mcp [--config <path>]           # list MCP servers available in this repo context");
+      console.log("  replix snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
+      console.log("  replix check --config <path>                # verify generated outputs are in sync");
+      console.log("  replix doctor [--config <path>]             # diagnose blocking config/pack problems");
+      console.log("  replix lock update                          # write/update replix.lock.json from dotfiles packs");
+      console.log("  replix pack list                            # list installed local packs (.replix/packs.json)");
+      console.log("  replix pack install <source>                # install pack source for this repo");
+      console.log("  replix pack uninstall <source>              # uninstall pack source for this repo");
+      console.log("  replix pack upgrade                         # refresh lockfile against installed packs");
+      console.log("  replix init [--client <name>] [--with-lock] [--force] # scaffold .replix config + vars");
+      console.log("  replix support bundle                        # write support bundle with config/lock/log snapshots");
+      console.log("  replix registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
+      console.log("  replix compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn] # compile canonical pack refs into client artifact plan");
+      console.log("  replix compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-ts <script.ts>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
+      console.log("  replix spec compile --in <json> --out <json># compile snapshot into validated client schema");
+      console.log("  replix spec validate-canonical-pack [--pack <path>] # validate canonical v1 pack structure/references");
+      console.log("  replix spec validate-client-shapes [--max-age-days N] # validate client snapshot provenance/freshness");
       return;
     }
 
-    await runNexus({ cwd, configPath });
+    await runReplix({ cwd, configPath });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await appendLogEvent({ cwd, op: `${cmd ?? "nexus"}.${sub ?? "run"}`, status: "error", message: msg });
+    await appendLogEvent({ cwd, op: `${cmd ?? "replix"}.${sub ?? "run"}`, status: "error", message: msg });
     if (msg.includes("No pack.json found")) {
       console.error("❌ " + msg);
     } else {
-      console.error("❌ Nexus error:", err);
+      console.error("❌ Replix error:", err);
     }
     process.exit(1);
   }

@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-test("nexus spec validate-canonical-pack > passes for canonical-v1 fixture", () => {
+test("replix spec validate-canonical-pack > passes for canonical-v1 fixture", () => {
   const packRoot = join(process.cwd(), "fixtures", "packs", "examples", "canonical-v1");
   const out = Bun.spawnSync({
     cmd: ["bun", join(process.cwd(), "src/index.ts"), "spec", "validate-canonical-pack", "--pack", packRoot],
@@ -15,8 +15,8 @@ test("nexus spec validate-canonical-pack > passes for canonical-v1 fixture", () 
   expect(out.stdout.toString()).toContain("canonical pack valid");
 });
 
-test("nexus spec validate-canonical-pack > fails for invalid refs", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-bad-canon-pack-"));
+test("replix spec validate-canonical-pack > fails for invalid refs", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-bad-canon-pack-"));
   try {
     mkdirSync(root, { recursive: true });
     writeFileSync(
@@ -26,7 +26,7 @@ test("nexus spec validate-canonical-pack > fails for invalid refs", () => {
           id: "bad",
           version: "1.0.0",
           imports: [],
-          specVersion: "nexus.canonical.v1-draft",
+          specVersion: "replix.canonical.v1-draft",
           references: {
             commands: ["commands/review.txt"],
           },

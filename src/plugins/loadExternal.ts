@@ -18,7 +18,7 @@ async function importModule(spec: string, cwd: string): Promise<void> {
   await import(target);
 }
 
-const LEGACY_ENV_DISABLED = process.env.NEXUS_DISABLE_LEGACY_ENV === "1";
+const LEGACY_ENV_DISABLED = process.env.REPLIX_DISABLE_LEGACY_ENV === "1";
 
 export async function loadExternalPlugins(args: {
   cwd: string;
@@ -33,19 +33,19 @@ export async function loadExternalPlugins(args: {
     .filter((x): x is string => typeof x === "string" && x.length > 0);
 
   // Legacy env module lists (deprecated, will be removed)
-  const legacyClientModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.NEXUS_CLIENT_PLUGIN_MODULES);
-  const legacyOutputModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.NEXUS_OUTPUT_PLUGIN_MODULES);
-  const legacyUnifiedModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.NEXUS_PLUGIN_MODULES);
+  const legacyClientModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_CLIENT_PLUGIN_MODULES);
+  const legacyOutputModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_OUTPUT_PLUGIN_MODULES);
+  const legacyUnifiedModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_PLUGIN_MODULES);
 
   const hasLegacy =
     legacyClientModules.length > 0 || legacyOutputModules.length > 0 || legacyUnifiedModules.length > 0;
 
   if (hasLegacy) {
     console.warn(
-      "⚠️ [DEPRECATED] NEXUS_PLUGIN_MODULES/NEXUS_CLIENT_PLUGIN_MODULES/NEXUS_OUTPUT_PLUGIN_MODULES are legacy.",
+      "⚠️ [DEPRECATED] REPLIX_PLUGIN_MODULES/REPLIX_CLIENT_PLUGIN_MODULES/REPLIX_OUTPUT_PLUGIN_MODULES are legacy.",
     );
-    console.warn("👉 Migrate to dotfiles plugin registry: programs.nexus.plugins.<client>.module");
-    console.warn("💡 Set NEXUS_DISABLE_LEGACY_ENV=1 to disable legacy env var loading.");
+    console.warn("👉 Migrate to dotfiles plugin registry: programs.replix.plugins.<client>.module");
+    console.warn("💡 Set REPLIX_DISABLE_LEGACY_ENV=1 to disable legacy env var loading.");
   }
 
   const all = [...new Set([...byClient, ...legacyUnifiedModules, ...legacyClientModules, ...legacyOutputModules])];

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import type { DotfilesPackDef } from "./resolver/dotfilesConfig";
 
 export function localPacksConfigPath(cwd: string): string {
-  return join(cwd, ".nexus", "packs.json");
+  return join(cwd, ".replix", "packs.json");
 }
 
 type LocalPacksConfig = {

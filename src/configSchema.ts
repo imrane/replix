@@ -1,9 +1,9 @@
-export type NexusOverridesV1 = {
+export type ReplixOverridesV1 = {
   skills: Record<string, { path: string }>;
   mcp: Record<string, unknown>;
 };
 
-export type NexusEnableV1 = {
+export type ReplixEnableV1 = {
   skills: string[];
   mcp: string[];
   commands?: string[];
@@ -13,18 +13,18 @@ export type NexusEnableV1 = {
   clients?: Record<string, { files?: string[] }>;
 };
 
-export type NexusConfigV1 = {
+export type ReplixConfigV1 = {
   version: 1;
   repoRoot: string | null;
   clients: string[];
-  enable: NexusEnableV1;
+  enable: ReplixEnableV1;
   vars: Record<string, string>;
   strictEnv?: boolean;
   layout?: "direct" | "generated";
   cleanup?: "owned-only" | "full";
   // v1 used `sources.*`; v2 naming is `overrides.*` (repo-local only).
-  // parseNexusConfig accepts either, but returns normalized `overrides`.
-  overrides: NexusOverridesV1;
+  // parseReplixConfig accepts either, but returns normalized `overrides`.
+  overrides: ReplixOverridesV1;
 };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -60,7 +60,7 @@ function validateClientFilePaths(client: string, files: string[], name: string):
   }
 }
 
-export function parseNexusConfig(input: unknown): NexusConfigV1 {
+export function parseReplixConfig(input: unknown): ReplixConfigV1 {
   if (!isRecord(input)) throw new Error("config must be an object");
   if (input.version !== 1) throw new Error("config.version must be 1");
 
@@ -103,7 +103,7 @@ export function parseNexusConfig(input: unknown): NexusConfigV1 {
   if (!isRecord(overridesRaw)) {
     throw new Error(
       "config.overrides must be an object (or legacy config.sources). " +
-        "Overrides are repo-local paths only; dotfiles registry is loaded via NEXUS_DOTFILES_CONFIG_JSON.",
+        "Overrides are repo-local paths only; dotfiles registry is loaded via REPLIX_DOTFILES_CONFIG_JSON.",
     );
   }
 

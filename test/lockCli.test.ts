@@ -25,8 +25,8 @@ function makePack(root: string, id: string, version: string, requiredVars: strin
   );
 }
 
-test("nexus lock update > writes lockfile from dotfiles packs", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-lock-cli-"));
+test("replix lock update > writes lockfile from dotfiles packs", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-lock-cli-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -54,15 +54,15 @@ test("nexus lock update > writes lockfile from dotfiles packs", () => {
     const out = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
 
     expect(out.exitCode).toBe(0);
-    expect(out.stdout.toString()).toContain("nexus lock update");
+    expect(out.stdout.toString()).toContain("replix lock update");
 
-    const lockPath = join(repoRoot, "nexus.lock.json");
+    const lockPath = join(repoRoot, "replix.lock.json");
     const lock = JSON.parse(readFileSync(lockPath, "utf8"));
     expect(lock.version).toBe(1);
     expect(lock.packs.length).toBe(2);
@@ -75,8 +75,8 @@ test("nexus lock update > writes lockfile from dotfiles packs", () => {
   }
 });
 
-test("nexus lock update > prints diff summary for version and new required vars", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-lock-diff-"));
+test("replix lock update > prints diff summary for version and new required vars", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-lock-diff-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -90,7 +90,7 @@ test("nexus lock update > prints diff summary for version and new required vars"
     const first = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -101,7 +101,7 @@ test("nexus lock update > prints diff summary for version and new required vars"
     const second = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });

@@ -6,7 +6,7 @@ import { loadLocalPack } from "../src/resolver/localPack";
 
 describe("local pack resolver", () => {
   it("loads pack.json and enumerates skills directories", async () => {
-    const root = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const root = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     writeFileSync(
       join(root, "pack.json"),

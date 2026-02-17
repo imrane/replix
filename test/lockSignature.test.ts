@@ -24,8 +24,8 @@ function makePack(root: string) {
   );
 }
 
-test("nexus lock update > verifies pack.sig when signaturePublicKey is provided", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-lock-sig-"));
+test("replix lock update > verifies pack.sig when signaturePublicKey is provided", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-lock-sig-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -47,7 +47,7 @@ test("nexus lock update > verifies pack.sig when signaturePublicKey is provided"
     const missingSig = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -60,13 +60,13 @@ test("nexus lock update > verifies pack.sig when signaturePublicKey is provided"
     const unsignedOut = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: unsignedDotfiles },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: unsignedDotfiles },
       stdout: "pipe",
       stderr: "pipe",
     });
     expect(unsignedOut.exitCode).toBe(0);
 
-    const lockPath = join(repoRoot, "nexus.lock.json");
+    const lockPath = join(repoRoot, "replix.lock.json");
     const lock = JSON.parse(readFileSync(lockPath, "utf8"));
     const checksum = lock.packs[0].integritySha256 as string;
 
@@ -76,7 +76,7 @@ test("nexus lock update > verifies pack.sig when signaturePublicKey is provided"
     const signedOut = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });

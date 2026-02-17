@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export function statePath(repoRoot: string): string {
-  return join(repoRoot, ".claude", ".nexus-state");
+  return join(repoRoot, ".claude", ".replix-state");
 }
 
 export async function writeStateHash(repoRoot: string, hash: string): Promise<void> {

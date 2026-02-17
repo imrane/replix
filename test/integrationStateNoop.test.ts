@@ -24,7 +24,7 @@ async function runCli(cwd: string): Promise<{ stdout: string; stderr: string; ex
 
 describe("integration: state hash no-op", () => {
   it("second activation should skip writes when state unchanged", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     // Create a minimal pack
     const skillDir = join(packRoot, "skills", "test-skill");
@@ -49,7 +49,7 @@ describe("integration: state hash no-op", () => {
 
     // Verify outputs were created
     expect(existsSync(join(packRoot, ".claude", "skills", "test-skill", "SKILL.md"))).toBeTrue();
-    expect(existsSync(join(packRoot, ".claude", ".nexus-state"))).toBeTrue();
+    expect(existsSync(join(packRoot, ".claude", ".replix-state"))).toBeTrue();
 
     // Second run: should skip (no changes)
     const run2 = await runCli(packRoot);
@@ -59,7 +59,7 @@ describe("integration: state hash no-op", () => {
   });
 
   it("re-emits when state changes", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     // Create a pack with one skill
     const skill1Dir = join(packRoot, "skills", "skill1");

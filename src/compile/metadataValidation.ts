@@ -70,7 +70,7 @@ export async function validateArtifactFromFile(
 export function logValidationResults(results: ArtifactValidationResult[]): void {
   for (const { artifactPath, client, result } of results) {
     for (const issue of result.issues) {
-      const prefix = `[nexus:metadata:${client}] ${artifactPath}`;
+      const prefix = `[replix:metadata:${client}] ${artifactPath}`;
       const message = `${prefix}: ${issue.message}${issue.field ? ` (field: ${issue.field})` : ""}`;
       
       if (issue.severity === "error") {

@@ -24,7 +24,7 @@ async function runCli(cwd: string): Promise<{ stdout: string; stderr: string; ex
 
 describe("integration: missing enabled item", () => {
   it("errors when enabled skill does not exist", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     // Create pack with non-existent skill enabled
     const packJson = {
@@ -46,7 +46,7 @@ describe("integration: missing enabled item", () => {
   });
 
   it("errors when enabled mcp does not exist", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-"));
 
     // Create pack with non-existent mcp enabled
     const packJson = {

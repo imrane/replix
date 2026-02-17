@@ -1,10 +1,10 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > claude parity rejects duplicate file paths across first-class + clients map", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-claude-collision-");
+  const tmp = mkdtempSync("/tmp/replix-config-claude-collision-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -27,11 +27,11 @@ test("config mode (v2) > claude parity rejects duplicate file paths across first
         },
       }),
     );
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -41,7 +41,7 @@ test("config mode (v2) > claude parity rejects duplicate file paths across first
       }),
     );
 
-    await expect(runNexus({ cwd: repoRoot, configPath: nexusCfgPath })).rejects.toThrow(
+    await expect(runReplix({ cwd: repoRoot, configPath: replixCfgPath })).rejects.toThrow(
       /duplicate claude file path/i,
     );
   } finally {

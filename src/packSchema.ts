@@ -158,8 +158,8 @@ export function parsePackJson(input: unknown): PackJson {
       }
     : undefined;
 
-  if (specVersion?.startsWith("nexus.canonical.v1") && !references) {
-    throw new Error("pack.references required for nexus.canonical.v1 packs");
+  if (specVersion?.startsWith("replix.canonical.v1") && !references) {
+    throw new Error("pack.references required for replix.canonical.v1 packs");
   }
 
   return { id, version, imports: parsedImports, specVersion, enable: input.enable, varsSchemaVersion, vars, references };

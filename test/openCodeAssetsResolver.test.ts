@@ -6,7 +6,7 @@ import { loadPackOpenCodeAssets } from "../src/resolver/coreItems";
 
 describe("opencode assets resolver", () => {
   it("loads command/agent/hooks/rules from pack (canonical upstream dirs)", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-opencode-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-opencode-"));
     mkdirSync(join(packRoot, "opencode", "command"), { recursive: true });
     mkdirSync(join(packRoot, "opencode", "agent"), { recursive: true });
     mkdirSync(join(packRoot, "opencode", "hooks"), { recursive: true });
@@ -27,7 +27,7 @@ describe("opencode assets resolver", () => {
   });
 
   it("also supports legacy commands/agents dirs (alias)", async () => {
-    const packRoot = mkdtempSync(join(tmpdir(), "nexus-pack-opencode-legacy-"));
+    const packRoot = mkdtempSync(join(tmpdir(), "replix-pack-opencode-legacy-"));
     mkdirSync(join(packRoot, "opencode", "commands"), { recursive: true });
     mkdirSync(join(packRoot, "opencode", "agents"), { recursive: true });
 

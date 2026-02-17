@@ -233,11 +233,11 @@ export function resolveDotfilesConfigPath(params?: { cwd?: string; explicitPath?
   const explicit = params?.explicitPath ?? null;
   if (explicit) return explicit;
 
-  const envPath = process.env.NEXUS_DOTFILES_CONFIG_JSON;
+  const envPath = process.env.REPLIX_DOTFILES_CONFIG_JSON;
   if (envPath) return envPath;
 
   const cwd = params?.cwd ?? process.cwd();
-  const localPath = join(cwd, ".nexus", "packs.json");
+  const localPath = join(cwd, ".replix", "packs.json");
   if (existsSync(localPath)) return localPath;
 
   return null;

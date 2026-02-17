@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { join } from "node:path";
 
-test("nexus spec validate-client-shapes > passes for current snapshots", () => {
+test("replix spec validate-client-shapes > passes for current snapshots", () => {
   const out = Bun.spawnSync({
     cmd: ["bun", join(process.cwd(), "src/index.ts"), "spec", "validate-client-shapes", "--max-age-days", "3650"],
     cwd: process.cwd(),

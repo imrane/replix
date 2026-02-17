@@ -27,9 +27,9 @@ export async function createSupportBundle(params: {
   const cwd = params.cwd;
   const ts = new Date().toISOString().replaceAll(":", "-");
 
-  const repoConfigPath = join(cwd, ".nexus", "repo.json");
-  const packsPath = join(cwd, ".nexus", "packs.json");
-  const lockPath = join(cwd, "nexus.lock.json");
+  const repoConfigPath = join(cwd, ".replix", "repo.json");
+  const packsPath = join(cwd, ".replix", "packs.json");
+  const lockPath = join(cwd, "replix.lock.json");
 
   const bundle = {
     schemaVersion: 1,
@@ -45,9 +45,9 @@ export async function createSupportBundle(params: {
     },
   };
 
-  const outDir = join(cwd, ".nexus", "support");
+  const outDir = join(cwd, ".replix", "support");
   await mkdir(outDir, { recursive: true });
-  const outPath = join(outDir, `nexus-support-${ts}.json`);
+  const outPath = join(outDir, `replix-support-${ts}.json`);
   await writeFile(outPath, JSON.stringify(bundle, null, 2) + "\n", "utf8");
   return { path: outPath };
 }

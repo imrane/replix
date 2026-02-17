@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { emitOpenCode } from "../src/emitters/opencode";
 
 describe("opencode emitter", () => {
-  it("writes command/agent/hooks/rules and .nexus-managed marker (upstream-aligned dirs)", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
-    const src = mkdtempSync(join(tmpdir(), "nexus-opencode-"));
+  it("writes command/agent/hooks/rules and .replix-managed marker (upstream-aligned dirs)", async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-repo-"));
+    const src = mkdtempSync(join(tmpdir(), "replix-opencode-"));
     mkdirSync(join(src, "opencode", "command"), { recursive: true });
     mkdirSync(join(src, "opencode", "agent"), { recursive: true });
     mkdirSync(join(src, "opencode", "hooks"), { recursive: true });
@@ -48,7 +48,7 @@ describe("opencode emitter", () => {
       ],
     });
 
-    expect(existsSync(join(repoRoot, ".opencode", ".nexus-managed"))).toBeTrue();
+    expect(existsSync(join(repoRoot, ".opencode", ".replix-managed"))).toBeTrue();
     expect(readFileSync(join(repoRoot, ".opencode", "command", "hello.md"), "utf8")).toContain("hello");
     expect(readFileSync(join(repoRoot, ".opencode", "agent", "planner.md"), "utf8")).toContain("planner");
     expect(readFileSync(join(repoRoot, ".opencode", "hooks", "pre-commit.sh"), "utf8")).toContain("echo hi");
@@ -56,8 +56,8 @@ describe("opencode emitter", () => {
   });
 
   it("writes native opencode skills and opencode MCP config", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
-    const skillSrc = mkdtempSync(join(tmpdir(), "nexus-skill-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-repo-"));
+    const skillSrc = mkdtempSync(join(tmpdir(), "replix-skill-"));
     mkdirSync(join(skillSrc, "humanizer"), { recursive: true });
     writeFileSync(join(skillSrc, "humanizer", "SKILL.md"), "---\nname: humanizer\ndescription: x\n---\n");
 

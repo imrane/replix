@@ -6,7 +6,7 @@ import { emitMcp } from "../src/emitters/mcp";
 
 describe("mcp emitter", () => {
   it("writes .mcp.json with __generated_by marker", async () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "nexus-repo-"));
+    const repoRoot = mkdtempSync(join(tmpdir(), "replix-repo-"));
 
     await emitMcp({
       repoRoot,
@@ -25,7 +25,7 @@ describe("mcp emitter", () => {
     const raw = readFileSync(outPath, "utf8");
     const parsed = JSON.parse(raw);
 
-    expect(parsed.__generated_by).toBe("nexus");
+    expect(parsed.__generated_by).toBe("replix");
     expect(parsed.mcpServers.filesystem.command).toBe("node");
   });
 });

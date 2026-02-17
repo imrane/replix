@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-test("nexus doctor (pack mode) > blocks when required pack var is missing", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-pack-doctor-missing-"));
+test("replix doctor (pack mode) > blocks when required pack var is missing", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-doctor-missing-"));
   try {
     writeFileSync(
       join(root, "pack.json"),
@@ -41,14 +41,14 @@ test("nexus doctor (pack mode) > blocks when required pack var is missing", () =
     expect(out.exitCode).toBe(2);
     const stderr = out.stderr.toString();
     expect(stderr).toContain("pack security-pack blocked: missing required variable API_TOKEN");
-    expect(stderr).toContain("fix: write secret to .nexus/vars/API_TOKEN");
+    expect(stderr).toContain("fix: write secret to .replix/vars/API_TOKEN");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("nexus doctor (pack mode) > ready when required pack var exists in file", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-pack-doctor-ready-"));
+test("replix doctor (pack mode) > ready when required pack var exists in file", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-doctor-ready-"));
   try {
     writeFileSync(
       join(root, "pack.json"),
@@ -70,7 +70,7 @@ test("nexus doctor (pack mode) > ready when required pack var exists in file", (
       ),
     );
 
-    const varsDir = join(root, ".nexus", "vars");
+    const varsDir = join(root, ".replix", "vars");
     mkdirSync(varsDir, { recursive: true });
     writeFileSync(join(varsDir, "API_TOKEN"), "from-file\n");
 

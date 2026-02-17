@@ -23,8 +23,8 @@ function makePack(root: string, version: string, skillBody = "# alpha\n") {
   );
 }
 
-test("nexus run (config mode) > blocks when lockfile checksum/version drifts", () => {
-  const root = mkdtempSync(join(tmpdir(), "nexus-lock-gate-"));
+test("replix run (config mode) > blocks when lockfile checksum/version drifts", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-lock-gate-"));
   try {
     const repoRoot = join(root, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -55,7 +55,7 @@ test("nexus run (config mode) > blocks when lockfile checksum/version drifts", (
     const lockOut = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "lock", "update"],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -67,7 +67,7 @@ test("nexus run (config mode) > blocks when lockfile checksum/version drifts", (
     const runOut = Bun.spawnSync({
       cmd: ["bun", join(process.cwd(), "src/index.ts"), "--config", cfgPath],
       cwd: repoRoot,
-      env: { ...process.env, NEXUS_DOTFILES_CONFIG_JSON: dotfilesPath },
+      env: { ...process.env, REPLIX_DOTFILES_CONFIG_JSON: dotfilesPath },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -76,7 +76,7 @@ test("nexus run (config mode) > blocks when lockfile checksum/version drifts", (
     const stderr = runOut.stderr.toString();
     expect(stderr).toContain("lockfile compatibility gate failed");
     expect(stderr).toContain("pack checksum:");
-    expect(stderr).toContain("fix: run `nexus lock update`");
+    expect(stderr).toContain("fix: run `replix lock update`");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

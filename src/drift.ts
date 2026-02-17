@@ -91,7 +91,7 @@ export function assessImpact(delta: DriftDelta): DriftImpact {
   };
 
   const mapped = byKey[delta.key] ?? {
-    modules: ["src/runNexus.ts", "src/compile/clientPaths.ts"],
+    modules: ["src/runReplix.ts", "src/compile/clientPaths.ts"],
     tests: ["test/clientPathsCompile.test.ts", "test/goldenConfigModeV2.test.ts"],
   };
 

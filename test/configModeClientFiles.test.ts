@@ -1,10 +1,10 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { runNexus } from "../src/runNexus";
+import { runReplix } from "../src/runReplix";
 
 test("config mode (v2) > emits and cleans up per-client custom files", async () => {
-  const tmp = mkdtempSync("/tmp/nexus-config-client-files-");
+  const tmp = mkdtempSync("/tmp/replix-config-client-files-");
   try {
     const repoRoot = join(tmp, "repo");
     mkdirSync(repoRoot, { recursive: true });
@@ -26,11 +26,11 @@ test("config mode (v2) > emits and cleans up per-client custom files", async () 
         },
       }),
     );
-    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+    process.env.REPLIX_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
 
-    const nexusCfgPath = join(tmp, "nexus.json");
+    const replixCfgPath = join(tmp, "replix.json");
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -48,7 +48,7 @@ test("config mode (v2) > emits and cleans up per-client custom files", async () 
       }),
     );
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     const customText = await Bun.file(join(repoRoot, ".claude", "commands", "review.md")).text();
     expect(customText).toContain("# review");
@@ -56,7 +56,7 @@ test("config mode (v2) > emits and cleans up per-client custom files", async () 
 
     // Overwrite selected files and ensure stale file is removed.
     writeFileSync(
-      nexusCfgPath,
+      replixCfgPath,
       JSON.stringify({
         version: 1,
         repoRoot,
@@ -74,7 +74,7 @@ test("config mode (v2) > emits and cleans up per-client custom files", async () 
       }),
     );
 
-    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+    await runReplix({ cwd: repoRoot, configPath: replixCfgPath });
 
     expect(existsSync(join(repoRoot, ".claude", "commands", "review.md"))).toBe(false);
     const sourced = await Bun.file(join(repoRoot, ".claude", "hooks", "pre-commit.txt")).text();

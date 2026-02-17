@@ -1,5 +1,5 @@
 {
-  "name": "nexus",
+  "name": "replix",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
@@ -7,8 +7,8 @@
     "test": "bun test",
     "test:core": "bun test test/compileCanonicalCli.test.ts test/validateCanonicalPackCli.test.ts test/checkCli.test.ts test/doctorCli.test.ts test/lockCompatibilityGate.test.ts test/emitterClaude.test.ts test/emitterOpenCode.test.ts test/emitterCodex.test.ts test/emitterMcp.test.ts test/goldenConfigModeV2.test.ts test/packSchema.test.ts test/dotfilesConfig.test.ts test/configModeMcpTemplating.test.ts",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=coverage",
-    "test:smoke:clients": "NEXUS_CLIENT_SMOKE=1 bun test test/clientSmokeGated.test.ts",
-    "test:e2e:pack-matrix": "NEXUS_E2E_PACK_MATRIX=1 bun test test/e2ePackClientMatrix.test.ts",
+    "test:smoke:clients": "REPLIX_CLIENT_SMOKE=1 bun test test/clientSmokeGated.test.ts",
+    "test:e2e:pack-matrix": "REPLIX_E2E_PACK_MATRIX=1 bun test test/e2ePackClientMatrix.test.ts",
     "test:release-gate": "bun scripts/release-gate.ts",
     "drift:check": "bun scripts/spec-drift-check.ts",
     "check": "bun run test:core"
