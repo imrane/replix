@@ -229,20 +229,20 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Current priority queue (refactor-first):**
-1. `2026-02-14-nexus-1qi` — Refactor sequence guardrail: OpenCode first, then shared adapter contract
-2. `2026-02-14-nexus-m1i` — automate upstream release/spec drift detection (**in_progress**)
-3. `2026-02-14-nexus-3tv` — AI-assisted spec compiler (docs/repo → typed schema) (**in_progress**)
+**Current priority queue (ship-first):**
+1. `2026-02-14-nexus-9h1` — Client artifact compiler: canonical metadata → client-native schemas (**in_progress**)
+2. `2026-02-14-nexus-k6i` — Canonical hook trigger model + per-client emission (**in_progress**)
+3. `2026-02-14-nexus-3tv` — AI-assisted spec extraction pipeline (docs/repo → typed schema) (**in_progress**)
+4. `2026-02-14-nexus-m1i` — Upstream drift detection + release sync automation (**in_progress**)
+5. `2026-02-14-nexus-7o3` — Runtime smoke: Claude/Codex auth (deferred: tomorrow)
+6. `2026-02-14-nexus-dqm` — Runtime smoke: OpenCode install + ingestion (deferred: tomorrow)
 
-**Recently closed:**
-- `2026-02-14-nexus-9dy` (runNexus collapsed into compile-plan + emit pipeline - 2026-02-16)
-- `2026-02-14-nexus-n4j` (legacy compatibility surfaces gated behind env flags - 2026-02-16)
-- `2026-02-14-nexus-0uk` (selective github source includes via `?include=` + tests/docs)
-- `2026-02-14-nexus-6pg` (OpenCode native outputs parity: skills + MCP from canonical enable lists)
-- `2026-02-14-nexus-fu5` (test suite trimmed to high-signal behavior/golden core; heavy suites gated)
-- `2026-02-14-nexus-pry` (Codecov upload + README badge)
-- `2026-02-14-nexus-rrq` (per-client custom injection)
-- `2026-02-14-nexus-0qi` (OpenCode parity slice landed, pending strict conformance audit)
+**Recently closed (this session):**
+- `2026-02-14-nexus-och` (pack-first dotfiles registry `programs.nexus.packs`)
+- `2026-02-14-nexus-1qi` (native output sequence validated end-to-end in sample repo)
+- `2026-02-14-nexus-0uk` (selective github source includes via `?include=` + deterministic cache)
+- `2026-02-14-nexus-6pg` (OpenCode native outputs parity)
+- `2026-02-14-nexus-fu5` (test matrix simplified to high-signal/gated suites)
 
 **Remember:**
 - No new markdown files (use bd for notes when healthy)
@@ -326,5 +326,5 @@ PRD.md remains source of truth for v2 goals.
   - CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
 - Current test baseline: `89 pass, 0 fail`.
 
-**Last updated:** 2026-02-17 01:20 UTC  
-**Status:** v2 config-mode shipping with pluginized client/output architecture; artifact metadata foundation layer landed with client capability validation (emitter integration pending).
+**Last updated:** 2026-02-17 02:08 UTC  
+**Status:** v2 is usable tomorrow: pack-first + unified enable + artifacts namespace shipped; AI-assisted artifact metadata foundation landed (`e33b039`), and next step is emitter integration + runtime client smokes once CLI access is available.
