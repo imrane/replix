@@ -56,6 +56,10 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
       { source = "github:imrane/replix"; pack = "starter"; allowUnpinned = true; }
     ];
 
+    # You can inspect aliases before using them:
+    # replix pack list-aliases github:imrane/replix
+
+
     # optional direct overrides
     skills.humanizer.source = "github:blader/humanizer?rev=<sha>";
     mcp.filesystem = {

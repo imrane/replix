@@ -1,0 +1,8 @@
+{
+  "packs": {
+    "starter": "fixtures/packs/examples/starter",
+    "security": "fixtures/packs/examples/security",
+    "content": "fixtures/packs/examples/content",
+    "dataops": "fixtures/packs/examples/dataops"
+  }
+}

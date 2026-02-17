@@ -19,6 +19,7 @@ import { runSelfHealCompile } from "./selfHeal";
 import { compileCanonicalPackToClient, summarizeCanonicalPlan } from "./compile/canonicalArtifacts";
 import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
 import { validateCanonicalPackV1 } from "./clientPlugins/canonical/validatePack";
+import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -177,6 +178,47 @@ async function main() {
       console.log(`✅ replix pack upgrade: refreshed lockfile`);
       console.log(`- lockfile: ${out.path}`);
       for (const line of out.diff) console.log(`- ${line}`);
+      return;
+    }
+
+    if (cmd === "pack" && sub === "list-aliases") {
+      const source = third ?? readArgValue("--source");
+      if (!source) {
+        console.error("❌ replix pack list-aliases requires <source> or --source <source>");
+        process.exit(1);
+      }
+
+      const root = await resolveDotfilesSourceToPath(source, { allowUnpinned: true });
+      const indexPath = join(root, "replix.index.json");
+      const exists = await Bun.file(indexPath).exists();
+      if (!exists) {
+        console.error(`❌ replix pack list-aliases: replix.index.json not found in ${root}`);
+        process.exit(2);
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(await Bun.file(indexPath).text());
+      } catch {
+        console.error("❌ replix pack list-aliases: invalid replix.index.json");
+        process.exit(2);
+      }
+
+      const packMap = parsed?.packs;
+      if (!packMap || typeof packMap !== "object") {
+        console.error("❌ replix pack list-aliases: expected { \"packs\": { \"name\": \"path\" } }");
+        process.exit(2);
+      }
+
+      const aliases = Object.keys(packMap).sort((a, b) => a.localeCompare(b));
+      if (aliases.length === 0) {
+        console.log("(no aliases in replix.index.json)");
+        return;
+      }
+
+      for (const alias of aliases) {
+        console.log(`- ${alias}\t${packMap[alias]}`);
+      }
       return;
     }
 
@@ -354,6 +396,7 @@ async function main() {
       console.log("  replix pack install <source>                # install pack source for this repo");
       console.log("  replix pack uninstall <source>              # uninstall pack source for this repo");
       console.log("  replix pack upgrade                         # refresh lockfile against installed packs");
+      console.log("  replix pack list-aliases <source>          # list pack aliases from replix.index.json in source repo");
       console.log("  replix init [--client <name>] [--with-lock] [--force] # scaffold .replix config + vars");
       console.log("  replix support bundle                        # write support bundle with config/lock/log snapshots");
       console.log("  replix registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
