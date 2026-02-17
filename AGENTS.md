@@ -294,6 +294,18 @@ PRD.md remains source of truth for v2 goals.
 
 ---
 
+## Session Delta (2026-02-17, AI-assisted artifact compiler foundation)
+- **First slice of AI-assisted client artifact compiler foundation (non-breaking):**
+  - Added `src/artifactMetadata.ts`: canonical artifact metadata schema types for agents/commands/hooks/settings with hook trigger model
+  - Implemented client capability map for claude/opencode/codex with supported fields and hook triggers
+  - Added deterministic validator `validateArtifactMetadata()` that flags unsupported fields per client, returns warnings for unsupported features and errors for invalid configurations
+  - Added comprehensive test suite `test/artifactMetadata.test.ts` covering:
+    - (a) claude hook trigger acceptance (all 6 standard triggers validated)
+    - (b) unsupported trigger for codex produces warning/error path
+    - (c) command metadata field mapping check across all three clients
+  - Behavior remains non-breaking: emitters not yet integrated (foundation layer only)
+  - Current test baseline: `105 pass, 0 fail` (+14 new tests for artifact metadata validation)
+
 ## Session Delta (2026-02-16, concise)
 - **Refactor complete (9dy + n4j):**
   - Collapsed `runNexus.ts` from 360+ lines to ~60 lines via compile-plan + emit pipeline abstraction
@@ -314,5 +326,5 @@ PRD.md remains source of truth for v2 goals.
   - CLI command `nexus spec compile --in <snapshot.json> --out <schema.json>`
 - Current test baseline: `89 pass, 0 fail`.
 
-**Last updated:** 2026-02-16 23:12 UTC  
-**Status:** v2 config-mode shipping with pluginized client/output architecture; runNexus refactored into compile-plan + emit pipeline with legacy compatibility gated behind env flags.
+**Last updated:** 2026-02-17 01:20 UTC  
+**Status:** v2 config-mode shipping with pluginized client/output architecture; artifact metadata foundation layer landed with client capability validation (emitter integration pending).
