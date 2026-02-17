@@ -1,0 +1,1 @@
+{"filesystem":{"command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","${ENV:DATA_ROOT}"]},"postgres":{"command":"npx","args":["-y","@modelcontextprotocol/server-postgres","${ENV:PG_URL}"]}}

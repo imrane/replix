@@ -110,6 +110,26 @@ A pack source should contain `pack.json` and may include:
 - `hooks/*`
 - `agents/*.md`
 
+### 4 full pack examples (in-repo)
+
+All include: skills + MCP + commands + hooks + agents.
+
+- `fixtures/packs/examples/starter`
+- `fixtures/packs/examples/security`
+- `fixtures/packs/examples/content`
+- `fixtures/packs/examples/dataops`
+
+Use them directly in dotfiles:
+
+```nix
+programs.nexus.packs = [
+  { source = "path:/home/imrane/code/try/2026-02-14-nexus/fixtures/packs/examples/starter"; }
+  { source = "path:/home/imrane/code/try/2026-02-14-nexus/fixtures/packs/examples/security"; }
+  { source = "path:/home/imrane/code/try/2026-02-14-nexus/fixtures/packs/examples/content"; }
+  { source = "path:/home/imrane/code/try/2026-02-14-nexus/fixtures/packs/examples/dataops"; }
+];
+```
+
 ---
 
 ## Unified enable model (primary)
@@ -121,6 +141,14 @@ Use these selectors in `enable`:
 - `hooks`
 - `agents`
 - `settings`
+
+### Why `claude.commands` in dotfiles today?
+
+Good question. Activation is unified, but definition namespaces are still transitional:
+- `skills` + `mcp` are already canonical at dotfiles level.
+- `commands` / `hooks` / `agents` are currently authored via `claude.*` in dotfiles, then compiled to all enabled clients via adapters.
+
+So they are functionally cross-client at emit time, but the authoring namespace is not fully client-agnostic yet.
 
 ### Compatibility/override path (secondary)
 
