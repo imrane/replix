@@ -16,6 +16,7 @@ import type { McpServer } from "../resolver/pack";
 import { resolveEnabledClientPaths } from "./clientPaths";
 import { applyClientPathNormalization, assertClientPathSupported } from "../clientPlugins/registry";
 import type { DotfilesClientFileDef } from "../resolver/dotfilesConfig";
+import { resolveVars } from "../vars";
 
 export type ClientFileInjection = {
   client: string;
@@ -166,16 +167,11 @@ export async function compilePlanFromConfig(params: {
     }),
   );
 
-  const processVars = Object.fromEntries(
-    Object.entries(process.env)
-      .filter(([, v]) => typeof v === "string")
-      .map(([k, v]) => [k, v as string]),
-  );
-  const mergedVars = {
-    ...processVars,
-    ...dotfiles.vars,
-    ...cfg.vars,
-  };
+  const resolvedVars = await resolveVars({
+    repoRoot,
+    cfgVars: cfg.vars,
+    dotfilesVars: dotfiles.vars,
+  });
   const strictEnv = cfg.strictEnv ?? dotfiles.strictEnv;
 
   const mcpServers: McpServerInput[] = graph.mcp.map((node) => {
@@ -185,7 +181,7 @@ export async function compilePlanFromConfig(params: {
       id: formatId({ pack: "config", imp: "mcp", item: node.id }),
       name: node.item.name,
       server: templateMcpServer(server, {
-        vars: mergedVars,
+        vars: resolvedVars.values,
         strictEnv,
         projectRoot: repoRoot,
       }),

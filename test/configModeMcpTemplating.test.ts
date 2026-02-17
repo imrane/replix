@@ -140,3 +140,47 @@ test("config mode (v2) > strictEnv true errors on missing vars", async () => {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("config mode (v2) > file vars are default and override process env", async () => {
+  const tmp = mkdtempSync("/tmp/nexus-config-template-file-default-");
+  try {
+    const repoRoot = join(tmp, "repo");
+    const varsDir = join(repoRoot, ".nexus", "vars");
+    mkdirSync(varsDir, { recursive: true });
+    writeFileSync(join(varsDir, "API_TOKEN"), "from-file\n");
+
+    process.env.API_TOKEN = "from-process";
+
+    const dotfilesCfg = {
+      strictEnv: true,
+      skills: {},
+      mcp: {
+        filesystem: {
+          command: "echo",
+          args: ["${API_TOKEN}"],
+        },
+      },
+    };
+    const dotfilesCfgPath = join(tmp, "dotfiles.json");
+    writeFileSync(dotfilesCfgPath, JSON.stringify(dotfilesCfg));
+    process.env.NEXUS_DOTFILES_CONFIG_JSON = dotfilesCfgPath;
+
+    const nexusCfg = {
+      version: 1,
+      repoRoot,
+      clients: [],
+      enable: { skills: [], mcp: ["filesystem"] },
+      overrides: { skills: {}, mcp: {} },
+    };
+
+    const nexusCfgPath = join(tmp, "nexus.json");
+    writeFileSync(nexusCfgPath, JSON.stringify(nexusCfg));
+
+    await runNexus({ cwd: repoRoot, configPath: nexusCfgPath });
+
+    const m = JSON.parse(await Bun.file(join(repoRoot, ".mcp.json")).text());
+    expect(m.mcpServers.filesystem.args[0]).toBe("from-file");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

@@ -8,6 +8,7 @@ import { checkNexusConfig } from "./check";
 import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
+import { runDoctor } from "./doctor";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -150,13 +151,30 @@ async function main() {
       return;
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "doctor") {
+      const result = await runDoctor({ cwd, configPath });
+      if (result.ok) {
+        console.log("✅ nexus doctor: no blocking problems found");
+        for (const note of result.notes) console.log(`- ${note}`);
+        return;
+      }
+      console.error("❌ nexus doctor: problems found");
+      for (const problem of result.problems) console.error(`- ${problem}`);
+      if (result.notes.length > 0) {
+        console.error("Notes:");
+        for (const note of result.notes) console.error(`- ${note}`);
+      }
+      process.exit(2);
+    }
+
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
       console.log("  nexus list mcp [--config <path>]           # list MCP servers available in this repo context");
       console.log("  nexus snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
       console.log("  nexus check --config <path>                # verify generated outputs are in sync");
+      console.log("  nexus doctor [--config <path>]             # diagnose blocking config/pack problems");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }

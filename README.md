@@ -181,9 +181,18 @@ Templating supports:
 - `${ENV:VAR}`
 
 Precedence (highest wins):
-1. process env
+1. repo config `vars`
 2. dotfiles `programs.nexus.vars`
-3. repo config `vars`
+3. file-backed vars (**default secret path**)
+4. process env
+
+File-backed vars are loaded automatically from:
+- `<repo>/.nexus/vars/<VAR_NAME>`
+- `/run/secrets/<VAR_NAME>`
+- `/var/run/secrets/<VAR_NAME>`
+- `*_FILE` environment pointers (e.g. `API_TOKEN_FILE=/run/secrets/API_TOKEN`)
+
+This means file secrets override plain env by default, while still allowing explicit per-repo/dotfiles overrides when needed.
 
 `strictEnv`:
 - `true` (default): missing var => error
@@ -244,6 +253,9 @@ nexus snippet --skills a,b --mcp x,y
 
 # Drift check (no mutation, CI-friendly)
 nexus check --config <path>
+
+# Diagnose config/vars/readiness (no mutation)
+nexus doctor --config <path>
 
 # Compile snapshot -> validated typed schema
 nexus spec compile --in <snapshot.json> --out <schema.json>
