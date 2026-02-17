@@ -238,6 +238,16 @@ nexus spec compile --in <snapshot.json> --out <schema.json>
 - Canonical pack validator + client shape provenance validator
 - Golden release gate script + CI workflow for Linux/macOS
 
+### New canonical process (author -> compile -> validate -> self-heal)
+
+1. **Author canonical pack only** (`specVersion` + `references` in `pack.json`).
+2. **Compile plan per client** with `nexus compile canonical --client ...`.
+3. **Gate quality** using `--fail-on-warn` in CI.
+4. **Validate canonical shape** (`nexus spec validate-canonical-pack`).
+5. **Validate client snapshot provenance/freshness** (`nexus spec validate-client-shapes`).
+6. **Run bounded self-heal** (`nexus compile self-heal ... --ai-fix-ts ...`) when compilation/runtime issues appear.
+7. **Escalate to human** when loop can’t recover within max attempts (see `.nexus/self-heal/last-report.json`).
+
 ---
 
 ## Status

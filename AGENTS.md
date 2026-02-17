@@ -350,23 +350,39 @@ PRD.md remains source of truth for v2 goals.
 - Test baseline after landing: `137 pass, 0 fail`.
 - Handoff commit pushed: `bb04da7` (main).
 
-## Session Delta (2026-02-17 18:30 UTC, canonical-spec direction from Boss)
-- Boss direction clarified: Nexus pack input must be provider-agnostic first, with client plugins responsible for compilation to client-native shapes.
-- Captured client shape snapshots in plugin folders:
-  - `src/clientPlugins/claude/client-shape.snapshot.json`
-  - `src/clientPlugins/opencode/client-shape.snapshot.json`
-  - `src/clientPlugins/codex/client-shape.snapshot.json`
-- Added draft canonical v1 scaffold:
-  - `src/clientPlugins/canonical/internal-spec.v1.proposed.json`
-- New execution tasks created (beads):
-  - `2026-02-14-nexus-9h1.4` self-healing AI compiler loop (bounded retries + escalation)
-  - `2026-02-14-nexus-9h1.5` canonical pack authoring UX (explicit file references + multi-entity manifest)
-  - `2026-02-14-nexus-3tv.2` client spec provenance/version pin policy
-- Architecture intent for next agents:
-  1. Canonical pack spec is the only authored shape.
-  2. Adapters perform canonical -> client transpilation.
-  3. Deterministic validators + client smoke tests gate output.
-  4. Auto-fix loop is bounded; escalate to human on schema gap / spec drift / source-integrity ambiguity.
+## Session Delta (2026-02-17, canonical pipeline finalized)
+### What shipped (important)
+- Canonical v1 authoring contract is now active in examples:
+  - `specVersion: nexus.canonical.v1-draft`
+  - `references` map is required for canonical v1 packs.
+- Enforced reference-first resolution with checks:
+  - parser requires references for v1 packs
+  - resolver validates reference existence/type and consumes refs for skills/commands/agents/hooks/MCP.
+- Client shape snapshots captured + governance gate:
+  - `src/clientPlugins/{claude,opencode,codex}/client-shape.snapshot.json`
+  - `nexus spec validate-client-shapes [--max-age-days N]`.
+- Canonical hook mapping matrix implemented:
+  - `src/clientPlugins/canonical/hookMapping.ts` with deterministic per-client support/warn semantics.
+- Canonical compile planning command implemented:
+  - `nexus compile canonical --client <claude|opencode|codex> --pack <path> [--fail-on-warn]`
+  - outputs summary (`warnings`, `byKind`) and can hard-fail CI on warnings.
+- Canonical pack validator implemented:
+  - `nexus spec validate-canonical-pack [--pack <path>]`
+  - schema/scaffold at `src/clientPlugins/canonical/spec.v1.schema.json`.
+- Bounded self-healing loop implemented (TS-first):
+  - `nexus compile self-heal --config ... --max-attempts N --ai-fix-ts <script.ts>`
+  - optional client log hinting via `--client --client-log`
+  - writes escalation artifact: `.nexus/self-heal/last-report.json`.
 
-**Last updated:** 2026-02-17 18:30 UTC  
-**Status:** Reliability slice landed; active priority is canonical v1 spec + adapter pipeline + bounded self-healing compile loop.
+### Important findings
+- Boss correction: pack authoring must be explicit (agent definitions included) and not inferred from ad hoc folder scans.
+- Canonical references map solved multi-entity clarity (multiple skills/commands/agents/hooks/MCP in one pack).
+- AI loop is safest when bounded + classified + escalated (not open-ended autonomous retries).
+
+### Operational status
+- Closed tracks: `9h1`, `3tv`, `k6i` (and their session children).
+- New follow-up debt item:
+  - `2026-02-14-nexus-bd9` — code cleanup sweep after canonical rollout.
+
+**Last updated:** 2026-02-17 19:40 UTC  
+**Status:** Canonical pipeline + validation/self-heal gates are landed; next priority is cleanup/refactor pass (`bd9`).
