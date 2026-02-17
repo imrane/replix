@@ -67,6 +67,7 @@ test("nexus lock update > writes lockfile from dotfiles packs", () => {
     expect(lock.version).toBe(1);
     expect(lock.packs.length).toBe(2);
     expect(lock.packs[0].requiredVars).toBeDefined();
+    expect(lock.packs[0].integritySha256).toMatch(/^[a-f0-9]{64}$/);
 
     rmSync(lockPath, { force: true });
   } finally {

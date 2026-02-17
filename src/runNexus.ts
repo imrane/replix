@@ -7,6 +7,7 @@ import { shouldSkipEmit, writeStateHash } from "./stateFile";
 import { parseNexusConfig } from "./configSchema";
 import { compilePlanFromConfig, compilePlanFromPack } from "./compile/plan";
 import { emitPlan } from "./compile/emit";
+import { assertLockfileCompatibilityIfPresent } from "./lockfile";
 import "./clientPlugins/builtins";
 import "./outputPlugins/builtins";
 import { loadExternalPlugins } from "./plugins/loadExternal";
@@ -46,7 +47,8 @@ export async function runNexus({ cwd, configPath }: RunNexusArgs): Promise<void>
     const raw = await Bun.file(configPath).text();
     const cfg = parseNexusConfig(JSON.parse(raw));
 
-    const dotfiles = await loadDotfilesRegistryFromEnv();
+    const dotfiles = await loadDotfilesRegistryFromEnv({ cwd });
+    await assertLockfileCompatibilityIfPresent({ cwd });
     await loadExternalPlugins({ cwd, clients: cfg.clients, dotfiles });
 
     const plan = await compilePlanFromConfig({ cfg, dotfiles, cwd });

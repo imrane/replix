@@ -11,6 +11,10 @@ import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
 import { runInit } from "./init";
+import { installPack, listInstalledPacks, uninstallPack } from "./packLifecycle";
+import { appendLogEvent } from "./opsLog";
+import { createSupportBundle } from "./supportBundle";
+import { buildRegistrySite } from "./registrySite";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -112,9 +116,59 @@ async function compileSpec(inPath: string, outPath: string): Promise<void> {
 async function main() {
   const cwd = process.cwd();
   const configPath = readArgValue("--config");
-  const [cmd, sub] = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  const positionals = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  const [cmd, sub, third] = positionals;
 
   try {
+    if (cmd === "pack" && sub === "list") {
+      const packs = await listInstalledPacks({ cwd });
+      if (packs.length === 0) {
+        console.log("(no packs installed; use `nexus pack install <source>`)");
+        return;
+      }
+      for (const p of packs) {
+        console.log(`- ${p.source}${p.allowUnpinned ? " (allowUnpinned)" : ""}`);
+      }
+      return;
+    }
+
+    if (cmd === "pack" && sub === "install") {
+      const source = third ?? readArgValue("--source");
+      if (!source) {
+        console.error("❌ nexus pack install requires <source> or --source <source>");
+        process.exit(1);
+      }
+      const out = await installPack({ cwd, source, allowUnpinned: isFlagPresent("--allow-unpinned") });
+      await appendLogEvent({ cwd, op: "pack.install", status: "ok", details: { source, added: out.added } });
+      console.log(`✅ nexus pack install: ${out.added ? "added" : "already present"}`);
+      console.log(`- source: ${source}`);
+      console.log(`- config: ${out.path}`);
+      return;
+    }
+
+    if (cmd === "pack" && sub === "uninstall") {
+      const source = third ?? readArgValue("--source");
+      if (!source) {
+        console.error("❌ nexus pack uninstall requires <source> or --source <source>");
+        process.exit(1);
+      }
+      const out = await uninstallPack({ cwd, source });
+      await appendLogEvent({ cwd, op: "pack.uninstall", status: "ok", details: { source, removed: out.removed } });
+      console.log(`✅ nexus pack uninstall: ${out.removed ? "removed" : "not installed"}`);
+      console.log(`- source: ${source}`);
+      console.log(`- config: ${out.path}`);
+      return;
+    }
+
+    if (cmd === "pack" && sub === "upgrade") {
+      const out = await updateLockfile({ cwd });
+      await appendLogEvent({ cwd, op: "pack.upgrade", status: "ok", details: { path: out.path, diffCount: out.diff.length } });
+      console.log(`✅ nexus pack upgrade: refreshed lockfile`);
+      console.log(`- lockfile: ${out.path}`);
+      for (const line of out.diff) console.log(`- ${line}`);
+      return;
+    }
+
     if (cmd === "list" && (sub === "skills" || sub === "mcp")) {
       await listAvailable(sub, configPath);
       return;
@@ -171,8 +225,25 @@ async function main() {
 
     if (cmd === "lock" && sub === "update") {
       const out = await updateLockfile({ cwd });
+      await appendLogEvent({ cwd, op: "lock.update", status: "ok", details: { path: out.path, diffCount: out.diff.length } });
       console.log(`✅ nexus lock update: ${out.path}`);
       for (const line of out.diff) console.log(`- ${line}`);
+      return;
+    }
+
+    if (cmd === "support" && sub === "bundle") {
+      const out = await createSupportBundle({ cwd });
+      await appendLogEvent({ cwd, op: "support.bundle", status: "ok", details: { path: out.path } });
+      console.log(`✅ nexus support bundle: ${out.path}`);
+      return;
+    }
+
+    if (cmd === "registry" && sub === "build") {
+      const outDir = readArgValue("--out") ?? undefined;
+      const out = await buildRegistrySite({ cwd, outDir });
+      await appendLogEvent({ cwd, op: "registry.build", status: "ok", details: { outDir: out.outDir, count: out.count } });
+      console.log(`✅ nexus registry build: ${out.outDir}`);
+      console.log(`- packs: ${out.count}`);
       return;
     }
 
@@ -184,7 +255,7 @@ async function main() {
       return;
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "support" || cmd === "registry" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
@@ -193,7 +264,13 @@ async function main() {
       console.log("  nexus check --config <path>                # verify generated outputs are in sync");
       console.log("  nexus doctor [--config <path>]             # diagnose blocking config/pack problems");
       console.log("  nexus lock update                          # write/update nexus.lock.json from dotfiles packs");
+      console.log("  nexus pack list                            # list installed local packs (.nexus/packs.json)");
+      console.log("  nexus pack install <source>                # install pack source for this repo");
+      console.log("  nexus pack uninstall <source>              # uninstall pack source for this repo");
+      console.log("  nexus pack upgrade                         # refresh lockfile against installed packs");
       console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
+      console.log("  nexus support bundle                        # write support bundle with config/lock/log snapshots");
+      console.log("  nexus registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }
@@ -201,6 +278,7 @@ async function main() {
     await runNexus({ cwd, configPath });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    await appendLogEvent({ cwd, op: `${cmd ?? "nexus"}.${sub ?? "run"}`, status: "error", message: msg });
     if (msg.includes("No pack.json found")) {
       console.error("❌ " + msg);
     } else {

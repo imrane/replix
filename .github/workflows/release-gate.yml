@@ -1,0 +1,29 @@
+name: Release Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  golden-gate:
+    name: Golden gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Golden release reliability gate
+        run: bun run test:release-gate

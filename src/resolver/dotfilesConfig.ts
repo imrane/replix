@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { loadPackMcpServers } from "./coreItems";
@@ -46,6 +47,7 @@ export type DotfilesPluginDef = {
 export type DotfilesPackDef = {
   source: string;
   allowUnpinned?: boolean;
+  signaturePublicKey?: string;
 };
 
 export type DotfilesConfig = {
@@ -180,8 +182,25 @@ function assertNoPathCollisions(
   }
 }
 
-export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
-  const p = process.env.NEXUS_DOTFILES_CONFIG_JSON;
+export function resolveDotfilesConfigPath(params?: { cwd?: string; explicitPath?: string | null }): string | null {
+  const explicit = params?.explicitPath ?? null;
+  if (explicit) return explicit;
+
+  const envPath = process.env.NEXUS_DOTFILES_CONFIG_JSON;
+  if (envPath) return envPath;
+
+  const cwd = params?.cwd ?? process.cwd();
+  const localPath = join(cwd, ".nexus", "packs.json");
+  if (existsSync(localPath)) return localPath;
+
+  return null;
+}
+
+export async function loadDotfilesRegistryFromEnv(params?: {
+  cwd?: string;
+  dotfilesConfigPath?: string | null;
+}): Promise<DotfilesRegistry> {
+  const p = resolveDotfilesConfigPath({ cwd: params?.cwd, explicitPath: params?.dotfilesConfigPath ?? null });
   if (!p) {
     return { skills: new Map(), mcp: new Map(), clients: new Map(), plugins: new Map(), vars: {}, strictEnv: true };
   }

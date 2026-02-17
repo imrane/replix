@@ -240,6 +240,6 @@ test("nexus doctor > detects lockfile drift and suggests lock update", () => {
 
   expect(out.exitCode).toBe(2);
   const stderr = out.stderr.toString();
-  expect(stderr).toContain("lockfile drift detected");
+  expect(stderr).toContain("lockfile compatibility gate failed");
   expect(stderr).toContain("fix: run `nexus lock update`");
 });
