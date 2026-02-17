@@ -16,7 +16,7 @@ import { appendLogEvent } from "./opsLog";
 import { createSupportBundle } from "./supportBundle";
 import { buildRegistrySite } from "./registrySite";
 import { runSelfHealCompile } from "./selfHeal";
-import { compileCanonicalPackToClient } from "./compile/canonicalArtifacts";
+import { compileCanonicalPackToClient, summarizeCanonicalPlan } from "./compile/canonicalArtifacts";
 import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
 
 function readArgValue(flag: string): string | null {
@@ -233,12 +233,15 @@ async function main() {
     if (cmd === "compile" && sub === "canonical") {
       const client = readArgValue("--client") as "claude" | "opencode" | "codex" | null;
       const packRoot = readArgValue("--pack") ?? cwd;
+      const failOnWarn = isFlagPresent("--fail-on-warn");
       if (!client || !["claude", "opencode", "codex"].includes(client)) {
         console.error("❌ nexus compile canonical requires --client <claude|opencode|codex>");
         process.exit(1);
       }
-      const out = await compileCanonicalPackToClient({ packRoot, client });
-      console.log(JSON.stringify({ client, packRoot, entries: out }, null, 2));
+      const entries = await compileCanonicalPackToClient({ packRoot, client });
+      const summary = summarizeCanonicalPlan(entries);
+      console.log(JSON.stringify({ client, packRoot, summary, entries }, null, 2));
+      if (failOnWarn && summary.warnings > 0) process.exit(2);
       return;
     }
 
@@ -341,7 +344,7 @@ async function main() {
       console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
       console.log("  nexus support bundle                        # write support bundle with config/lock/log snapshots");
       console.log("  nexus registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
-      console.log("  nexus compile canonical --client <claude|opencode|codex> [--pack <path>] # compile canonical pack refs into client artifact plan");
+      console.log("  nexus compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn] # compile canonical pack refs into client artifact plan");
       console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-ts <script.ts>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       console.log("  nexus spec validate-client-shapes [--max-age-days N] # validate client snapshot provenance/freshness");

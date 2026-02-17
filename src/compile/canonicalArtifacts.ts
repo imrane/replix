@@ -10,6 +10,12 @@ export type CanonicalArtifactPlanEntry = {
   warning?: string;
 };
 
+export type CanonicalArtifactPlanSummary = {
+  total: number;
+  warnings: number;
+  byKind: Record<string, number>;
+};
+
 function skillIdFromRef(ref: string): string {
   return basename(join(ref, ".."));
 }
@@ -23,6 +29,16 @@ async function parseHookEventIfJson(path: string): Promise<CanonicalHookEvent | 
   } catch {
     return null;
   }
+}
+
+export function summarizeCanonicalPlan(entries: CanonicalArtifactPlanEntry[]): CanonicalArtifactPlanSummary {
+  const byKind: Record<string, number> = {};
+  for (const e of entries) byKind[e.kind] = (byKind[e.kind] ?? 0) + 1;
+  return {
+    total: entries.length,
+    warnings: entries.filter((e) => !!e.warning).length,
+    byKind,
+  };
 }
 
 export async function compileCanonicalPackToClient(params: {
