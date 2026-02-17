@@ -51,8 +51,8 @@ Define AI tooling once in dotfiles, then enable it per repo with one unified sel
       args = ["-y" "@modelcontextprotocol/server-filesystem" "${ENV:FS_ROOT}"];
     };
 
-    # Optional artifact overrides
-    claude.commands."review.md" = { source = "path:~/.config/nexus/claude/commands/review.md"; };
+    # Optional artifact overrides (client-agnostic)
+    artifacts.commands."review.md" = { source = "path:~/.config/nexus/artifacts/commands/review.md"; };
 
     vars = { FS_ROOT = "/home/imrane"; };
     strictEnv = true;
@@ -142,13 +142,16 @@ Use these selectors in `enable`:
 - `agents`
 - `settings`
 
-### Why `claude.commands` in dotfiles today?
+### Artifact namespace in dotfiles
 
-Good question. Activation is unified, but definition namespaces are still transitional:
-- `skills` + `mcp` are already canonical at dotfiles level.
-- `commands` / `hooks` / `agents` are currently authored via `claude.*` in dotfiles, then compiled to all enabled clients via adapters.
+Primary authoring path is now client-agnostic:
+- `artifacts.commands`
+- `artifacts.hooks`
+- `artifacts.agents`
+- `artifacts.settings`
+- `artifacts.settingsLocal`
 
-So they are functionally cross-client at emit time, but the authoring namespace is not fully client-agnostic yet.
+Legacy `claude.*` artifact defs are still accepted for compatibility, but `artifacts.*` wins on key collisions.
 
 ### Compatibility/override path (secondary)
 

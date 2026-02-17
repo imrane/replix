@@ -29,17 +29,15 @@ export type DotfilesClientDef = {
   files?: Record<string, DotfilesClientFileDef>;
 };
 
-export type DotfilesClaudeDef = {
-  // Convenience sections for repo-scoped Claude Code artifacts.
+export type DotfilesArtifactsDef = {
   commands?: Record<string, DotfilesClientFileDef>;
   hooks?: Record<string, DotfilesClientFileDef>;
   agents?: Record<string, DotfilesClientFileDef>;
-
-  // Settings are single files (not directories).
-  // These map to `.claude/settings.json` and `.claude/settings.local.json` in the repo.
   settings?: DotfilesClientFileDef;
   settingsLocal?: DotfilesClientFileDef;
 };
+
+export type DotfilesClaudeDef = DotfilesArtifactsDef;
 
 export type DotfilesPluginDef = {
   module: string;
@@ -56,6 +54,7 @@ export type DotfilesConfig = {
   mcp?: Record<string, DotfilesMcpDef>;
   clients?: Record<string, DotfilesClientDef>;
   plugins?: Record<string, DotfilesPluginDef>;
+  artifacts?: DotfilesArtifactsDef;
   claude?: DotfilesClaudeDef;
   vars?: Record<string, string>;
   strictEnv?: boolean;
@@ -76,8 +75,8 @@ export async function loadDotfilesConfigFromPath(path: string): Promise<Dotfiles
   return json;
 }
 
-function toClaudeClientFiles(cfg: DotfilesConfig): Record<string, DotfilesClientFileDef> {
-  const out: Record<string, DotfilesClientFileDef> = { ...(cfg.clients?.claude?.files ?? {}) };
+function mapArtifactsToClaudeFiles(defs: DotfilesArtifactsDef | undefined): Record<string, DotfilesClientFileDef> {
+  const out: Record<string, DotfilesClientFileDef> = {};
 
   const sections: Array<["commands" | "hooks" | "agents", string]> = [
     ["commands", ".claude/commands"],
@@ -86,24 +85,24 @@ function toClaudeClientFiles(cfg: DotfilesConfig): Record<string, DotfilesClient
   ];
 
   for (const [section, base] of sections) {
-    const defs = cfg.claude?.[section] ?? {};
-    for (const [name, def] of Object.entries(defs)) {
+    const items = defs?.[section] ?? {};
+    for (const [name, def] of Object.entries(items)) {
       const rel = `${base}/${name}`.replace(/\/+/g, "/").replace(/^\/+/, "");
       if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
       out[rel] = def;
     }
   }
 
-  if (cfg.claude?.settings) {
+  if (defs?.settings) {
     const rel = ".claude/settings.json";
     if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
-    out[rel] = cfg.claude.settings;
+    out[rel] = defs.settings;
   }
 
-  if (cfg.claude?.settingsLocal) {
+  if (defs?.settingsLocal) {
     const rel = ".claude/settings.local.json";
     if (out[rel]) throw new Error(`duplicate claude file path in dotfiles config: ${rel}`);
-    out[rel] = cfg.claude.settingsLocal;
+    out[rel] = defs.settingsLocal;
   }
 
   return out;
@@ -169,6 +168,18 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
   return { skills, mcp, claudeFiles };
 }
 
+function assertNoPathCollisions(
+  existing: Record<string, DotfilesClientFileDef>,
+  incoming: Record<string, DotfilesClientFileDef>,
+  label: string,
+): void {
+  for (const p of Object.keys(incoming)) {
+    if (existing[p]) {
+      throw new Error(`duplicate claude file path in dotfiles config: ${p} (${label})`);
+    }
+  }
+}
+
 export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
   const p = process.env.NEXUS_DOTFILES_CONFIG_JSON;
   if (!p) {
@@ -183,16 +194,27 @@ export async function loadDotfilesRegistryFromEnv(): Promise<DotfilesRegistry> {
   const mcp = new Map([...packs.mcp.entries(), ...Object.entries(cfg.mcp ?? {})].sort((a, b) => a[0].localeCompare(b[0])));
 
   const clientObj: Record<string, DotfilesClientDef> = { ...(cfg.clients ?? {}) };
+  const explicitClaudeFiles = { ...(clientObj.claude?.files ?? {}) };
+  const packClaudeFiles = packs.claudeFiles;
+  const legacyClaudeFiles = mapArtifactsToClaudeFiles(cfg.claude);
+  const canonicalArtifactFiles = mapArtifactsToClaudeFiles(cfg.artifacts);
+
+  assertNoPathCollisions(explicitClaudeFiles, packClaudeFiles, "packs");
+  assertNoPathCollisions(explicitClaudeFiles, legacyClaudeFiles, "claude.*");
+  assertNoPathCollisions(explicitClaudeFiles, canonicalArtifactFiles, "artifacts.*");
+
+  // precedence: packs < legacy claude < canonical artifacts
   const claudeFiles = {
-    ...packs.claudeFiles,
-    ...toClaudeClientFiles(cfg),
+    ...packClaudeFiles,
+    ...legacyClaudeFiles,
+    ...canonicalArtifactFiles,
   };
 
   if (Object.keys(claudeFiles).length > 0) {
     clientObj.claude = {
       ...(clientObj.claude ?? {}),
       files: {
-        ...(clientObj.claude?.files ?? {}),
+        ...explicitClaudeFiles,
         ...claudeFiles,
       },
     };

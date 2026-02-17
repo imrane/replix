@@ -35,6 +35,36 @@ describe("dotfiles config registry", () => {
     ).toThrow(/missing enabled skill/);
   });
 
+  test("artifacts namespace overrides legacy claude namespace when both are set", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-artifacts-"));
+    const cfgPath = join(dir, "registry.json");
+
+    writeFileSync(
+      cfgPath,
+      JSON.stringify(
+        {
+          claude: {
+            commands: {
+              "review.md": { text: "legacy" },
+            },
+          },
+          artifacts: {
+            commands: {
+              "review.md": { text: "canonical" },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    const reg = await loadDotfilesRegistryFromEnv();
+    expect(reg.clients.get("claude")?.files?.[".claude/commands/review.md"]?.text).toBe("canonical");
+  });
+
   test("loads pack-first registry and allows direct overrides", async () => {
     const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-"));
     const cfgPath = join(dir, "registry.json");

@@ -63,6 +63,50 @@ in {
       description = "Global MCP server registry (dotfiles-first).";
     };
 
+    artifacts = mkOption {
+      type = types.submodule ({ ... }: {
+        options = {
+          commands = mkOption { type = types.attrsOf (types.submodule ({ ... }: { options = {
+            text = mkOption { type = types.nullOr types.str; default = null; };
+            source = mkOption { type = types.nullOr types.str; default = null; };
+            mode = mkOption { type = types.nullOr types.str; default = null; };
+            executable = mkOption { type = types.bool; default = false; };
+            allowUnpinned = mkOption { type = types.bool; default = false; };
+          }; })); default = {}; };
+          hooks = mkOption { type = types.attrsOf (types.submodule ({ ... }: { options = {
+            text = mkOption { type = types.nullOr types.str; default = null; };
+            source = mkOption { type = types.nullOr types.str; default = null; };
+            mode = mkOption { type = types.nullOr types.str; default = null; };
+            executable = mkOption { type = types.bool; default = false; };
+            allowUnpinned = mkOption { type = types.bool; default = false; };
+          }; })); default = {}; };
+          agents = mkOption { type = types.attrsOf (types.submodule ({ ... }: { options = {
+            text = mkOption { type = types.nullOr types.str; default = null; };
+            source = mkOption { type = types.nullOr types.str; default = null; };
+            mode = mkOption { type = types.nullOr types.str; default = null; };
+            executable = mkOption { type = types.bool; default = false; };
+            allowUnpinned = mkOption { type = types.bool; default = false; };
+          }; })); default = {}; };
+          settings = mkOption { type = types.nullOr (types.submodule ({ ... }: { options = {
+            text = mkOption { type = types.nullOr types.str; default = null; };
+            source = mkOption { type = types.nullOr types.str; default = null; };
+            mode = mkOption { type = types.nullOr types.str; default = null; };
+            executable = mkOption { type = types.bool; default = false; };
+            allowUnpinned = mkOption { type = types.bool; default = false; };
+          }; })); default = null; };
+          settingsLocal = mkOption { type = types.nullOr (types.submodule ({ ... }: { options = {
+            text = mkOption { type = types.nullOr types.str; default = null; };
+            source = mkOption { type = types.nullOr types.str; default = null; };
+            mode = mkOption { type = types.nullOr types.str; default = null; };
+            executable = mkOption { type = types.bool; default = false; };
+            allowUnpinned = mkOption { type = types.bool; default = false; };
+          }; })); default = null; };
+        };
+      });
+      default = {};
+      description = "Client-agnostic artifact definitions (commands/hooks/agents/settings).";
+    };
+
     plugins = mkOption {
       type = types.attrsOf (types.submodule ({ ... }: {
         options = {
@@ -118,6 +162,7 @@ in {
       plugins = mapAttrs (_: v: {
         module = v.module;
       }) cfg.plugins;
+      artifacts = cfg.artifacts;
       vars = cfg.vars;
       strictEnv = cfg.strictEnv;
     };
