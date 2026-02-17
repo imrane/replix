@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { loadPackMcpServers } from "./coreItems";
 import { loadLocalPack } from "./localPack";
@@ -123,6 +123,24 @@ async function listFiles(dir: string, opts?: { markdownOnly?: boolean }): Promis
   }
 }
 
+async function assertRefFile(packRoot: string, relPath: string, opts?: { markdownOnly?: boolean }): Promise<string> {
+  const abs = join(packRoot, relPath);
+  const s = await stat(abs).catch(() => null);
+  if (!s?.isFile()) throw new Error(`pack reference file not found: ${relPath}`);
+  if (opts?.markdownOnly && !relPath.endsWith(".md")) {
+    throw new Error(`pack reference must be markdown: ${relPath}`);
+  }
+  return abs;
+}
+
+async function loadMcpServersFromFile(path: string): Promise<Array<{ name: string; server: DotfilesMcpDef }>> {
+  const raw = await readFile(path, "utf8");
+  const obj = JSON.parse(raw) as Record<string, DotfilesMcpDef>;
+  return Object.keys(obj)
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ name, server: obj[name]! }));
+}
+
 async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Promise<{
   skills: Map<string, DotfilesSkillDef>;
   mcp: Map<string, DotfilesMcpDef>;
@@ -147,6 +165,7 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
         if (fileName !== "SKILL.md") {
           throw new Error(`pack.references.skills entries must point to SKILL.md: ${rel}`);
         }
+        await assertRefFile(root, rel, { markdownOnly: true });
         const itemId = basename(join(rel, ".."));
         skills.set(itemId, { source: `path:${join(root, rel, "..")}` });
       }
@@ -156,19 +175,30 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
       }
     }
 
-    const mcpServers = await loadPackMcpServers(root);
-    for (const entry of mcpServers) {
-      mcp.set(entry.name, entry.server);
+    const mcpRefs = localPack.meta.references?.mcp ?? [];
+    if (mcpRefs.length > 0) {
+      for (const rel of mcpRefs) {
+        const abs = await assertRefFile(root, rel);
+        const entries = await loadMcpServersFromFile(abs);
+        for (const entry of entries) mcp.set(entry.name, entry.server);
+      }
+    } else {
+      const mcpServers = await loadPackMcpServers(root);
+      for (const entry of mcpServers) {
+        mcp.set(entry.name, entry.server);
+      }
     }
 
     const commandRefs = localPack.meta.references?.commands ?? (await listFiles(join(root, "commands"), { markdownOnly: true })).map((n) => `commands/${n}`);
     for (const rel of commandRefs) {
+      await assertRefFile(root, rel, { markdownOnly: true });
       const name = basename(rel);
       claudeFiles[`.claude/commands/${name}`] = { source: `path:${join(root, rel)}` };
     }
 
     const hookRefs = localPack.meta.references?.hooks ?? (await listFiles(join(root, "hooks"))).map((n) => `hooks/${n}`);
     for (const rel of hookRefs) {
+      await assertRefFile(root, rel);
       const name = basename(rel);
       claudeFiles[`.claude/hooks/${name}`] = {
         source: `path:${join(root, rel)}`,
@@ -178,6 +208,7 @@ async function buildRegistryFromPacks(packs: DotfilesPackDef[] | undefined): Pro
 
     const agentRefs = localPack.meta.references?.agents ?? (await listFiles(join(root, "agents"), { markdownOnly: true })).map((n) => `agents/${n}`);
     for (const rel of agentRefs) {
+      await assertRefFile(root, rel, { markdownOnly: true });
       const name = basename(rel);
       claudeFiles[`.claude/agents/${name}`] = { source: `path:${join(root, rel)}` };
     }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { resolveEnabled } from "../src/enableValidation";
@@ -116,8 +116,42 @@ describe("dotfiles config registry", () => {
 
     expect(reg.skills.has("reviewer")).toBe(true);
     expect(reg.skills.has("triage")).toBe(true);
+    expect(reg.mcp.has("filesystem")).toBe(true);
     expect(reg.clients.get("claude")?.files?.[".claude/commands/review-pr.md"]?.source).toContain("canonical-v1/commands/review-pr.md");
     expect(reg.clients.get("claude")?.files?.[".claude/hooks/before-tool.json"]?.source).toContain("canonical-v1/hooks/before-tool.json");
     expect(reg.clients.get("claude")?.files?.[".claude/agents/reviewer.md"]?.source).toContain("canonical-v1/agents/reviewer.md");
+  });
+
+  test("fails fast when canonical references point to missing files", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nexus-dotfiles-pack-badref-"));
+    const packDir = join(dir, "pack");
+    mkdirSync(join(packDir, "mcp"), { recursive: true });
+
+    writeFileSync(
+      join(packDir, "pack.json"),
+      JSON.stringify(
+        {
+          id: "bad-pack",
+          version: "1.0.0",
+          imports: [],
+          specVersion: "nexus.canonical.v1-draft",
+          references: {
+            commands: ["commands/missing.md"],
+            mcp: ["mcp/servers.json"],
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    writeFileSync(join(packDir, "mcp", "servers.json"), JSON.stringify({}, null, 2), "utf8");
+
+    const cfgPath = join(dir, "registry.json");
+    writeFileSync(cfgPath, JSON.stringify({ packs: [{ source: `path:${packDir}` }] }, null, 2), "utf8");
+
+    process.env.NEXUS_DOTFILES_CONFIG_JSON = cfgPath;
+    await expect(loadDotfilesRegistryFromEnv()).rejects.toThrow("pack reference file not found");
   });
 });
