@@ -131,6 +131,16 @@ async function main() {
   const positionals = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
   const [cmd, sub, third] = positionals;
 
+  if (isFlagPresent("--version") || isFlagPresent("-v")) {
+    try {
+      const pkg = JSON.parse(await Bun.file(join(import.meta.dir, "..", "package.json")).text()) as { version?: string };
+      console.log(pkg.version ?? "0.0.0-dev");
+    } catch {
+      console.log("0.0.0-dev");
+    }
+    return;
+  }
+
   try {
     if (cmd === "pack" && sub === "list") {
       const packs = await listInstalledPacks({ cwd });

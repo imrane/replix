@@ -242,6 +242,21 @@ export async function resolveDotfilesSourceToPath(
     }
 
     const aliasIncludes = await resolvePackAliases(root, g.packs);
+
+    // pack alias UX: a single alias without explicit subpath resolves directly
+    // to that pack directory (which contains pack.json).
+    if (aliasIncludes.length === 1 && g.include.length === 0 && !g.subpath) {
+      const resolvedAlias = join(root, aliasIncludes[0]!);
+      if (!existsSync(resolvedAlias)) {
+        throw new Error(`resolved github pack alias path does not exist: ${resolvedAlias}`);
+      }
+      return resolvedAlias;
+    }
+
+    if (aliasIncludes.length > 1 && g.include.length === 0 && !g.subpath) {
+      throw new Error("github source packs=... requires explicit #sub/dir when multiple aliases are provided");
+    }
+
     const includes = [...new Set([...g.include, ...aliasIncludes])];
     const sourceRoot = includes.length > 0 ? materializeSelectiveInclude(root, includes) : root;
     const resolved = g.subpath ? join(sourceRoot, g.subpath) : sourceRoot;
