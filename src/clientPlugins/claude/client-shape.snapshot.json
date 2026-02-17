@@ -1,0 +1,91 @@
+{
+  "client": "claude-code",
+  "capturedAt": "2026-02-17T18:06:00Z",
+  "versionNote": "Docs snapshot; exact app semver not exposed in docs",
+  "sources": [
+    "https://code.claude.com/docs/en/settings",
+    "https://code.claude.com/docs/en/hooks",
+    "https://code.claude.com/docs/en/sub-agents",
+    "https://code.claude.com/docs/en/slash-commands"
+  ],
+  "scopes": {
+    "user": {
+      "settings": "~/.claude/settings.json",
+      "agents": "~/.claude/agents/",
+      "skills": "~/.claude/skills/"
+    },
+    "project": {
+      "settings": ".claude/settings.json",
+      "settingsLocal": ".claude/settings.local.json",
+      "agents": ".claude/agents/",
+      "skills": ".claude/skills/",
+      "mcp": ".mcp.json"
+    },
+    "managed": {
+      "settings": "managed-settings.json (system path)",
+      "mcp": "managed-mcp.json (system path)"
+    }
+  },
+  "keyShapes": {
+    "settings": {
+      "$schema": "https://json.schemastore.org/claude-code-settings.json",
+      "fields": [
+        "permissions",
+        "env",
+        "hooks",
+        "model",
+        "allowed/denied MCP config"
+      ]
+    },
+    "hooks": {
+      "events": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PermissionRequest",
+        "PostToolUse",
+        "PostToolUseFailure",
+        "Notification",
+        "SubagentStart",
+        "SubagentStop",
+        "Stop",
+        "TeammateIdle",
+        "TaskCompleted",
+        "PreCompact",
+        "SessionEnd"
+      ],
+      "groupShape": {
+        "matcher": "regex or omitted",
+        "hooks": [
+          {
+            "type": "command|prompt|agent",
+            "command": "for command hooks",
+            "prompt": "for prompt/agent hooks",
+            "model": "optional",
+            "timeout": "optional"
+          }
+        ]
+      }
+    },
+    "agentDefinition": {
+      "location": ".claude/agents/*.md",
+      "frontmatter": [
+        "name",
+        "description",
+        "tools",
+        "disallowedTools",
+        "model",
+        "permissionMode",
+        "maxTurns",
+        "skills",
+        "mcpServers",
+        "hooks",
+        "memory"
+      ]
+    },
+    "commandAndSkillDefinition": {
+      "skill": ".claude/skills/<name>/SKILL.md",
+      "notes": "Skills are the modern command extension path and support frontmatter + markdown body"
+    }
+  }
+}

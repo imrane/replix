@@ -1,0 +1,79 @@
+{
+  "client": "opencode",
+  "capturedAt": "2026-02-17T18:06:00Z",
+  "versionNote": "Docs/schema snapshot; prefer schema URL for exact current shape",
+  "sources": [
+    "https://opencode.ai/docs/config",
+    "https://opencode.ai/docs/agents",
+    "https://opencode.ai/docs/commands",
+    "https://opencode.ai/config.json"
+  ],
+  "scopes": {
+    "remote": ".well-known/opencode (org defaults)",
+    "global": "~/.config/opencode/opencode.json",
+    "project": "opencode.json + .opencode/*",
+    "runtime": "OPENCODE_CONFIG / OPENCODE_CONFIG_CONTENT"
+  },
+  "keyShapes": {
+    "config": {
+      "$schema": "https://opencode.ai/config.json",
+      "topLevel": [
+        "model",
+        "provider",
+        "mcp",
+        "agent",
+        "command",
+        "tools",
+        "permission"
+      ]
+    },
+    "commandDefinition": {
+      "json": {
+        "command.<name>": {
+          "template": "string",
+          "description": "string",
+          "agent": "optional",
+          "model": "optional",
+          "subtask": "optional"
+        }
+      },
+      "markdown": {
+        "location": ".opencode/commands/*.md",
+        "frontmatter": ["description", "agent", "model", "subtask"],
+        "body": "prompt template"
+      }
+    },
+    "agentDefinition": {
+      "json": {
+        "agent.<name>": {
+          "description": "required",
+          "mode": "primary|subagent|all",
+          "model": "optional",
+          "prompt": "optional",
+          "tools": "optional map",
+          "permission": "optional map",
+          "temperature": "optional",
+          "steps": "optional"
+        }
+      },
+      "markdown": {
+        "location": ".opencode/agents/*.md",
+        "frontmatter": [
+          "description",
+          "mode",
+          "model",
+          "tools",
+          "permission",
+          "temperature",
+          "steps",
+          "hidden"
+        ]
+      }
+    },
+    "filesystemConventions": {
+      "commands": ".opencode/commands",
+      "agents": ".opencode/agents",
+      "canonicalInNexusEmit": ".opencode/command + .opencode/agent"
+    }
+  }
+}

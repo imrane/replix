@@ -1,0 +1,43 @@
+{
+  "client": "openai-codex",
+  "capturedAt": "2026-02-17T18:06:00Z",
+  "versionNote": "Docs snapshot from OpenAI Codex docs + codex repo",
+  "sources": [
+    "https://developers.openai.com/codex/config-basic",
+    "https://developers.openai.com/codex/config-advanced",
+    "https://developers.openai.com/codex/config-reference",
+    "https://raw.githubusercontent.com/openai/codex/main/docs/config.md"
+  ],
+  "scopes": {
+    "system": "/etc/codex/config.toml",
+    "user": "~/.codex/config.toml",
+    "project": ".codex/config.toml (trusted projects only)",
+    "cli": "--config, --model, --profile"
+  },
+  "keyShapes": {
+    "config": {
+      "format": "TOML",
+      "coreFields": [
+        "model",
+        "model_provider",
+        "approval_policy",
+        "sandbox_mode",
+        "web_search",
+        "mcp_servers.*",
+        "features.*",
+        "profiles.*"
+      ]
+    },
+    "mcpDefinition": {
+      "shape": "[mcp_servers.<id>] with command/args/env/url/timeouts/headers",
+      "location": "~/.codex/config.toml and/or .codex/config.toml"
+    },
+    "agentDefinition": {
+      "status": "No first-class markdown 'agent file' shape documented like Claude/OpenCode.",
+      "alternative": "Use model/provider/profiles/rules/sandbox + instructions layers (AGENTS.md/model_instructions_file)."
+    },
+    "projectLayering": {
+      "behavior": "walks from project root to cwd; nearest .codex/config.toml wins for conflicts"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "nexus-canonical-spec",
+  "version": "0.1.0-proposed",
+  "intent": "Single provider-agnostic pack shape compiled by client plugins into valid client-native outputs.",
+  "pack": {
+    "required": ["id", "version"],
+    "optional": ["vars", "mcp", "commands", "agents", "hooks", "skills", "policies", "metadata"]
+  },
+  "entities": {
+    "skills": {
+      "shape": "skills/<id>/SKILL.md",
+      "fields": ["id", "description", "body", "allowedTools?", "model?"]
+    },
+    "commands": {
+      "shape": "commands/<id>.md + frontmatter",
+      "fields": ["description", "template", "agent?", "model?", "argsSchema?"]
+    },
+    "agents": {
+      "shape": "agents/<id>.md + frontmatter",
+      "fields": ["description", "prompt", "mode?", "model?", "tools?", "permission?", "temperature?", "steps?"]
+    },
+    "hooks": {
+      "shape": "hooks/<id>.json or frontmatter blocks",
+      "canonicalEvents": [
+        "on_session_start",
+        "on_user_prompt",
+        "before_tool",
+        "after_tool_success",
+        "after_tool_failure",
+        "on_permission_request",
+        "on_agent_start",
+        "on_agent_stop",
+        "before_compact",
+        "on_session_end"
+      ],
+      "handlerTypes": ["command", "prompt", "agent"],
+      "fields": ["event", "matcher?", "handler", "timeout?", "blocking?", "model?"]
+    },
+    "mcp": {
+      "shape": "mcp/servers.json",
+      "fields": ["name", "command|url", "args?", "env?", "headers?", "timeouts?", "enabledTools?", "disabledTools?"]
+    }
+  },
+  "compileContract": {
+    "adapters": ["claude", "opencode", "codex"],
+    "rules": [
+      "Canonical spec is source of truth; client-native files are build artifacts.",
+      "Client plugin performs mapping + validation against pinned client shape snapshot.",
+      "Unknown canonical fields fail validation unless explicitly ignored by adapter policy.",
+      "Unsupported client capabilities produce deterministic warnings or hard errors by mode."
+    ]
+  },
+  "validation": {
+    "stages": [
+      "canonical-schema-validate",
+      "adapter-map",
+      "client-shape-validate",
+      "golden-runtime-smoke"
+    ]
+  }
+}
