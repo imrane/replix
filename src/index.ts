@@ -15,6 +15,7 @@ import { installPack, listInstalledPacks, uninstallPack } from "./packLifecycle"
 import { appendLogEvent } from "./opsLog";
 import { createSupportBundle } from "./supportBundle";
 import { buildRegistrySite } from "./registrySite";
+import { runSelfHealCompile } from "./selfHeal";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -34,6 +35,13 @@ function readArgList(flag: string): string[] {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+function readArgInt(flag: string): number | null {
+  const v = readArgValue(flag);
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 async function loadConfig(configPath: string | null): Promise<NexusConfigV1 | null> {
@@ -196,6 +204,24 @@ async function main() {
       process.exit(2);
     }
 
+    if (cmd === "compile" && sub === "self-heal") {
+      if (!configPath) {
+        console.error("❌ nexus compile self-heal requires --config <path>");
+        process.exit(1);
+      }
+      const maxAttempts = readArgInt("--max-attempts") ?? 3;
+      const out = await runSelfHealCompile({ cwd, configPath, maxAttempts });
+      if (out.ok) {
+        console.log(`✅ nexus compile self-heal: recovered in ${out.attempts} attempt(s)`);
+        for (const n of out.notes) console.log(`- ${n}`);
+        return;
+      }
+      console.error(`❌ nexus compile self-heal: failed after ${out.attempts} attempt(s)`);
+      if (out.issueClass) console.error(`- issue class: ${out.issueClass}`);
+      for (const n of out.notes) console.error(`- ${n}`);
+      process.exit(2);
+    }
+
     if (cmd === "spec" && sub === "compile") {
       const inPath = readArgValue("--in");
       const outPath = readArgValue("--out");
@@ -255,7 +281,7 @@ async function main() {
       return;
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "support" || cmd === "registry" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "support" || cmd === "registry" || cmd === "compile" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  nexus [--config <path>]                    # emit Nexus artifacts");
       console.log("  nexus list skills [--config <path>]        # list skills available in this repo context");
@@ -271,6 +297,7 @@ async function main() {
       console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
       console.log("  nexus support bundle                        # write support bundle with config/lock/log snapshots");
       console.log("  nexus registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
+      console.log("  nexus compile self-heal --config <path> [--max-attempts N] # bounded self-healing compile loop");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }
