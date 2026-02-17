@@ -4,6 +4,7 @@ import { runNexus } from "./runNexus";
 import { runDoctor } from "./doctor";
 import { updateLockfile } from "./lockfile";
 import { parseClientLogFromPath } from "./clientPlugins/selfHealLogRegistry";
+import { runAiFixCommand } from "./selfHealAi";
 
 export type SelfHealIssueClass = "lock-drift" | "output-drift" | "schema-gap" | "unknown";
 
@@ -59,6 +60,7 @@ export async function runSelfHealCompile(params: {
   maxAttempts?: number;
   client?: string;
   clientLogPath?: string | null;
+  aiFixCommand?: string | null;
 }): Promise<SelfHealResult> {
   const maxAttempts = Math.max(1, params.maxAttempts ?? 3);
   const notes: string[] = [];
@@ -98,6 +100,23 @@ export async function runSelfHealCompile(params: {
     if (issueClass === "output-drift") {
       notes.push("retrying after drift");
       continue;
+    }
+
+    if ((issueClass === "schema-gap" || issueClass === "unknown") && params.aiFixCommand) {
+      const fix = runAiFixCommand({
+        cwd: params.cwd,
+        command: params.aiFixCommand,
+        payload: {
+          issueClass,
+          notes,
+          configPath: params.configPath,
+          client: params.client,
+        },
+      });
+      notes.push(`ai-fix exit=${fix.exitCode}`);
+      if (fix.stdout.trim()) notes.push(`ai-fix stdout: ${fix.stdout.trim().slice(0, 300)}`);
+      if (fix.stderr.trim()) notes.push(`ai-fix stderr: ${fix.stderr.trim().slice(0, 300)}`);
+      if (fix.ok) continue;
     }
 
     const reportPath = await writeReport({ cwd: params.cwd, ok: false, attempts: attempt, issueClass, notes });

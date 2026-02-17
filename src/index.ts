@@ -212,7 +212,8 @@ async function main() {
       const maxAttempts = readArgInt("--max-attempts") ?? 3;
       const client = readArgValue("--client") ?? undefined;
       const clientLogPath = readArgValue("--client-log") ?? null;
-      const out = await runSelfHealCompile({ cwd, configPath, maxAttempts, client, clientLogPath });
+      const aiFixCommand = readArgValue("--ai-fix-cmd") ?? null;
+      const out = await runSelfHealCompile({ cwd, configPath, maxAttempts, client, clientLogPath, aiFixCommand });
       if (out.ok) {
         console.log(`✅ nexus compile self-heal: recovered in ${out.attempts} attempt(s)`);
         console.log(`- report: ${out.reportPath}`);
@@ -301,7 +302,7 @@ async function main() {
       console.log("  nexus init [--client <name>] [--with-lock] [--force] # scaffold .nexus config + vars");
       console.log("  nexus support bundle                        # write support bundle with config/lock/log snapshots");
       console.log("  nexus registry build [--out <dir>]          # build static pack registry site (index.html + index.json)");
-      console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] # bounded self-healing compile loop");
+      console.log("  nexus compile self-heal --config <path> [--max-attempts N] [--client claude|opencode|codex] [--client-log <path>] [--ai-fix-cmd '<cmd>'] # bounded self-healing compile loop");
       console.log("  nexus spec compile --in <json> --out <json># compile snapshot into validated client schema");
       return;
     }
