@@ -280,7 +280,7 @@ Unpinned floating refs should be treated as non-default and require explicit opt
 **Local Path:**
 ```nix
 source = "path:~/.config/replix/skills/repo-status";
-source = "path:/home/imrane/skills/custom";
+source = "path:/home/your-user/skills/custom";
 ```
 
 **Flake:**

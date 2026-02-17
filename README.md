@@ -53,7 +53,7 @@ Define tooling once, enable per repo, emit client-native artifacts deterministic
       source = "path:~/.config/replix/artifacts/commands/review.md";
     };
 
-    vars = { FS_ROOT = "/home/imrane"; };
+    vars = { FS_ROOT = "/home/your-user"; };
     strictEnv = true;
   };
 }
