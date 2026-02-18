@@ -16,7 +16,7 @@ import type { McpServer } from "../resolver/pack";
 import { resolveEnabledClientPaths } from "./clientPaths";
 import { applyClientPathNormalization, assertClientPathSupported } from "../clientPlugins/registry";
 import type { DotfilesClientFileDef } from "../resolver/dotfilesConfig";
-import { resolveVars } from "../vars";
+import { resolvePackContractVars, resolveVars } from "../vars";
 
 export type ClientFileInjection = {
   client: string;
@@ -247,13 +247,35 @@ export async function compilePlanFromPack(params: {
     };
   });
 
+  const packVars = pack.meta.vars
+    ? await resolvePackContractVars({
+        repoRoot: packRoot,
+        cfgVars: {},
+        dotfilesVars: {},
+        contract: pack.meta.vars,
+        strictInterpolation: true,
+      })
+    : null;
+
+  if (packVars && (packVars.missingRequired.length > 0 || packVars.interpolationErrors.length > 0)) {
+    const detail = [
+      ...packVars.missingRequired.map((k) => `missing required variable ${k}`),
+      ...packVars.interpolationErrors,
+    ].join("; ");
+    throw new Error(`pack vars contract unresolved: ${detail}`);
+  }
+
   const mcpInputs: McpServerInput[] = graph.mcp.map((node) => {
     const srv = mcpServers.find((s) => s.name === node.item.name);
     if (!srv) throw new Error(`missing mcp server: ${node.item.name}`);
     return {
       id: formatId({ pack: pack.meta.id, imp: "mcp", item: node.id }),
       name: srv.name,
-      server: srv.server,
+      server: templateMcpServer(srv.server, {
+        vars: packVars?.values ?? {},
+        strictEnv: true,
+        projectRoot: packRoot,
+      }),
     };
   });
 

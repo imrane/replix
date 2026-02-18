@@ -66,6 +66,20 @@ describe("pack schema", () => {
     ).toThrow("duplicates key across required/optional");
   });
 
+  it("requires varsSchemaVersion=1 when vars contract is present", () => {
+    expect(() =>
+      parsePackJson({
+        id: "core",
+        version: "1.0.0",
+        imports: [],
+        vars: {
+          required: { API_TOKEN: {} },
+          optional: {},
+        },
+      }),
+    ).toThrow("pack.vars requires pack.varsSchemaVersion=1");
+  });
+
   it("parses canonical references map", () => {
     const pack = parsePackJson({
       id: "core",

@@ -9,7 +9,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { compileClientSpec, type ClientSpecSnapshot } from "./specCompiler";
 import { runDoctor } from "./doctor";
-import { updateLockfile } from "./lockfile";
+import { autoPinSourceFromLock, updateLockfile } from "./lockfile";
 import { runInit } from "./init";
 import { installPack, listInstalledPacks, uninstallPack } from "./packLifecycle";
 import { appendLogEvent } from "./opsLog";
@@ -32,6 +32,7 @@ import { getIndexCache, putIndexCache } from "./importProviders/indexCache";
 import { resolveAddInput } from "./addInputResolver";
 import { runBrowseTui, type BrowseItem } from "./browseTui";
 import { evaluateTrustPolicy } from "./trustPolicy";
+import { verifyConvertedDraft } from "./importVerifier";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -176,6 +177,7 @@ async function main() {
       let source = rawSource;
       let providerResolved: string | null = null;
       let inputNote: string | null = null;
+      let convertedDraft: import("./importProviders/types").ImportDraft | null = null;
 
       if (cmd === "add") {
         const isDirectSource = rawSource.startsWith("github:") || rawSource.startsWith("path:");
@@ -218,6 +220,7 @@ async function main() {
 
           const item = await provider.get(itemId);
           const normalized = await provider.normalize(item);
+          convertedDraft = normalized.draft;
           if (normalized.draft.kind !== "repo" && normalized.draft.kind !== "manifest") {
             source = normalized.draft.value;
             providerResolved = providerName;
@@ -227,6 +230,12 @@ async function main() {
             providerResolved = providerName;
           }
         }
+      }
+
+      const pinResult = await autoPinSourceFromLock({ cwd, source });
+      if (pinResult.pinned) {
+        source = pinResult.source;
+        inputNote = `${inputNote ? `${inputNote}; ` : ""}auto-pinned via lockfile rev ${pinResult.rev}`;
       }
 
       const detected = classifyImportInput(source);
@@ -239,6 +248,8 @@ async function main() {
         securityStatus: "unknown",
       });
 
+      const verify = convertedDraft ? await verifyConvertedDraft({ draft: convertedDraft }) : null;
+
       if (dryRun) {
         const installed = await listInstalledPacks({ cwd });
         const exists = installed.some((p) => p.source === source);
@@ -249,8 +260,19 @@ async function main() {
         console.log(`- source: ${source}`);
         console.log(`- detected: ${detected.kind} (${detected.confidence})`);
         console.log(`- trust: ${trust.channel} risk:${trust.riskLevel} score:${trust.score}`);
+        if (verify) {
+          console.log(`- verify: ${verify.ok ? "pass" : "fail"}`);
+          for (const n of verify.notes) console.log(`  note: ${n}`);
+          for (const e of verify.errors) console.log(`  error: ${e}`);
+        }
         console.log(`- config: ${configPath}`);
         return;
+      }
+
+      if (verify && !verify.ok) {
+        console.error("❌ install blocked by verifier gate (converted draft failed checks).");
+        for (const e of verify.errors) console.error(`- ${e}`);
+        process.exit(2);
       }
 
       if (trust.riskLevel === "high" && !allowRisky) {

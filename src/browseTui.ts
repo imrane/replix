@@ -51,7 +51,12 @@ export function reduceBrowseState(state: BrowseState, action: BrowseAction): Bro
   return { ...state, selected };
 }
 
-function render(state: BrowseState): string {
+function activeItem(state: BrowseState): BrowseItem | null {
+  if (state.filtered.length === 0) return null;
+  return state.filtered[state.cursor] ?? null;
+}
+
+export function renderBrowseScreen(state: BrowseState): string {
   const lines: string[] = [];
   lines.push(`replix browse  filter: ${state.filter || "(none)"}`);
   lines.push("j/k or arrows move · space select · enter install · / filter · q quit");
@@ -66,6 +71,35 @@ function render(state: BrowseState): string {
     lines.push(`${active} ${mark} ${r.provider}:${r.id}  ${r.title}  sec:${r.securityStatus ?? "unknown"}  trust:${trust.channel}/${trust.riskLevel}`);
   }
   if (rows.length === 0) lines.push("(no results)");
+
+  lines.push("");
+  lines.push("Security panel");
+  const current = activeItem(state);
+  if (!current) {
+    lines.push("- no focused result");
+    return lines.join("\n");
+  }
+
+  const trust = evaluateTrustPolicy({
+    provider: current.provider,
+    sourceUrl: current.sourceUrl,
+    securityStatus: (current.securityStatus ?? "unknown") as any,
+  });
+
+  lines.push(`- item: ${current.provider}:${current.id}`);
+  lines.push(`- risk: ${trust.riskLevel} (${trust.channel}, score:${trust.score})`);
+  lines.push(`- security: ${current.securityStatus ?? "unknown"}`);
+  if (current.securityReportUrl) lines.push(`- report: ${current.securityReportUrl}`);
+  lines.push("- reasons:");
+  for (const reason of trust.reasons) lines.push(`  - ${reason}`);
+
+  lines.push("");
+  lines.push("Detail preview");
+  lines.push(`- title: ${current.title}`);
+  lines.push(`- source: ${current.sourceUrl}`);
+  if (current.summary) lines.push(`- summary: ${current.summary}`);
+  if (current.tags?.length) lines.push(`- tags: ${current.tags.join(", ")}`);
+
   return lines.join("\n");
 }
 
@@ -86,7 +120,7 @@ export async function runBrowseTui(args: {
 
   const repaint = () => {
     process.stdout.write("\x1Bc");
-    process.stdout.write(render(state) + "\n");
+    process.stdout.write(renderBrowseScreen(state) + "\n");
   };
 
   repaint();

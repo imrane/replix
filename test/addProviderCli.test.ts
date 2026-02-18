@@ -50,3 +50,28 @@ test("replix add provider:id errors for unknown provider", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("replix add provider:id blocks install when verifier gate fails", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-add-provider-verify-fail-"));
+  try {
+    const repoRoot = join(root, "repo");
+    mkdirSync(repoRoot, { recursive: true });
+
+    const out = Bun.spawnSync({
+      cmd: ["bun", join(process.cwd(), "src/index.ts"), "add", "invalid-draft-provider:x"],
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        REPLIX_IMPORT_PROVIDER_MODULES: join(process.cwd(), "fixtures", "import-provider.invalid-draft.mock.ts"),
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(out.exitCode).toBe(2);
+    expect(out.stderr.toString()).toContain("verifier gate");
+    expect(out.stderr.toString()).toContain("draft.kind=unknown is not installable");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

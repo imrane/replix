@@ -5,7 +5,7 @@ import { compilePlanFromConfig, compilePlanFromPack } from "./compile/plan";
 import { checkReplixConfig } from "./check";
 import { loadLocalPack } from "./resolver/localPack";
 import { loadPackMcpServers, loadPackOpenCodeAssets } from "./resolver/coreItems";
-import { resolveVars, type VarSource } from "./vars";
+import { resolvePackContractVars, resolveVars, type VarSource } from "./vars";
 import type { PackVarsContract } from "./packSchema";
 import { buildLockSnapshot, buildDiffSummary, readLockfile } from "./lockfile";
 
@@ -135,10 +135,12 @@ async function evaluatePackVarsContract(params: {
   const problems: string[] = [];
   const notes: string[] = [];
 
-  const resolved = await resolveVars({
+  const resolved = await resolvePackContractVars({
     repoRoot,
     cfgVars: {},
     dotfilesVars: {},
+    contract: vars,
+    strictInterpolation: true,
   });
 
   const requirements: VarRequirement[] = [];
@@ -147,7 +149,7 @@ async function evaluatePackVarsContract(params: {
 
   for (const key of requiredKeys) {
     const source = (resolved.sourceByVar[key] ?? "missing") as DoctorVarSource;
-    const missing = source === "missing";
+    const missing = resolved.missingRequired.includes(key);
     requirements.push({
       pack: packId,
       variable: key,
@@ -171,6 +173,10 @@ async function evaluatePackVarsContract(params: {
       usedBy: ["pack.vars.optional"],
       missing: false,
     });
+  }
+
+  for (const err of resolved.interpolationErrors) {
+    problems.push(`pack ${packId} vars interpolation error: ${err}`);
   }
 
   if (requiredKeys.length === 0 && optionalKeys.length === 0) {
@@ -268,7 +274,7 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
     const pack = await loadLocalPack(packRoot);
     const mcpServers = await loadPackMcpServers(packRoot);
     const openCodeAssets = await loadPackOpenCodeAssets(packRoot);
-    await compilePlanFromPack({ pack, packRoot, mcpServers, openCodeAssets });
+
     notes.push(`pack parsed: ${pack.meta.id}@${pack.meta.version}`);
     notes.push(`pack skills: ${pack.skills.length}`);
     notes.push(`pack mcp servers: ${mcpServers.length}`);
@@ -282,6 +288,11 @@ export async function runDoctor(args: { cwd: string; configPath?: string | null 
       pushVarMatrixNotes(notes, contract.requirements);
       notes.push(...contract.notes);
       problems.push(...contract.problems);
+    }
+
+    if (problems.length === 0) {
+      await compilePlanFromPack({ pack, packRoot, mcpServers, openCodeAssets });
+      notes.push("pack compile plan check: ok");
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

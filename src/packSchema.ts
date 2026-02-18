@@ -131,6 +131,9 @@ export function parsePackJson(input: unknown): PackJson {
 
   let vars: PackVarsContract | undefined = undefined;
   if (varsRaw) {
+    if (varsSchemaVersion !== 1) {
+      throw new Error("pack.vars requires pack.varsSchemaVersion=1");
+    }
     const required = parseVarMap(varsRaw.required ?? {}, "pack.vars.required");
     const optional = parseVarMap(varsRaw.optional ?? {}, "pack.vars.optional");
 

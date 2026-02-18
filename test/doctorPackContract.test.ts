@@ -90,3 +90,43 @@ test("replix doctor (pack mode) > ready when required pack var exists in file", 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("replix doctor (pack mode) > blocks on unresolved vars interpolation", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-doctor-interp-"));
+  try {
+    writeFileSync(
+      join(root, "pack.json"),
+      JSON.stringify(
+        {
+          id: "interp-pack",
+          version: "1.0.0",
+          imports: [],
+          varsSchemaVersion: 1,
+          vars: {
+            required: {
+              API_URL: { default: "https://${MISSING_HOST}/v1" },
+            },
+            optional: {},
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    const out = Bun.spawnSync({
+      cmd: ["bun", join(process.cwd(), "src/index.ts"), "doctor"],
+      cwd: root,
+      env: { ...process.env },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(out.exitCode).toBe(2);
+    const stderr = out.stderr.toString();
+    expect(stderr).toContain("vars interpolation error");
+    expect(stderr).toContain("MISSING_HOST");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

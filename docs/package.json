@@ -1,0 +1,24 @@
+{
+  "name": "replix-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 4321",
+    "build": "next build",
+    "start": "next start -p 4321"
+  },
+  "dependencies": {
+    "next": "15.1.6",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "fumadocs-core": "14.6.6",
+    "fumadocs-ui": "14.6.6",
+    "fumadocs-mdx": "11.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}

@@ -216,6 +216,59 @@ export async function readLockfile(path: string): Promise<ReplixLockfile | null>
   }
 }
 
+function githubIdentityKey(source: string): string | null {
+  const g = parseGithubSource(source);
+  if (!g) return null;
+  const include = [...g.include].sort().join(",");
+  const packs = [...g.packs].sort().join(",");
+  const subpath = g.subpath ?? "";
+  return `${g.owner}/${g.repo}#${subpath}?include=${include}&packs=${packs}`;
+}
+
+function renderPinnedGithubSource(source: string, rev: string): string {
+  const g = parseGithubSource(source);
+  if (!g) return source;
+
+  const query = new URLSearchParams();
+  query.set("rev", rev);
+  if (g.include.length > 0) query.set("include", g.include.join(","));
+  for (const p of g.packs) query.append("pack", p);
+
+  const q = query.toString();
+  const base = `github:${g.owner}/${g.repo}${q ? `?${q}` : ""}`;
+  return g.subpath ? `${base}#${g.subpath}` : base;
+}
+
+function isResolvableLockRev(rev: string): boolean {
+  const v = rev.trim();
+  if (!v) return false;
+  return !["floating", "unknown", "local"].includes(v);
+}
+
+export async function autoPinSourceFromLock(params: {
+  cwd: string;
+  source: string;
+}): Promise<{ source: string; pinned: boolean; rev?: string }> {
+  const g = parseGithubSource(params.source);
+  if (!g || !g.floating) return { source: params.source, pinned: false };
+
+  const lockPath = join(params.cwd, "replix.lock.json");
+  const lock = await readLockfile(lockPath);
+  if (!lock) return { source: params.source, pinned: false };
+
+  const key = githubIdentityKey(params.source);
+  if (!key) return { source: params.source, pinned: false };
+
+  const match = lock.packs.find((p) => githubIdentityKey(p.source) === key && isResolvableLockRev(p.rev));
+  if (!match) return { source: params.source, pinned: false };
+
+  return {
+    source: renderPinnedGithubSource(params.source, match.rev),
+    pinned: true,
+    rev: match.rev,
+  };
+}
+
 export function buildDiffSummary(prev: ReplixLockfile | null, next: ReplixLockfile): string[] {
   if (!prev) return ["new lockfile created"];
 

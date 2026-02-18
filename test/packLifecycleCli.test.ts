@@ -85,3 +85,45 @@ test("replix lock update > uses .replix/packs.json when env is unset", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("replix add > auto-pins floating github source using lockfile rev", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-autopin-"));
+  try {
+    const repoRoot = join(root, "repo");
+    mkdirSync(join(repoRoot, ".replix"), { recursive: true });
+
+    writeFileSync(
+      join(repoRoot, "replix.lock.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          packs: [
+            {
+              source: "github:acme/security-pack#skills/security-pack",
+              rev: "deadbeefcafebabe",
+              version: "0.1.0",
+              requiredVars: [],
+            },
+          ],
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+
+    const add = Bun.spawnSync({
+      cmd: ["bun", join(process.cwd(), "src/index.ts"), "add", "github:acme/security-pack#skills/security-pack"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(add.exitCode).toBe(0);
+    expect(add.stdout.toString()).toContain("auto-pinned via lockfile rev deadbeefcafebabe");
+
+    const packs = JSON.parse(readFileSync(join(repoRoot, ".replix", "packs.json"), "utf8"));
+    expect(packs.packs[0].source).toBe("github:acme/security-pack?rev=deadbeefcafebabe#skills/security-pack");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { reduceBrowseState, type BrowseItem, type BrowseState } from "../src/browseTui";
+import { reduceBrowseState, renderBrowseScreen, type BrowseItem, type BrowseState } from "../src/browseTui";
 
 function mkState(): BrowseState {
   const items: BrowseItem[] = [
@@ -32,4 +32,23 @@ test("browse reducer > filter narrows list and resets cursor", () => {
   expect(s.filtered.length).toBe(1);
   expect(s.filtered[0]?.id).toBe("b");
   expect(s.cursor).toBe(0);
+});
+
+test("browse render > includes security panel and detail preview for focused item", () => {
+  const s = mkState();
+  const screen = renderBrowseScreen(s);
+  expect(screen).toContain("Security panel");
+  expect(screen).toContain("Detail preview");
+  expect(screen).toContain("- item: clawhub:a");
+  expect(screen).toContain("- title: Alpha");
+  expect(screen).toContain("- source: u1");
+  expect(screen).toContain("- reasons:");
+});
+
+test("browse render > empty filtered set shows no focused result", () => {
+  let s = mkState();
+  s = reduceBrowseState(s, { kind: "filter", value: "no-match" });
+  const screen = renderBrowseScreen(s);
+  expect(screen).toContain("(no results)");
+  expect(screen).toContain("- no focused result");
 });

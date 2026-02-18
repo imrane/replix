@@ -1,5 +1,6 @@
 import { getCached, setCached, type ImportProviderCacheState } from "./cache";
 import type { ImportProvider, ImportProviderItem, ImportSearchResult, NormalizedImport } from "./types";
+import { runAiFallbackNormalizer } from "./aiFallback";
 
 const cache: ImportProviderCacheState = {};
 const TTL_MS = 5 * 60 * 1000;
@@ -8,6 +9,9 @@ const STALE_MS = 55 * 60 * 1000;
 function detectDraftFromUrl(url: string): NormalizedImport["draft"] {
   if (url.startsWith("github:") || url.startsWith("path:") || url.includes("github.com")) {
     return { kind: "repo", value: url };
+  }
+  if (url.includes("clawhub.ai/items/") || url.includes("playbooks.com/")) {
+    return { kind: "manifest", value: url };
   }
   if (url.endsWith("pack.json") || url.includes("replix.index.json")) {
     return { kind: "manifest", value: url };
@@ -80,6 +84,12 @@ const clawhubProvider: ImportProvider = {
   },
   async normalize(item: ImportProviderItem): Promise<NormalizedImport> {
     const draft = detectDraftFromUrl(item.sourceUrl);
+    if (draft.kind === "unknown") {
+      const ai = runAiFallbackNormalizer({ item });
+      if (ai) {
+        return { sourceId: item.id, sourceUrl: item.sourceUrl, draft: ai.draft, confidence: ai.confidence };
+      }
+    }
     return { sourceId: item.id, sourceUrl: item.sourceUrl, draft, confidence: draft.kind === "unknown" ? "low" : "medium" };
   },
 };
@@ -142,6 +152,12 @@ const playbooksProvider: ImportProvider = {
   },
   async normalize(item: ImportProviderItem): Promise<NormalizedImport> {
     const draft = detectDraftFromUrl(item.sourceUrl);
+    if (draft.kind === "unknown") {
+      const ai = runAiFallbackNormalizer({ item });
+      if (ai) {
+        return { sourceId: item.id, sourceUrl: item.sourceUrl, draft: ai.draft, confidence: ai.confidence };
+      }
+    }
     return { sourceId: item.id, sourceUrl: item.sourceUrl, draft, confidence: draft.kind === "unknown" ? "low" : "medium" };
   },
 };
