@@ -54,6 +54,21 @@ nix flake check
 
 ## Current State (handoff)
 
+### Session Delta (2026-02-18, concise)
+- Shipped import-anything baseline with TDD-first loop (write failing test → implement → pass):
+  - `replix add` alias + `--dry-run`
+  - provider plugin system (built-ins + external modules from dotfiles/config/env)
+  - ClawHub adapter (API-first) + Playbooks adapter (sitemap fallback)
+  - `replix search` + `replix browse` TUI (j/k/arrows, space, enter, `/` filter)
+  - friendly add inputs (provider:id, ClawHub/Playbooks links, plain search terms)
+  - security/trust output + trust policy guardrail (`--allow-risky` override)
+  - persistent provider index cache (`.replix/import-index.json`) with stale-while-revalidate behavior
+- New queued conversion tasks were added to beads (must keep in critical path):
+  - `replix-1eb.10` deterministic adapters (Claude/Codex/MCP → replix draft spec)
+  - `replix-1eb.11` AI fallback normalizer (strict schema output)
+  - `replix-1eb.12` convert verify gate (validate + compile smoke before install)
+
+
 **Repo:** `~/code/try/2026-02-14-replix`  
 **Stack:** Bun + TypeScript + Nix  
 **Status:** v2 config-mode is implemented and actively hardening; v1 pack mode is queued for removal (no deprecation rollout needed before removal).
@@ -396,5 +411,5 @@ PRD.md remains source of truth for v2 goals.
 - New beads task created for CLI smoke stability:
   - `2026-02-14-nexus-l58` — timeout-safe skip behavior for hanging client CLIs.
 
-**Last updated:** 2026-02-18 00:06 UTC  
-**Status:** Public-readiness + alias DX landed; next priority is smoke-CLI timeout hardening (`2026-02-14-nexus-l58`).
+**Last updated:** 2026-02-18 04:22 UTC  
+**Status:** Import-anything baseline shipped (search/browse/add/trust/cache); next priority is conversion pipeline tasks `replix-1eb.10/.11/.12` + TUI security detail panel (`replix-1eb.3`).

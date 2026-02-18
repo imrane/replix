@@ -22,6 +22,7 @@ export type ReplixConfigV1 = {
   strictEnv?: boolean;
   layout?: "direct" | "generated";
   cleanup?: "owned-only" | "full";
+  importProviders?: { modules: string[] };
   // v1 used `sources.*`; v2 naming is `overrides.*` (repo-local only).
   // parseReplixConfig accepts either, but returns normalized `overrides`.
   overrides: ReplixOverridesV1;
@@ -144,6 +145,12 @@ export function parseReplixConfig(input: unknown): ReplixConfigV1 {
     throw new Error('config.cleanup must be "owned-only"|"full"');
   }
 
+  const importProvidersRaw = (input as any).importProviders;
+  if (!(importProvidersRaw === undefined || isRecord(importProvidersRaw))) {
+    throw new Error("config.importProviders must be an object");
+  }
+  const importProviderModules = assertStringArray((importProvidersRaw as any)?.modules, "config.importProviders.modules");
+
   return {
     version: 1,
     repoRoot,
@@ -153,6 +160,7 @@ export function parseReplixConfig(input: unknown): ReplixConfigV1 {
     strictEnv: strictEnvRaw,
     layout: layoutRaw,
     cleanup: cleanupRaw,
+    importProviders: importProvidersRaw === undefined ? undefined : { modules: importProviderModules },
     overrides: {
       skills: overrideSkills as Record<string, { path: string }>,
       mcp: overrideMcp,

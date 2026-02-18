@@ -11,7 +11,7 @@ function makePack(root: string, id: string, version: string) {
   );
 }
 
-test("replix pack install/list/uninstall > manages .replix/packs.json", () => {
+test("replix add + pack list/uninstall > manages .replix/packs.json", () => {
   const root = mkdtempSync(join(tmpdir(), "replix-pack-cli-"));
   try {
     const repoRoot = join(root, "repo");
@@ -19,12 +19,13 @@ test("replix pack install/list/uninstall > manages .replix/packs.json", () => {
     const source = "github:acme/security-pack?rev=abc123";
 
     const install = Bun.spawnSync({
-      cmd: ["bun", join(process.cwd(), "src/index.ts"), "pack", "install", source],
+      cmd: ["bun", join(process.cwd(), "src/index.ts"), "add", source],
       cwd: repoRoot,
       stdout: "pipe",
       stderr: "pipe",
     });
     expect(install.exitCode).toBe(0);
+    expect(install.stdout.toString()).toContain("replix add: added");
 
     const packsPath = join(repoRoot, ".replix", "packs.json");
     expect(existsSync(packsPath)).toBe(true);

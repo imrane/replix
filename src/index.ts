@@ -20,6 +20,18 @@ import { compileCanonicalPackToClient, summarizeCanonicalPlan } from "./compile/
 import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
 import { validateCanonicalPackV1 } from "./clientPlugins/canonical/validatePack";
 import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
+import { classifyImportInput } from "./importClassifier";
+import { createImportProviderRegistry } from "./importProviders/registry";
+import {
+  importProviderModulesFromDotfiles,
+  importProviderModulesFromEnv,
+  loadImportProviderModules,
+  registerBuiltinImportProviders,
+} from "./importProviders/loader";
+import { getIndexCache, putIndexCache } from "./importProviders/indexCache";
+import { resolveAddInput } from "./addInputResolver";
+import { runBrowseTui, type BrowseItem } from "./browseTui";
+import { evaluateTrustPolicy } from "./trustPolicy";
 
 function readArgValue(flag: string): string | null {
   const idx = process.argv.indexOf(flag);
@@ -154,16 +166,107 @@ async function main() {
       return;
     }
 
-    if (cmd === "pack" && sub === "install") {
-      const source = third ?? readArgValue("--source");
-      if (!source) {
-        console.error("❌ replix pack install requires <source> or --source <source>");
+    if ((cmd === "pack" && sub === "install") || cmd === "add") {
+      const rawSource = cmd === "add" ? sub ?? third ?? readArgValue("--source") : third ?? readArgValue("--source");
+      if (!rawSource) {
+        console.error(cmd === "add" ? "❌ replix add requires <source> or --source <source>" : "❌ replix pack install requires <source> or --source <source>");
         process.exit(1);
       }
+
+      let source = rawSource;
+      let providerResolved: string | null = null;
+      let inputNote: string | null = null;
+
+      if (cmd === "add") {
+        const isDirectSource = rawSource.startsWith("github:") || rawSource.startsWith("path:");
+        const needsProviderResolution =
+          !isDirectSource &&
+          (/^https?:\/\//i.test(rawSource) || rawSource.includes(" ") || /^([a-z0-9][a-z0-9-]*):(.+)$/.test(rawSource));
+
+        const registry = createImportProviderRegistry();
+
+        if (needsProviderResolution) {
+          const dotfiles = await loadDotfilesRegistryFromEnv({ cwd });
+          const cfg = await loadConfig(configPath);
+          await registerBuiltinImportProviders(registry);
+
+          const modules = [
+            ...new Set([
+              ...importProviderModulesFromDotfiles(dotfiles),
+              ...(cfg?.importProviders?.modules ?? []),
+              ...importProviderModulesFromEnv(),
+            ]),
+          ];
+          if (modules.length > 0) {
+            await loadImportProviderModules({ cwd, registry, modules });
+          }
+
+          const resolvedInput = await resolveAddInput(rawSource, registry);
+          source = resolvedInput.resolved;
+          inputNote = resolvedInput.note ?? null;
+        }
+
+        const m = /^([a-z0-9][a-z0-9-]*):(.+)$/.exec(source);
+        if (m && !source.startsWith("github:") && !source.startsWith("path:")) {
+          const providerName = m[1]!;
+          const itemId = m[2]!;
+          const provider = registry.get(providerName);
+          if (!provider) {
+            console.error(`❌ replix add: unknown provider '${providerName}'`);
+            process.exit(2);
+          }
+
+          const item = await provider.get(itemId);
+          const normalized = await provider.normalize(item);
+          if (normalized.draft.kind !== "repo" && normalized.draft.kind !== "manifest") {
+            source = normalized.draft.value;
+            providerResolved = providerName;
+            inputNote = `${inputNote ? `${inputNote}; ` : ""}provider returned ${normalized.draft.kind}, using draft value directly`;
+          } else {
+            source = normalized.draft.value;
+            providerResolved = providerName;
+          }
+        }
+      }
+
+      const detected = classifyImportInput(source);
+      const dryRun = isFlagPresent("--dry-run");
+      const allowRisky = isFlagPresent("--allow-risky");
+
+      const trust = evaluateTrustPolicy({
+        provider: providerResolved ?? (detected.kind === "repo" ? "github" : "unknown"),
+        sourceUrl: source,
+        securityStatus: "unknown",
+      });
+
+      if (dryRun) {
+        const installed = await listInstalledPacks({ cwd });
+        const exists = installed.some((p) => p.source === source);
+        const configPath = join(cwd, ".replix", "packs.json");
+        console.log(`🧪 DRY RUN ${cmd === "add" ? "replix add" : "replix pack install"}: ${exists ? "already present" : "would add"}`);
+        if (inputNote) console.log(`- note: ${inputNote}`);
+        if (providerResolved) console.log(`- resolved via provider: ${providerResolved}`);
+        console.log(`- source: ${source}`);
+        console.log(`- detected: ${detected.kind} (${detected.confidence})`);
+        console.log(`- trust: ${trust.channel} risk:${trust.riskLevel} score:${trust.score}`);
+        console.log(`- config: ${configPath}`);
+        return;
+      }
+
+      if (trust.riskLevel === "high" && !allowRisky) {
+        console.error("❌ install blocked by trust policy (high risk). Re-run with --allow-risky to override.");
+        console.error(`- trust: ${trust.channel} risk:${trust.riskLevel} score:${trust.score}`);
+        process.exit(2);
+      }
+
       const out = await installPack({ cwd, source, allowUnpinned: isFlagPresent("--allow-unpinned") });
-      await appendLogEvent({ cwd, op: "pack.install", status: "ok", details: { source, added: out.added } });
-      console.log(`✅ replix pack install: ${out.added ? "added" : "already present"}`);
+      await appendLogEvent({ cwd, op: cmd === "add" ? "add" : "pack.install", status: "ok", details: { source, rawSource, added: out.added, providerResolved, inputNote, detected } });
+      console.log(`✅ ${cmd === "add" ? "replix add" : "replix pack install"}: ${out.added ? "added" : "already present"}`);
+      if (inputNote) console.log(`- note: ${inputNote}`);
+      if (providerResolved) console.log(`- resolved via provider: ${providerResolved}`);
       console.log(`- source: ${source}`);
+      console.log(`- detected: ${detected.kind} (${detected.confidence})`);
+      console.log(`- trust: ${trust.channel} risk:${trust.riskLevel} score:${trust.score}`);
       console.log(`- config: ${out.path}`);
       return;
     }
@@ -234,6 +337,121 @@ async function main() {
 
     if (cmd === "list" && (sub === "skills" || sub === "mcp")) {
       await listAvailable(sub, configPath);
+      return;
+    }
+
+    if (cmd === "search" || cmd === "browse") {
+      const query = readArgValue("--query") ?? sub ?? third ?? "";
+      if (!query) {
+        console.error(`❌ replix ${cmd} requires --query <text> or positional query`);
+        process.exit(1);
+      }
+
+      const providerName = readArgValue("--provider");
+      const dotfiles = await loadDotfilesRegistryFromEnv({ cwd });
+      const cfg = await loadConfig(configPath);
+      const registry = createImportProviderRegistry();
+      await registerBuiltinImportProviders(registry);
+
+      const modules = [
+        ...new Set([
+          ...importProviderModulesFromDotfiles(dotfiles),
+          ...(cfg?.importProviders?.modules ?? []),
+          ...importProviderModulesFromEnv(),
+        ]),
+      ];
+      if (modules.length > 0) {
+        await loadImportProviderModules({ cwd, registry, modules });
+      }
+
+      if (providerName) {
+        const provider = registry.get(providerName);
+        if (!provider) {
+          console.error(`❌ replix ${cmd}: unknown provider '${providerName}'`);
+          process.exit(2);
+        }
+
+        const ttlMs = 5 * 60 * 1000;
+        const staleMs = 55 * 60 * 1000;
+        const cached = (await getIndexCache(cwd, provider.name, query)) as any[] | null;
+        const results = cached ?? (await provider.search(query));
+        if (!cached) {
+          await putIndexCache(cwd, provider.name, query, results, ttlMs, staleMs);
+        }
+
+        if (cmd === "browse") {
+          const items: BrowseItem[] = results.map((r: any) => ({ ...r, provider: provider.name }));
+          await runBrowseTui({
+            items,
+            onInstall: async (selected) => {
+              for (const s of selected) {
+                const out = await installPack({ cwd, source: s.sourceUrl, allowUnpinned: true });
+                console.log(`✅ installed ${s.provider}:${s.id} -> ${s.sourceUrl} (${out.added ? "added" : "already present"})`);
+              }
+            },
+          });
+          return;
+        }
+
+        console.log(`provider: ${provider.name}${cached ? " (cached)" : ""}`);
+        if (results.length === 0) {
+          console.log("(no results)");
+        } else {
+          for (const r of results) {
+            const security = r.securityStatus ?? "unknown";
+            const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
+            const trust = evaluateTrustPolicy({ provider: provider.name, sourceUrl: r.sourceUrl, securityStatus: security as any });
+            console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
+          }
+        }
+        return;
+      }
+
+      const providers = registry.list();
+      if (providers.length === 0) {
+        console.log("(no import providers registered)");
+        return;
+      }
+
+      const allItems: BrowseItem[] = [];
+      for (const p of providers) {
+        const ttlMs = 5 * 60 * 1000;
+        const staleMs = 55 * 60 * 1000;
+        const cached = (await getIndexCache(cwd, p.name, query)) as any[] | null;
+        const results = cached ?? (await p.search(query));
+        if (!cached) {
+          await putIndexCache(cwd, p.name, query, results, ttlMs, staleMs);
+        }
+
+        if (cmd === "browse") {
+          allItems.push(...results.map((r: any) => ({ ...r, provider: p.name })));
+          continue;
+        }
+
+        console.log(`provider: ${p.name}${cached ? " (cached)" : ""}`);
+        if (results.length === 0) {
+          console.log("- (no results)");
+          continue;
+        }
+        for (const r of results.slice(0, 5)) {
+          const security = r.securityStatus ?? "unknown";
+          const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
+          const trust = evaluateTrustPolicy({ provider: p.name, sourceUrl: r.sourceUrl, securityStatus: security as any });
+          console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
+        }
+      }
+
+      if (cmd === "browse") {
+        await runBrowseTui({
+          items: allItems,
+          onInstall: async (selected) => {
+            for (const s of selected) {
+              const out = await installPack({ cwd, source: s.sourceUrl, allowUnpinned: true });
+              console.log(`✅ installed ${s.provider}:${s.id} -> ${s.sourceUrl} (${out.added ? "added" : "already present"})`);
+            }
+          },
+        });
+      }
       return;
     }
 
@@ -393,15 +611,18 @@ async function main() {
       return;
     }
 
-    if (cmd === "list" || cmd === "snippet" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "support" || cmd === "registry" || cmd === "compile" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
+    if (cmd === "list" || cmd === "snippet" || cmd === "search" || cmd === "check" || cmd === "doctor" || cmd === "init" || cmd === "pack" || cmd === "add" || cmd === "support" || cmd === "registry" || cmd === "compile" || (cmd === "lock" && sub === "update") || (cmd === "spec" && sub === "compile") || isFlagPresent("--help") || isFlagPresent("-h")) {
       console.log("Usage:");
       console.log("  replix [--config <path>]                    # emit Replix artifacts");
       console.log("  replix list skills [--config <path>]        # list skills available in this repo context");
       console.log("  replix list mcp [--config <path>]           # list MCP servers available in this repo context");
       console.log("  replix snippet --skills a,b --mcp x,y       # print mkRepo enable snippet");
+      console.log("  replix search --query <text> [--provider name] # search import providers (pluginable)");
+      console.log("  replix browse --query <text> [--provider name] # interactive TUI browse/install");
       console.log("  replix check --config <path>                # verify generated outputs are in sync");
       console.log("  replix doctor [--config <path>]             # diagnose blocking config/pack problems");
       console.log("  replix lock update                          # write/update replix.lock.json from dotfiles packs");
+      console.log("  replix add <source>                         # shortcut: install pack source for this repo");
       console.log("  replix pack list                            # list installed local packs (.replix/packs.json)");
       console.log("  replix pack install <source>                # install pack source for this repo");
       console.log("  replix pack uninstall <source>              # uninstall pack source for this repo");

@@ -213,10 +213,19 @@ replix doctor --config .replix/repo.json
 replix lock update
 
 # Non-Nix pack lifecycle (repo-local .replix/packs.json)
+replix add github:owner/repo?rev=<sha>
+replix add github:owner/repo?rev=<sha> --dry-run
+replix add clawhub:<id>
+replix add https://clawhub.ai/items/<slug>
+replix add "test runner"
 replix pack install github:owner/repo?rev=<sha>
 replix pack list
 replix pack uninstall github:owner/repo?rev=<sha>
 replix pack upgrade
+
+# Provider discovery
+replix search --query "security"
+replix browse --query "security"
 
 # Reliability + support
 replix support bundle
@@ -277,6 +286,14 @@ replix spec compile --in <snapshot.json> --out <schema.json>
 - ✅ Lock/checksum/signature reliability gates active
 - ✅ Support bundle + structured logs + static registry generator shipped
 - ✅ Golden reliability gate shipped (`scripts/release-gate.ts`, workflow)
+- ✅ Import-anything foundations shipped:
+  - provider plugin system (built-ins + external modules)
+  - `replix search` across providers with security/trust indicators
+  - persistent third-party index cache (`.replix/import-index.json`) + stale-while-revalidate behavior
+  - friendly `replix add` inputs: provider IDs, ClawHub/Playbooks links, plain search terms
+  - `replix add --dry-run` preview (no writes)
+  - interactive `replix browse` TUI (j/k/arrows, space, enter, `/` filter)
+  - trust policy guardrail (blocks high-risk installs unless `--allow-risky`)
 - ⚠️ Legacy repo-local `pack.json` fallback remains compatibility-only (planned removal)
 
 See `PRD.md` for roadmap and `AGENTS.md` for handoff state.
