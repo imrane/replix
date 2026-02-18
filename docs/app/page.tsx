@@ -27,13 +27,30 @@ export default function HomePage() {
         <h2>Quick start (under 3 minutes)</h2>
         <p style={{ marginTop: 0 }}>What you get: pull one pack, apply it to a repo, and verify it worked.</p>
 
-        <h3>1) Go to your project</h3>
-        <Cmd>{`cd /path/to/your/repo`}</Cmd>
+        <h3>macOS/Linux copy-paste commands</h3>
+        <Cmd>{`# 1) go to your repo
+cd /path/to/your/repo
 
-        <h3>2) Install Replix (pick one)</h3>
-        <Cmd>{`npm i -D replix`}</Cmd>
-        <Cmd>{`pnpm add -D replix`}</Cmd>
-        <Cmd>{`bun add -d replix`}</Cmd>
+# 2) install replix (choose one)
+npm i -D replix
+# pnpm add -D replix
+# bun add -d replix
+
+# 3) add a pack by name (easy mode)
+npx replix add github:owner/rpacks starter
+
+# 4) apply
+npx replix
+
+# 5) verify
+npx replix check`}</Cmd>
+
+        <h3>What each command does</h3>
+        <ul>
+          <li><code>replix add ... starter</code> picks a named pack without making you type rev/path.</li>
+          <li><code>replix</code> applies pack outputs to your repo.</li>
+          <li><code>replix check</code> confirms your generated files are in sync.</li>
+        </ul>
 
         <h3>3) Add a pack (easy mode)</h3>
         <Cmd>{`npx replix add github:owner/rpacks starter`}</Cmd>
