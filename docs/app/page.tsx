@@ -51,6 +51,25 @@ export default function HomePage() {
       </section>
 
       <section style={{ marginTop: 28 }}>
+        <h2>Beginner path (the happy path)</h2>
+        <p style={{ marginTop: 0 }}>If you only remember one flow, remember this:</p>
+        <ol>
+          <li>
+            <strong>Install Replix in your repo</strong> so your project can run packs.
+          </li>
+          <li>
+            <strong>Pull one pack by name</strong> from a pack repo (for example: <code>starter</code>).
+          </li>
+          <li>
+            <strong>Apply + verify</strong> so you know exactly what changed and that it is in sync.
+          </li>
+        </ol>
+        <p style={{ opacity: 0.9 }}>
+          Benefit: this gives you value quickly without learning advanced flags first.
+        </p>
+      </section>
+
+      <section style={{ marginTop: 28 }}>
         <h2>Why this flow works</h2>
         <ul>
           <li>You get a working baseline quickly.</li>
