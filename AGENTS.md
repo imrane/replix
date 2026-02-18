@@ -399,17 +399,24 @@ PRD.md remains source of truth for v2 goals.
 - New follow-up debt item:
   - `2026-02-14-replix-bd9` — code cleanup sweep after canonical rollout.
 
-## Session Delta (2026-02-18, post-rename hardening)
-- Renamed project + remote to `replix` and removed personal local-path references from docs/examples; repo is now suitable for public visibility review.
-- Added pack import DX:
-  - `folder` / `folders` aliases (normalize to `?include=`)
-  - `pack` / `packs` aliases via `replix.index.json` (repo-owned alias map)
-  - `replix pack list-aliases <source>` CLI to discover aliases.
-- Fixed alias runtime bug: `github:...?...pack=<alias>` now resolves to the pack root directory (with `pack.json`) for single-alias imports.
-- Added `replix --version` flag.
-- Real-world smoke run in a fresh try repo succeeded after config cleanup; one failure mode found was copy/pasted non-breaking spaces in JSON from chat.
-- New beads task created for CLI smoke stability:
-  - `2026-02-14-nexus-l58` — timeout-safe skip behavior for hanging client CLIs.
+## Session Delta (2026-02-18, docs + import UX hardening)
+- Closed and shipped conversion path for import-anything critical path:
+  - deterministic format adapters (`1eb.10`),
+  - AI fallback normalizer (`1eb.11`),
+  - verifier gate before install (`1eb.12`).
+- Added repo-first add ergonomics for beginners:
+  - `replix add github:owner/rpacks starter`
+  - `replix add github:owner/rpacks --pack starter`
+  - no manual rev/path needed for happy path.
+- Shipped pack var contract hardening (`0jq`):
+  - `pack.vars` now requires `varsSchemaVersion=1`
+  - contract-default/interpolation-aware resolution
+  - doctor + compile flow now block unresolved/missing required vars with actionable errors.
+- Docs epic (`replix-aju`) shipped as real Fumadocs + MDX pages (beginner-first IA):
+  - quickstart, beginner-path, success-checks, troubleshooting, concepts, packs, safety, advanced
+  - added docs smoke CI workflow (`docs-smoke.yml`)
+  - README now points to beginner entry pages.
+- Key process learning: when user asks for Fumadocs + markdown pages, do not ship monolithic TSX docs first; wire MDX source + nav immediately.
 
-**Last updated:** 2026-02-18 04:22 UTC  
-**Status:** Import-anything baseline shipped (search/browse/add/trust/cache); next priority is conversion pipeline tasks `replix-1eb.10/.11/.12` + TUI security detail panel (`replix-1eb.3`).
+**Last updated:** 2026-02-18 18:00 UTC  
+**Status:** Beginner-first docs + import verifier path are shipped; next work should focus on runtime smoke/auth tasks and remaining P1 backlog outside this epic.
