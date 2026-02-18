@@ -5,6 +5,16 @@
 
 Define tooling once, enable per repo, emit client-native artifacts deterministically.
 
+## Docs (beginner-first)
+
+If you're new, start here:
+
+- `docs/content/docs/quickstart.mdx` — fastest path (no Nix)
+- `docs/content/docs/beginner-path.mdx` — simple day-one habit
+- `docs/content/docs/success-checks.mdx` — how to verify it worked
+
+Advanced docs are in the same folder (`packs`, `safety`, `advanced`).
+
 ## What Replix gives you
 
 - Dotfiles-first config (`programs.replix.*`)
