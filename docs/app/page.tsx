@@ -35,8 +35,12 @@ export default function HomePage() {
         <Cmd>{`pnpm add -D replix`}</Cmd>
         <Cmd>{`bun add -d replix`}</Cmd>
 
-        <h3>3) Add a pack</h3>
-        <Cmd>{`npx replix add github:owner/pack-repo?rev=<commit-or-tag>#path/to/pack`}</Cmd>
+        <h3>3) Add a pack (easy mode)</h3>
+        <Cmd>{`npx replix add github:owner/rpacks starter`}</Cmd>
+
+        <p style={{ marginTop: 8, opacity: 0.9 }}>
+          Advanced/reproducible mode: use a pinned source with <code>?rev=...</code> and explicit path.
+        </p>
 
         <h3>4) Run it</h3>
         <Cmd>{`npx replix`}</Cmd>

@@ -61,6 +61,24 @@ function readArgInt(flag: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function withGithubPackAlias(source: string, packAlias: string): string {
+  if (!source.startsWith("github:")) return source;
+  if (!packAlias.trim()) return source;
+
+  const body = source.slice("github:".length);
+  const [pathAndQuery, hash] = body.split("#", 2);
+  const [pathPart, queryPart = ""] = pathAndQuery.split("?", 2);
+  const qs = new URLSearchParams(queryPart);
+
+  if (!qs.get("pack") && !qs.get("packs")) {
+    qs.set("pack", packAlias.trim());
+  }
+
+  const query = qs.toString();
+  const rebuilt = `github:${pathPart}${query ? `?${query}` : ""}`;
+  return hash ? `${rebuilt}#${hash}` : rebuilt;
+}
+
 async function loadConfig(configPath: string | null): Promise<ReplixConfigV1 | null> {
   if (!configPath) return null;
   const raw = await Bun.file(configPath).text();
@@ -168,7 +186,8 @@ async function main() {
     }
 
     if ((cmd === "pack" && sub === "install") || cmd === "add") {
-      const rawSource = cmd === "add" ? sub ?? third ?? readArgValue("--source") : third ?? readArgValue("--source");
+      const addPackAlias = cmd === "add" ? readArgValue("--pack") ?? null : null;
+      const rawSource = cmd === "add" ? sub ?? readArgValue("--source") : third ?? readArgValue("--source");
       if (!rawSource) {
         console.error(cmd === "add" ? "❌ replix add requires <source> or --source <source>" : "❌ replix pack install requires <source> or --source <source>");
         process.exit(1);
@@ -178,6 +197,13 @@ async function main() {
       let providerResolved: string | null = null;
       let inputNote: string | null = null;
       let convertedDraft: import("./importProviders/types").ImportDraft | null = null;
+
+      const positionalPackAlias = cmd === "add" && third && !third.startsWith("--") ? third : null;
+      const requestedPackAlias = addPackAlias ?? positionalPackAlias;
+      if (cmd === "add" && requestedPackAlias && source.startsWith("github:")) {
+        source = withGithubPackAlias(source, requestedPackAlias);
+        inputNote = `pack alias requested: ${requestedPackAlias}`;
+      }
 
       if (cmd === "add") {
         const isDirectSource = rawSource.startsWith("github:") || rawSource.startsWith("path:");
@@ -644,7 +670,7 @@ async function main() {
       console.log("  replix check --config <path>                # verify generated outputs are in sync");
       console.log("  replix doctor [--config <path>]             # diagnose blocking config/pack problems");
       console.log("  replix lock update                          # write/update replix.lock.json from dotfiles packs");
-      console.log("  replix add <source>                         # shortcut: install pack source for this repo");
+      console.log("  replix add <source> [pack-name]             # shortcut: install pack source for this repo");
       console.log("  replix pack list                            # list installed local packs (.replix/packs.json)");
       console.log("  replix pack install <source>                # install pack source for this repo");
       console.log("  replix pack uninstall <source>              # uninstall pack source for this repo");

@@ -127,3 +127,26 @@ test("replix add > auto-pins floating github source using lockfile rev", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("replix add <github-repo> <pack-alias> appends pack query ergonomically", () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-pack-alias-ergonomic-"));
+  try {
+    const repoRoot = join(root, "repo");
+    mkdirSync(repoRoot, { recursive: true });
+
+    const out = Bun.spawnSync({
+      cmd: ["bun", join(process.cwd(), "src/index.ts"), "add", "github:imrane/rpacks", "starter"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(out.exitCode).toBe(0);
+    expect(out.stdout.toString()).toContain("pack alias requested: starter");
+
+    const packs = JSON.parse(readFileSync(join(repoRoot, ".replix", "packs.json"), "utf8"));
+    expect(packs.packs[0].source).toBe("github:imrane/rpacks?pack=starter");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
