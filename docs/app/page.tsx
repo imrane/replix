@@ -96,6 +96,17 @@ npx replix check`}</Cmd>
       </section>
 
       <section style={{ marginTop: 28 }}>
+        <h2>How to know it worked (success checks)</h2>
+        <ul>
+          <li><code>replix add ...</code> prints <code>replix add: added</code> (or <code>already present</code>).</li>
+          <li><code>replix</code> completes without errors.</li>
+          <li><code>replix check</code> prints that outputs are in sync.</li>
+          <li><code>.replix/packs.json</code> contains the pack source you added.</li>
+        </ul>
+        <p style={{ opacity: 0.9 }}>If these 4 checks pass, your setup is healthy.</p>
+      </section>
+
+      <section style={{ marginTop: 28 }}>
         <h2>Common first errors</h2>
         <ul>
           <li>
