@@ -384,5 +384,17 @@ PRD.md remains source of truth for v2 goals.
 - New follow-up debt item:
   - `2026-02-14-replix-bd9` — code cleanup sweep after canonical rollout.
 
-**Last updated:** 2026-02-17 19:40 UTC  
-**Status:** Canonical pipeline + validation/self-heal gates are landed; next priority is cleanup/refactor pass (`bd9`).
+## Session Delta (2026-02-18, post-rename hardening)
+- Renamed project + remote to `replix` and removed personal local-path references from docs/examples; repo is now suitable for public visibility review.
+- Added pack import DX:
+  - `folder` / `folders` aliases (normalize to `?include=`)
+  - `pack` / `packs` aliases via `replix.index.json` (repo-owned alias map)
+  - `replix pack list-aliases <source>` CLI to discover aliases.
+- Fixed alias runtime bug: `github:...?...pack=<alias>` now resolves to the pack root directory (with `pack.json`) for single-alias imports.
+- Added `replix --version` flag.
+- Real-world smoke run in a fresh try repo succeeded after config cleanup; one failure mode found was copy/pasted non-breaking spaces in JSON from chat.
+- New beads task created for CLI smoke stability:
+  - `2026-02-14-nexus-l58` — timeout-safe skip behavior for hanging client CLIs.
+
+**Last updated:** 2026-02-18 00:06 UTC  
+**Status:** Public-readiness + alias DX landed; next priority is smoke-CLI timeout hardening (`2026-02-14-nexus-l58`).
