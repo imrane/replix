@@ -1,0 +1,13 @@
+{
+  "title": "Replix Docs",
+  "pages": [
+    "quickstart",
+    "beginner-path",
+    "success-checks",
+    "troubleshooting",
+    "concepts",
+    "packs",
+    "safety",
+    "advanced"
+  ]
+}

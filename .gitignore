@@ -48,3 +48,4 @@ result
 
 # Docs build artifacts
 docs/.next/
+docs/.source/

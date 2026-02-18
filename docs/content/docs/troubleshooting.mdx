@@ -1,0 +1,26 @@
+---
+title: Troubleshooting
+description: Fix the most common first-run issues quickly.
+---
+
+## Unknown provider
+
+Use a direct source first:
+
+```bash
+npx replix add github:owner/rpacks starter
+```
+
+## Verifier blocked install
+
+Your input is unsafe or incomplete. Use a known pack source and retry.
+
+## Missing required variables
+
+Run doctor and follow the fix hint:
+
+```bash
+npx replix doctor
+```
+
+Usually you need to add secrets under `.replix/vars/`.
