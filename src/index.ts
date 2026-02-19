@@ -586,18 +586,30 @@ async function main() {
       ];
 
       let bad = 0;
+      let warned = 0;
       for (const p of paths) {
-        const errs = await validateShapeSnapshot(join(cwd, p), maxAgeDays);
-        if (errs.length === 0) {
+        const result = await validateShapeSnapshot(join(cwd, p), maxAgeDays);
+        if (result.ok && result.warnings.length === 0) {
           console.log(`✅ ${p}`);
-        } else {
+        } else if (!result.ok) {
           bad++;
           console.error(`❌ ${p}`);
-          for (const e of errs) console.error(`- ${e}`);
+          for (const e of result.errors) console.error(`  error: ${e}`);
+        } else {
+          warned++;
+          console.warn(`⚠️  ${p}`);
+          for (const w of result.warnings) console.warn(`  warn: ${w}`);
+        }
+        if (result.checklist) {
+          const cl = result.checklist;
+          console.log(`\n📋 Refresh checklist for ${cl.client} (${cl.ageDays}d old):`);
+          for (const step of cl.steps) console.log(`  ${step}`);
+          console.log();
         }
       }
 
       if (bad > 0) process.exit(2);
+      if (warned > 0) process.exit(1);
       return;
     }
 
