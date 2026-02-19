@@ -55,3 +55,61 @@ test("pack vars contract > reads required var from _FILE source", async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("pack vars contract > secretVars lists vars marked secret:true", async () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-vars-secret-"));
+  try {
+    const out = await resolvePackContractVars({
+      repoRoot: root,
+      cfgVars: { API_KEY: "key123", PUBLIC_HOST: "example.com" },
+      dotfilesVars: {},
+      contract: {
+        required: { API_KEY: { secret: true } },
+        optional: { PUBLIC_HOST: {} },
+      },
+    });
+
+    expect(out.secretVars).toEqual(["API_KEY"]);
+    expect(out.secretVars).not.toContain("PUBLIC_HOST");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pack vars contract > secretVars is empty when no vars are marked secret", async () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-vars-no-secret-"));
+  try {
+    const out = await resolvePackContractVars({
+      repoRoot: root,
+      cfgVars: { FOO: "bar" },
+      dotfilesVars: {},
+      contract: {
+        required: { FOO: {} },
+        optional: {},
+      },
+    });
+
+    expect(out.secretVars).toEqual([]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pack vars contract > secretVars includes optional secret vars", async () => {
+  const root = mkdtempSync(join(tmpdir(), "replix-vars-optional-secret-"));
+  try {
+    const out = await resolvePackContractVars({
+      repoRoot: root,
+      cfgVars: {},
+      dotfilesVars: {},
+      contract: {
+        required: {},
+        optional: { WEBHOOK_SECRET: { secret: true } },
+      },
+    });
+
+    expect(out.secretVars).toEqual(["WEBHOOK_SECRET"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

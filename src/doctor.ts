@@ -17,6 +17,7 @@ type VarRequirement = {
   source: DoctorVarSource;
   usedBy: string[];
   missing: boolean;
+  secret?: boolean;
 };
 
 export type DoctorResult = {
@@ -122,7 +123,8 @@ function pushVarMatrixNotes(notes: string[], reqs: VarRequirement[]): void {
 
   for (const req of reqs) {
     const status = req.missing ? "missing" : "ok";
-    notes.push(`  [${status}] pack=${req.pack} var=${req.variable} source=${req.source} usedBy=${req.usedBy.join(",")}`);
+    const secretTag = req.secret ? " [secret]" : "";
+    notes.push(`  [${status}]${secretTag} pack=${req.pack} var=${req.variable} source=${req.source} usedBy=${req.usedBy.join(",")}`);
   }
 }
 
@@ -147,6 +149,8 @@ async function evaluatePackVarsContract(params: {
   const requiredKeys = Object.keys(vars.required).sort();
   const optionalKeys = Object.keys(vars.optional).sort();
 
+  const secretSet = new Set(resolved.secretVars);
+
   for (const key of requiredKeys) {
     const source = (resolved.sourceByVar[key] ?? "missing") as DoctorVarSource;
     const missing = resolved.missingRequired.includes(key);
@@ -156,6 +160,7 @@ async function evaluatePackVarsContract(params: {
       source,
       usedBy: ["pack.vars.required"],
       missing,
+      secret: secretSet.has(key),
     });
 
     if (missing) {
@@ -172,6 +177,7 @@ async function evaluatePackVarsContract(params: {
       source,
       usedBy: ["pack.vars.optional"],
       missing: false,
+      secret: secretSet.has(key),
     });
   }
 

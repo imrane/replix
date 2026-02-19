@@ -14,6 +14,8 @@ export type PackContractResolution = {
   sourceByVar: Record<string, Exclude<VarSource, "missing" | "builtin">>;
   missingRequired: string[];
   interpolationErrors: string[];
+  /** Var names marked secret:true in the pack contract — never log or display their values. */
+  secretVars: string[];
 };
 
 async function readVarFile(path: string): Promise<string | null> {
@@ -167,10 +169,18 @@ export async function resolvePackContractVars(params: {
 
   const missingRequired = required.filter((k) => values[k] === undefined || values[k] === "");
 
+  const secretVars = allKeys
+    .filter((k) => {
+      const spec = params.contract.required[k] ?? params.contract.optional[k];
+      return spec?.secret === true;
+    })
+    .sort();
+
   return {
     values,
     sourceByVar,
     missingRequired,
     interpolationErrors: [...new Set(interpolationErrors)].sort(),
+    secretVars,
   };
 }
