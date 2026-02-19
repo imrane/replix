@@ -1,6 +1,6 @@
 ---
 title: Concepts
-description: What Replix does and why each piece exists — explained with a real example.
+description: What Replix does and why each piece exists — explained with real examples.
 ---
 
 ## The core idea
@@ -11,33 +11,27 @@ You define AI tooling once (in a pack), enable it per repo, and Replix generates
 
 ## Pack
 
-A pack is a versioned bundle of skills, commands, agents, hooks, and/or MCP server configs. Packs live in git repos and are referenced by source URL.
+A pack is a versioned bundle of skills, commands, agents, hooks, and/or MCP server configs. You add packs to a repo, and Replix compiles them into files each AI client understands.
 
 ```bash
-# Add a pack by shorthand name
-npx replix add github:blader/humanizer
-
-# Or add a specific pack folder from a multi-pack repo
-npx replix add github:blader/ai-packs writing
+npx replix add github:myorg/ai-packs starter
 ```
 
-Packs are stored in `.replix/packs.json`:
+The `starter` pack ships with:
+- a `repo-status` **skill** — gives your AI context about the repo
+- a `/review` **command** — slash command for code review
+- a `security` **agent** — specialized security review mode
+- a **MCP** server config for filesystem access
 
-```json
-{
-  "packs": [
-    { "source": "github:blader/humanizer", "rev": "abc1234", "addedAt": "2026-02-19" }
-  ]
-}
-```
+Packs live in git repos. You reference them by source URL and pack name.
 
 ---
 
 ## Skills
 
-Skills are markdown files that inject context into your AI coding agent (Claude, OpenCode, Codex). They explain tools, conventions, or domain knowledge.
+Skills are markdown files that inject context into your AI coding agent (Claude, OpenCode, Codex). They explain tools, conventions, or domain knowledge the agent should know about.
 
-The humanizer skill might contain instructions like: "When writing user-facing copy, prefer short sentences and active voice."
+The `humanizer` skill (inside `content-pack`) might contain: "When writing user-facing copy, prefer short sentences and active voice. Avoid jargon."
 
 After `replix` runs, the skill lands at:
 
@@ -47,54 +41,47 @@ After `replix` runs, the skill lands at:
 .agents/skills/humanizer/             ← Codex reads this
 ```
 
+To get the `humanizer` skill, add the `content` pack:
+
+```bash
+npx replix add github:myorg/ai-packs content
+```
+
 ---
 
 ## Commands
 
-Slash commands your AI agent can invoke. Example: `/humanize` might trigger a rewrite pass on selected text.
+Slash commands your AI agent can invoke. Example: the `starter` pack ships a `/review` command that triggers a structured code review.
 
 After `replix` runs:
 
 ```
-.claude/commands/humanize.md     ← available as /humanize in Claude
-.opencode/command/humanize.md    ← available in OpenCode
+.claude/commands/review.md      ← available as /review in Claude
+.opencode/command/review.md     ← available in OpenCode
 ```
 
 ---
 
 ## Agents
 
-Specialized AI modes or sub-agents. A pack can ship an agent definition that the AI loads for a specific workflow.
+Specialized AI modes. A pack can ship an agent definition that changes how the AI behaves for a specific workflow. The `security` pack ships a `red-team` agent for adversarial security review.
 
 ```
-.claude/agents/reviewer.md
-.opencode/agent/reviewer.md
+.claude/agents/red-team.md
+.opencode/agent/red-team.md
 ```
 
 ---
 
 ## Hooks
 
-Lifecycle triggers — run before/after tool calls, on file save, etc. Replix maps hook definitions to each client's native format.
+Lifecycle triggers — run before/after tool calls, on commit, etc. Replix maps hook definitions to each client's native format automatically.
 
 ---
 
 ## MCP
 
-MCP (Model Context Protocol) server configs. Define once in a pack, emit to `.mcp.json`, `opencode.json`, and `.codex/config.toml` automatically.
-
-Example: a pack ships an MCP server for filesystem access:
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"]
-    }
-  }
-}
-```
+MCP (Model Context Protocol) server configs. Define once in a pack, emit to `.mcp.json`, `opencode.json`, and Codex config automatically.
 
 ---
 

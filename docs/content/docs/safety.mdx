@@ -14,7 +14,7 @@ Every pack source gets a trust rating before install:
 | `untrusted/high` | High-risk signal detected | Blocked unless you pass `--allow-risky` |
 
 ```bash
-npx replix search "humanizer"
+npx replix search "code review"
 # → sec:verified   trust:trusted/low   ← safe to add
 ```
 
@@ -25,12 +25,12 @@ npx replix search "humanizer"
 Always available, no side effects:
 
 ```bash
-npx replix add github:blader/humanizer --dry-run
+npx replix add github:myorg/ai-packs starter --dry-run
 ```
 
 ```
 🧪 DRY RUN replix add: would add
-   source: github:blader/humanizer
+   source: github:myorg/ai-packs?pack=starter
    (no files written)
 ```
 
@@ -58,13 +58,13 @@ npx replix lock update
 
 ```
 🔒 Lock updated: replix.lock.json
-  humanizer: rev=abc1234  checksum=sha256:deadbeef...
+  starter-pack: rev=abc1234  checksum=sha256:deadbeef...
 ```
 
 At runtime, Replix validates the checksum before applying. If a pack changes without a lock update, you get a hard error:
 
 ```
-❌ lock drift: pack github:blader/humanizer changed since lock was written
+❌ lock drift: pack github:myorg/ai-packs?pack=starter changed since lock was written
     fix: run replix lock update
 ```
 
@@ -80,7 +80,7 @@ Pack vars marked `secret: true` are handled safely:
 - `replix doctor` shows the **source** (file/env/config), never the **value**
 - Doctor output:
   ```
-  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
+  [ok][secret] pack=content-pack var=API_TOKEN source=file usedBy=pack.vars.required
   ```
 
 ---

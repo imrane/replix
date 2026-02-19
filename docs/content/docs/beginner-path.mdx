@@ -3,12 +3,12 @@ title: Beginner Path
 description: The simple habit that keeps your AI agent tooling clean and up to date.
 ---
 
-## The habit (3 commands, 30 seconds)
+## The habit (2 commands, 30 seconds)
 
 Run these after adding a new pack or pulling from a teammate:
 
 ```bash
-npx replix          # apply (generate files)
+npx replix          # apply (generate/update files)
 npx replix check    # verify (nothing drifted)
 ```
 
@@ -16,14 +16,16 @@ If `check` is clean, you're done.
 
 ---
 
-## Day 1: get your first skill
+## Day 1: get your first pack
+
+The `starter` pack is the best place to begin — it ships a skill, a command, and an agent with no required vars.
 
 ```bash
 # Install once per repo
 npm install -D replix
 
-# Add the humanizer skill pack
-npx replix add github:blader/humanizer
+# Add the starter pack
+npx replix add github:myorg/ai-packs starter
 
 # Apply it
 npx replix
@@ -38,7 +40,21 @@ You should see:
 ✅ outputs in sync
 ```
 
-Your `.claude/skills/humanizer/` folder now exists. Open your AI agent and the skill is live.
+Your `.claude/skills/repo-status/`, `.claude/commands/review.md`, and `.claude/agents/security.md` now exist. Open your AI agent and type `/review` to use the command.
+
+---
+
+## Add a second pack
+
+Want writing tools? Add `content-pack` which includes the `humanizer` skill:
+
+```bash
+npx replix add github:myorg/ai-packs content
+npx replix
+npx replix check
+```
+
+Now `.claude/skills/humanizer/` is also available. Your agent uses it automatically.
 
 ---
 
@@ -55,20 +71,6 @@ npx replix check    # confirm
 
 ```
 ✅ Replix: no changes (state hash matches), skipping emit
-```
-
----
-
-## When to add more packs
-
-- You want a new AI skill, command, agent, or MCP server
-- A teammate shares a pack source URL
-- You found something on [ClawHub](https://clawhub.com)
-
-```bash
-npx replix add github:org/packs security
-npx replix
-npx replix check
 ```
 
 ---

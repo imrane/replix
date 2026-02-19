@@ -16,10 +16,10 @@ Sample output:
 ✅ lock: in sync (rev=abc1234)
 variable matrix:
   [ok] pack=config var=PROJECT_ROOT source=builtin usedBy=filesystem
-  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
-  [missing] pack=humanizer var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
+  [ok][secret] pack=content-pack var=API_TOKEN source=file usedBy=pack.vars.required
+  [missing] pack=content-pack var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
     fix: write secret to .replix/vars/WEBHOOK_SECRET (recommended), or set WEBHOOK_SECRET_FILE, or export WEBHOOK_SECRET
-✅ pack humanizer: ready
+✅ pack content-pack: ready
 ```
 
 Doctor exits `2` on blocking issues (missing required vars, lock drift).
@@ -53,7 +53,7 @@ npx replix lock update
 
 ```
 🔒 Lock updated: replix.lock.json
-  humanizer: rev=abc1234 → def5678 (rev changed)
+  content-pack: rev=abc1234 → def5678 (rev changed)
   new required vars: WEBHOOK_SECRET
 ```
 
@@ -88,7 +88,7 @@ Define packs once in your home-manager config:
 ```nix
 programs.replix = {
   enable = true;
-  skills.humanizer.source = "github:blader/humanizer?rev=abc1234";
+  skills.humanizer.source = "github:myorg/ai-packs?rev=abc1234&pack=content";
   mcp.filesystem = {
     command = "npx";
     args = ["-y" "@modelcontextprotocol/server-filesystem" "/home/user"];

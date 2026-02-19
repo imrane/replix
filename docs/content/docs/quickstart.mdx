@@ -1,11 +1,11 @@
 ---
 title: Quickstart (No Nix)
-description: Install Replix, add the humanizer skill pack, apply it to your repo, and verify — in under 3 minutes.
+description: Install Replix, add the starter pack, apply it to your repo, and verify — in under 3 minutes.
 ---
 
 ## What you'll do
 
-You'll install Replix, pull a pack called `humanizer` that gives your AI agent a plain-English writing skill, apply it to your repo, and confirm it worked.
+You'll install Replix, add the `starter` pack (which ships a `repo-status` skill, a `/review` command, and a security agent), apply it to your repo, and confirm it worked.
 
 ## Step 1 — Install Replix
 
@@ -17,16 +17,16 @@ npm install -D replix
 ## Step 2 — Add a pack
 
 ```bash
-npx replix add github:blader/humanizer
+npx replix add github:myorg/ai-packs starter
 ```
 
 Expected output:
 
 ```
-🔍 Resolving github:blader/humanizer...
+🔍 Resolving github:myorg/ai-packs starter...
 ✅ replix add: added
-   source: github:blader/humanizer@abc1234
-   pack: humanizer
+   source: github:myorg/ai-packs?pack=starter@abc1234
+   pack: starter-pack
 ```
 
 This registers the pack in `.replix/packs.json`. Nothing is written to your repo yet.
@@ -45,12 +45,17 @@ Expected output:
 ✅ Replix: done
 ```
 
-Replix has now written the pack's files into your repo:
+Replix has now written the pack's artifacts into your repo:
 
 ```
-.claude/skills/humanizer/
-.opencode/skills/humanizer/
-.mcp.json          ← if the pack includes MCP servers
+.claude/skills/repo-status/       ← repo-status skill (Claude reads this)
+.claude/commands/review.md        ← /review slash command
+.claude/agents/security.md        ← security agent
+.mcp.json                         ← MCP server config
+.opencode/skills/repo-status/     ← same skill for OpenCode
+.opencode/command/review.md
+.opencode/agent/security.md
+opencode.json
 ```
 
 ## Step 4 — Verify
@@ -59,23 +64,23 @@ Replix has now written the pack's files into your repo:
 npx replix check
 ```
 
-Expected output (all in sync):
+Expected output (in sync):
 
 ```
 ✅ outputs in sync
 ```
 
-Expected output (drift detected):
+Expected output (drift — run `replix` to fix):
 
 ```
 ❌ outputs drifted from config
-  ADD    .claude/skills/humanizer/SKILL.md
-  MODIFY .mcp.json
+  ADD    .claude/skills/repo-status/SKILL.md
+  ADD    .claude/commands/review.md
 Run `replix` to regenerate.
 ```
 
 ## You're done
 
-Your AI agent now has the humanizer skill available. Open your editor, start a coding session, and the skill shows up automatically.
+Your AI agent now has the starter pack's skill, command, and agent available. Open your editor, start a coding session, and type `/review` to use the command.
 
-**Next:** [Beginner Path →](./beginner-path) to build the day-one habit that keeps things clean.
+**Next:** [Beginner Path →](./beginner-path) to build the day-one habit.

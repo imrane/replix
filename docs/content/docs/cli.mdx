@@ -69,10 +69,10 @@ npx replix doctor [--config <path>]
 ✅ lock: in sync (rev=abc1234)
 variable matrix:
   [ok] pack=config var=PROJECT_ROOT source=builtin usedBy=filesystem
-  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
-  [missing] pack=humanizer var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
+  [ok][secret] pack=content-pack var=API_TOKEN source=file usedBy=pack.vars.required
+  [missing] pack=content-pack var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
     fix: write secret to .replix/vars/WEBHOOK_SECRET (recommended), or set WEBHOOK_SECRET_FILE, or export WEBHOOK_SECRET
-✅ pack humanizer: ready
+✅ pack content-pack: ready
 ```
 
 Exit code: `0` (ok), `2` (blocking issues).
@@ -113,25 +113,25 @@ npx replix add <source> [pack-name] [--dry-run] [--allow-risky]
 
 ```bash
 # By shorthand name
-npx replix add github:blader/ai-packs humanizer
+npx replix add github:myorg/ai-packs content
 
 # By direct source
-npx replix add "github:blader/humanizer?rev=abc1234"
+npx replix add "github:myorg/ai-packs?rev=abc1234&pack=content"
 
 # From ClawHub
-npx replix add clawhub:humanizer
+npx replix add clawhub:content-pack
 
 # Plain search term
 npx replix add "plain language writer"
 
 # Preview without writing
-npx replix add github:blader/humanizer --dry-run
+npx replix add github:myorg/ai-packs content --dry-run
 ```
 
 **Output:**
 ```
 ✅ replix add: added
-   source: github:blader/humanizer@abc1234
+   source: github:myorg/ai-packs?pack=content@abc1234
 ```
 
 ---
@@ -146,7 +146,7 @@ npx replix pack list
 
 ```
 Installed packs (2):
-  github:blader/humanizer        rev:abc1234  added:2026-02-19
+  github:myorg/ai-packs?pack=content   rev:abc1234  added:2026-02-19
   github:myorg/security-pack     rev:def5678  added:2026-02-10
 ```
 
@@ -157,7 +157,7 @@ Installed packs (2):
 Alias for `replix add` with explicit source syntax.
 
 ```bash
-npx replix pack install "github:blader/humanizer?rev=abc1234"
+npx replix pack install "github:myorg/ai-packs?rev=abc1234&pack=content"
 ```
 
 ---
@@ -167,11 +167,11 @@ npx replix pack install "github:blader/humanizer?rev=abc1234"
 Remove a pack from `.replix/packs.json`.
 
 ```bash
-npx replix pack uninstall github:blader/humanizer
+npx replix pack uninstall "github:myorg/ai-packs?pack=content"
 ```
 
 ```
-✅ pack uninstall: removed github:blader/humanizer
+✅ pack uninstall: removed github:myorg/ai-packs?pack=content
 Run `replix` to remove generated files.
 ```
 
@@ -187,7 +187,7 @@ npx replix pack upgrade
 
 ```
 🔄 Checking for updates...
-  humanizer: abc1234 → def5678
+  content-pack: abc1234 → def5678
 ✅ pack upgrade: done. Run `replix` to apply.
 ```
 
@@ -198,14 +198,15 @@ npx replix pack upgrade
 List all pack name aliases available from a source repo.
 
 ```bash
-npx replix pack list-aliases github:blader/ai-packs
+npx replix pack list-aliases github:myorg/ai-packs
 ```
 
 ```
 Available aliases:
-  starter    → fixtures/packs/examples/starter
-  security   → fixtures/packs/examples/security
-  humanizer  → fixtures/packs/examples/humanizer
+  starter   → fixtures/packs/examples/starter
+  security  → fixtures/packs/examples/security
+  content   → fixtures/packs/examples/content
+  dataops   → fixtures/packs/examples/dataops
 ```
 
 ---
@@ -258,7 +259,7 @@ npx replix list skills [--config <path>]
 
 ```
 Available skills:
-  humanizer    github:blader/humanizer@abc1234
+  humanizer    github:myorg/ai-packs?pack=content@abc1234   ← skill inside content-pack
   reviewer     github:myorg/reviewer@def5678
 ```
 
@@ -289,7 +290,7 @@ npx replix lock update
 
 ```
 🔒 Lock updated: replix.lock.json
-  humanizer: rev=abc1234  checksum=sha256:deadbeef...
+  content-pack: rev=abc1234  checksum=sha256:deadbeef...
 ```
 
 ---
@@ -332,7 +333,7 @@ npx replix compile canonical --client <claude|opencode|codex> [--pack <path>] [-
 
 ```
 📦 Compile plan for claude:
-  skills: humanizer → .claude/skills/humanizer/SKILL.md
+  skills: repo-status → .claude/skills/repo-status/SKILL.md
   commands: humanize → .claude/commands/humanize.md
   warnings: 0
 ✅ compile canonical: done

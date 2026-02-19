@@ -16,7 +16,7 @@ Doctor diagnoses everything in one shot. Read its output before anything else.
 ✅ lock: in sync
 ⚠️  vars: missing required variable API_TOKEN
     fix: write secret to .replix/vars/API_TOKEN (recommended), or set API_TOKEN_FILE, or export API_TOKEN
-❌ pack blader/humanizer: blocked (missing required variable)
+❌ pack myorg/ai-packs?pack=content: blocked (missing required variable)
 ```
 
 ---
@@ -70,7 +70,7 @@ npx replix check    # confirm clean
 
 **Symptom:**
 ```
-❌ lock drift: pack github:blader/humanizer changed since lock was written
+❌ lock drift: pack github:myorg/ai-packs?pack=content changed since lock was written
     fix: run replix lock update
 ```
 
@@ -91,7 +91,7 @@ npx replix
 
 **Fix:** Use a direct source instead:
 ```bash
-npx replix add github:blader/humanizer
+npx replix add github:myorg/ai-packs?pack=content
 ```
 
 Or install the provider module if you have one configured.
@@ -107,7 +107,7 @@ Or install the provider module if you have one configured.
 
 **Fix:** The source couldn't be auto-detected. Use a direct, pinned source:
 ```bash
-npx replix add "github:blader/humanizer?rev=abc1234"
+npx replix add "github:myorg/ai-packs?pack=content?rev=abc1234"
 ```
 
 ---

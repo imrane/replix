@@ -3,45 +3,55 @@ title: Packs
 description: How to find, add, upgrade, and remove packs. Full lifecycle with real examples.
 ---
 
+## What's in a pack?
+
+A pack is a versioned bundle you add to your repo. Each pack can contain any mix of:
+
+| Thing | What it does |
+|---|---|
+| **Skills** | Markdown context injected into your AI agent |
+| **Commands** | Slash commands (`/review`, `/audit`, `/outline`) |
+| **Agents** | Specialized AI modes (security reviewer, editor, analyst) |
+| **Hooks** | Lifecycle triggers (pre-commit, post-tool-call) |
+| **MCP** | Model Context Protocol server configs |
+
+Example packs (all real, in our fixtures):
+
+| Pack | Skills | Commands | Agents |
+|---|---|---|---|
+| `starter` | `repo-status` | `/review` | `security` |
+| `security` | `threat-model` | `/audit` | `red-team` |
+| `content` | `humanizer` | `/outline` | `editor` |
+| `dataops` | `sql-analyst` | `/report` | `analyst` |
+
+---
+
 ## Add a pack
 
-**By shorthand name** (easiest):
+**By name** (when the pack repo uses a name index):
 
 ```bash
-npx replix add github:blader/ai-packs humanizer
+npx replix add github:myorg/ai-packs starter
 ```
 
 ```
-🔍 Resolving github:blader/ai-packs humanizer...
+🔍 Resolving github:myorg/ai-packs starter...
 ✅ replix add: added
-   source: github:blader/ai-packs?pack=humanizer@abc1234
+   source: github:myorg/ai-packs?pack=starter@abc1234
 ```
 
-**By direct source URL** (pinned):
+**By direct source** (pinned):
 
 ```bash
-npx replix add "github:blader/humanizer?rev=abc1234"
+npx replix add "github:myorg/ai-packs?rev=abc1234&pack=starter"
 ```
 
-**From ClawHub** (community registry):
+**From ClawHub**:
 
 ```bash
-npx replix add clawhub:humanizer
+npx replix add clawhub:starter-pack
 # or paste the URL
-npx replix add https://clawhub.ai/items/humanizer
-```
-
-**Plain search term** (Replix finds the best match):
-
-```bash
-npx replix add "plain language writer"
-```
-
-```
-🔍 Searching providers for: plain language writer
-  [1] blader/humanizer  "Humanize AI output for real humans"  trust:trusted/low
-Add this? (y/N): y
-✅ replix add: added
+npx replix add https://clawhub.ai/items/starter-pack
 ```
 
 ---
@@ -49,13 +59,30 @@ Add this? (y/N): y
 ## Preview before adding
 
 ```bash
-npx replix add github:blader/humanizer --dry-run
+npx replix add github:myorg/ai-packs starter --dry-run
 ```
 
 ```
 🧪 DRY RUN replix add: would add
-   source: github:blader/humanizer
+   source: github:myorg/ai-packs?pack=starter@abc1234
    (no files written)
+```
+
+---
+
+## What a pack gives your repo
+
+After `replix add github:myorg/ai-packs content` + `replix`:
+
+```
+.claude/skills/humanizer/SKILL.md     ← Claude reads the humanizer skill
+.claude/commands/outline.md           ← /outline command available
+.claude/agents/editor.md              ← editor agent available
+.opencode/skills/humanizer/SKILL.md
+.opencode/command/outline.md
+.opencode/agent/editor.md
+.mcp.json
+opencode.json
 ```
 
 ---
@@ -63,17 +90,16 @@ npx replix add github:blader/humanizer --dry-run
 ## Search and browse
 
 ```bash
-# Search across all providers
-npx replix search "writing assistant"
+npx replix search "code review"
 ```
 
 ```
 provider: clawhub
-- humanizer   Humanize AI output for real humans   https://...   sec:verified   trust:trusted/low
-- tone-fix    Fix tone in generated docs            https://...   sec:unknown    trust:review/medium
+- starter-pack   Starter skills, review command, security agent   trust:trusted/low
+- security-pack  Threat modeling, audit commands, red-team agent  trust:trusted/low
 ```
 
-**Interactive browser** (filter, select, install):
+**Interactive browser:**
 
 ```bash
 npx replix browse "writing"
@@ -90,8 +116,9 @@ npx replix pack list
 ```
 
 ```
-Installed packs (1):
-  github:blader/humanizer  rev:abc1234  added:2026-02-19
+Installed packs (2):
+  github:myorg/ai-packs?pack=starter   rev:abc1234   added:2026-02-19
+  github:myorg/ai-packs?pack=content   rev:abc1234   added:2026-02-19
 ```
 
 ---
@@ -104,8 +131,7 @@ npx replix pack upgrade
 
 ```
 🔄 Checking for updates...
-  humanizer: abc1234 → def5678 (new version available)
-  Updating lock...
+  starter: abc1234 → def5678 (new version available)
 ✅ pack upgrade: done. Run `replix` to apply.
 ```
 
@@ -114,23 +140,12 @@ npx replix pack upgrade
 ## Remove a pack
 
 ```bash
-npx replix pack uninstall github:blader/humanizer
+npx replix pack uninstall "github:myorg/ai-packs?pack=starter"
 ```
 
 ```
-✅ pack uninstall: removed github:blader/humanizer
+✅ pack uninstall: removed
 Run `replix` to remove generated files.
-```
-
----
-
-## Apply after any change
-
-Always run `replix` after adding, upgrading, or removing:
-
-```bash
-npx replix
-npx replix check   # confirm outputs are in sync
 ```
 
 ---
@@ -143,7 +158,8 @@ npx replix lock update
 
 ```
 🔒 Lock updated: replix.lock.json
-  humanizer: rev=abc1234 checksum=sha256:... requiredVars=[]
+  starter: rev=abc1234 checksum=sha256:deadbeef... requiredVars=[]
+  content: rev=abc1234 checksum=sha256:cafebabe... requiredVars=[]
 ```
 
-Commit `replix.lock.json`. Teammates get the exact same pack revisions on `replix`.
+Commit `replix.lock.json`. Teammates get exact same revisions on `replix`.
