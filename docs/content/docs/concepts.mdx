@@ -13,6 +13,8 @@ You define AI tooling once (in a pack), enable it per repo, and Replix generates
 
 A pack is a versioned bundle of skills, commands, agents, hooks, and/or MCP server configs. You add packs to a repo, and Replix compiles them into files each AI client understands.
 
+> **Packs are Replix's own spec.** No external pack registry exists yet — the reference packs (`starter`, `security`, `content`, `dataops`) live in Replix's own fixtures. [ClawHub](https://clawhub.com) publishes individual skills, not packs.
+
 ```bash
 npx replix add github:myorg/ai-packs starter
 ```

@@ -118,8 +118,8 @@ npx replix add github:myorg/ai-packs content
 # By direct source
 npx replix add "github:myorg/ai-packs?rev=abc1234&pack=content"
 
-# From ClawHub
-npx replix add clawhub:content-pack
+# From ClawHub (individual skills — ClawHub is a skills marketplace)
+npx replix add clawhub:humanizer
 
 # Plain search term
 npx replix add "plain language writer"
@@ -224,6 +224,8 @@ provider: clawhub
 - humanizer   Humanize AI output for real humans   https://...   sec:verified   trust:trusted/low
 - tone-fix    Fix tone in generated docs            https://...   sec:unknown    trust:review/medium
 ```
+
+> ClawHub publishes individual **skills**. Replix packs (bundles of skills + commands + agents + hooks + MCP) are a Replix spec — no external publishers yet.
 
 ---
 

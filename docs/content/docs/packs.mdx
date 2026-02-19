@@ -46,12 +46,12 @@ npx replix add github:myorg/ai-packs starter
 npx replix add "github:myorg/ai-packs?rev=abc1234&pack=starter"
 ```
 
-**From ClawHub**:
+**From ClawHub** (individual skills — ClawHub is a skills marketplace, not a pack registry):
 
 ```bash
-npx replix add clawhub:starter-pack
-# or paste the URL
-npx replix add https://clawhub.ai/items/starter-pack
+npx replix add clawhub:humanizer
+# or paste the skill URL
+npx replix add https://clawhub.ai/items/humanizer
 ```
 
 ---
@@ -95,9 +95,12 @@ npx replix search "code review"
 
 ```
 provider: clawhub
-- starter-pack   Starter skills, review command, security agent   trust:trusted/low
-- security-pack  Threat modeling, audit commands, red-team agent  trust:trusted/low
+- humanizer    Plain-language writing skill for AI agents   trust:trusted/low
+- sql-analyst  SQL query and analysis skill                 trust:trusted/low
+- repo-status  Repo context skill for coding agents         trust:trusted/low
 ```
+
+> **Note:** ClawHub publishes individual skills. Replix packs (which bundle skills + commands + agents + hooks + MCP) are a Replix concept — no external pack registry exists yet. Our own fixture packs (`starter`, `security`, `content`, `dataops`) are the reference implementations.
 
 **Interactive browser:**
 
