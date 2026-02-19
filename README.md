@@ -206,6 +206,29 @@ File-backed sources:
 
 `strictEnv=true` (default) blocks unresolved vars.
 
+### Pack vars contract
+
+Packs can declare required and optional variables in `pack.json`:
+
+```json
+{
+  "varsSchemaVersion": 1,
+  "vars": {
+    "required": {
+      "API_TOKEN": { "secret": true, "description": "API authentication token" },
+      "API_HOST":  { "default": "api.example.com", "description": "API hostname" }
+    },
+    "optional": {
+      "WEBHOOK_SECRET": { "secret": true }
+    }
+  }
+}
+```
+
+- `secret: true` — value is never printed in `replix doctor` output (source is shown, not value)
+- `default` — used when the var is not set; supports `${OTHER_VAR}` interpolation
+- `replix doctor` reports readiness and fix hints per var; blocks when required vars are missing
+
 ---
 
 ## CLI
@@ -304,6 +327,8 @@ replix spec compile --in <snapshot.json> --out <schema.json>
   - `replix add --dry-run` preview (no writes)
   - interactive `replix browse` TUI (j/k/arrows, space, enter, `/` filter)
   - trust policy guardrail (blocks high-risk installs unless `--allow-risky`)
+- ✅ Pack vars contract: `secret: true` propagated through resolution + doctor output (no value leakage)
+- ✅ Client shape snapshots: proactive warning zone (20d) + actionable refresh checklist via `replix spec validate-client-shapes`
 - ⚠️ Legacy repo-local `pack.json` fallback remains compatibility-only (planned removal)
 
 See `PRD.md` for roadmap and `AGENTS.md` for handoff state.
