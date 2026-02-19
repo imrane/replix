@@ -21,6 +21,7 @@ import { validateShapeSnapshot } from "./clientPlugins/shapeProvenance";
 import { validateCanonicalPackV1 } from "./clientPlugins/canonical/validatePack";
 import { resolveDotfilesSourceToPath } from "./resolver/sourceResolver";
 import { classifyImportInput } from "./importClassifier";
+import type { ImportSearchResult } from "./importProviders/types";
 import { createImportProviderRegistry } from "./importProviders/registry";
 import {
   importProviderModulesFromDotfiles,
@@ -421,14 +422,14 @@ async function main() {
 
         const ttlMs = 5 * 60 * 1000;
         const staleMs = 55 * 60 * 1000;
-        const cached = (await getIndexCache(cwd, provider.name, query)) as any[] | null;
-        const results = cached ?? (await provider.search(query));
+        const cached = (await getIndexCache(cwd, provider.name, query)) as ImportSearchResult[] | null;
+        const results: ImportSearchResult[] = cached ?? (await provider.search(query));
         if (!cached) {
           await putIndexCache(cwd, provider.name, query, results, ttlMs, staleMs);
         }
 
         if (cmd === "browse") {
-          const items: BrowseItem[] = results.map((r: any) => ({ ...r, provider: provider.name }));
+          const items: BrowseItem[] = results.map((r) => ({ ...r, provider: provider.name }));
           await runBrowseTui({
             items,
             onInstall: async (selected) => {
@@ -448,7 +449,7 @@ async function main() {
           for (const r of results) {
             const security = r.securityStatus ?? "unknown";
             const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
-            const trust = evaluateTrustPolicy({ provider: provider.name, sourceUrl: r.sourceUrl, securityStatus: security as any });
+            const trust = evaluateTrustPolicy({ provider: provider.name, sourceUrl: r.sourceUrl, securityStatus: security });
             console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
           }
         }
@@ -465,14 +466,14 @@ async function main() {
       for (const p of providers) {
         const ttlMs = 5 * 60 * 1000;
         const staleMs = 55 * 60 * 1000;
-        const cached = (await getIndexCache(cwd, p.name, query)) as any[] | null;
-        const results = cached ?? (await p.search(query));
+        const cached = (await getIndexCache(cwd, p.name, query)) as ImportSearchResult[] | null;
+        const results: ImportSearchResult[] = cached ?? (await p.search(query));
         if (!cached) {
           await putIndexCache(cwd, p.name, query, results, ttlMs, staleMs);
         }
 
         if (cmd === "browse") {
-          allItems.push(...results.map((r: any) => ({ ...r, provider: p.name })));
+          allItems.push(...results.map((r) => ({ ...r, provider: p.name })));
           continue;
         }
 
@@ -484,7 +485,7 @@ async function main() {
         for (const r of results.slice(0, 5)) {
           const security = r.securityStatus ?? "unknown";
           const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
-          const trust = evaluateTrustPolicy({ provider: p.name, sourceUrl: r.sourceUrl, securityStatus: security as any });
+          const trust = evaluateTrustPolicy({ provider: p.name, sourceUrl: r.sourceUrl, securityStatus: security });
           console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
         }
       }

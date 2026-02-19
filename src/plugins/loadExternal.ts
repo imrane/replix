@@ -2,14 +2,6 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { DotfilesRegistry } from "../resolver/dotfilesConfig";
 
-function parseList(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
 async function importModule(spec: string, cwd: string): Promise<void> {
   const normalized = spec.startsWith("path:") ? spec.slice("path:".length) : spec;
   const expanded = normalized.startsWith("~/") ? `${process.env.HOME ?? ""}/${normalized.slice(2)}` : normalized;
@@ -18,8 +10,6 @@ async function importModule(spec: string, cwd: string): Promise<void> {
   await import(target);
 }
 
-const LEGACY_ENV_DISABLED = process.env.REPLIX_DISABLE_LEGACY_ENV === "1";
-
 export async function loadExternalPlugins(args: {
   cwd: string;
   clients?: string[];
@@ -27,30 +17,12 @@ export async function loadExternalPlugins(args: {
 }): Promise<void> {
   const { cwd, clients = [], dotfiles } = args;
 
-  // Preferred model: plugin registry in dotfiles keyed by client name.
-  const byClient = clients
+  // Dotfiles-first plugin registry keyed by client name.
+  const modules = clients
     .map((client) => dotfiles?.plugins.get(client)?.module)
     .filter((x): x is string => typeof x === "string" && x.length > 0);
 
-  // Legacy env module lists (deprecated, will be removed)
-  const legacyClientModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_CLIENT_PLUGIN_MODULES);
-  const legacyOutputModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_OUTPUT_PLUGIN_MODULES);
-  const legacyUnifiedModules = LEGACY_ENV_DISABLED ? [] : parseList(process.env.REPLIX_PLUGIN_MODULES);
-
-  const hasLegacy =
-    legacyClientModules.length > 0 || legacyOutputModules.length > 0 || legacyUnifiedModules.length > 0;
-
-  if (hasLegacy) {
-    console.warn(
-      "⚠️ [DEPRECATED] REPLIX_PLUGIN_MODULES/REPLIX_CLIENT_PLUGIN_MODULES/REPLIX_OUTPUT_PLUGIN_MODULES are legacy.",
-    );
-    console.warn("👉 Migrate to dotfiles plugin registry: programs.replix.plugins.<client>.module");
-    console.warn("💡 Set REPLIX_DISABLE_LEGACY_ENV=1 to disable legacy env var loading.");
-  }
-
-  const all = [...new Set([...byClient, ...legacyUnifiedModules, ...legacyClientModules, ...legacyOutputModules])];
-
-  for (const mod of all) {
+  for (const mod of modules) {
     await importModule(mod, cwd);
   }
 }

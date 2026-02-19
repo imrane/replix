@@ -116,21 +116,21 @@ export async function compilePlanFromConfig(params: {
   );
 
   const claudeFiles = dotfiles.clients.get("claude")?.files ?? {};
-  const availableCommands = new Map(
-    Object.keys(claudeFiles)
-      .filter((p) => p.startsWith(".claude/commands/"))
-      .map((p) => [p.replace(".claude/commands/", ""), { kind: "command" as const, itemId: p.replace(".claude/commands/", "") }]),
-  );
-  const availableHooks = new Map(
-    Object.keys(claudeFiles)
-      .filter((p) => p.startsWith(".claude/hooks/"))
-      .map((p) => [p.replace(".claude/hooks/", ""), { kind: "hook" as const, itemId: p.replace(".claude/hooks/", "") }]),
-  );
-  const availableAgents = new Map(
-    Object.keys(claudeFiles)
-      .filter((p) => p.startsWith(".claude/agents/"))
-      .map((p) => [p.replace(".claude/agents/", ""), { kind: "agent" as const, itemId: p.replace(".claude/agents/", "") }]),
-  );
+
+  function claudeArtifactMap<K extends string>(prefix: string, kind: K): Map<string, { kind: K; itemId: string }> {
+    return new Map(
+      Object.keys(claudeFiles)
+        .filter((p) => p.startsWith(prefix))
+        .map((p) => {
+          const itemId = p.slice(prefix.length);
+          return [itemId, { kind, itemId }];
+        }),
+    );
+  }
+
+  const availableCommands = claudeArtifactMap(".claude/commands/", "command");
+  const availableHooks = claudeArtifactMap(".claude/hooks/", "hook");
+  const availableAgents = claudeArtifactMap(".claude/agents/", "agent");
   const availableSettings = new Map<string, { kind: "setting"; itemId: string }>();
   if (claudeFiles[".claude/settings.json"]) availableSettings.set("settings", { kind: "setting", itemId: "settings" });
   if (claudeFiles[".claude/settings.local.json"]) {
