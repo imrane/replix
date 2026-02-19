@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, cpSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -12,6 +12,23 @@ export type ParsedGithubSource = {
   packs: string[];
   floating: boolean;
 };
+
+export function parseClawhubSlug(source: string): string | null {
+  const s = source.trim();
+
+  if (s.startsWith("clawhub:")) {
+    const slug = s.slice("clawhub:".length).trim().replace(/\?.*$/, "").replace(/#.*$/, "").replace(/\/$/, "");
+    return slug || null;
+  }
+
+  const item = /^https?:\/\/clawhub\.ai\/items\/([^/?#]+)\/?(?:[?#].*)?$/i.exec(s);
+  if (item?.[1]) return decodeURIComponent(item[1]);
+
+  const ownerSlug = /^https?:\/\/clawhub\.ai\/[^/?#]+\/([^/?#]+)\/?(?:[?#].*)?$/i.exec(s);
+  if (ownerSlug?.[1]) return decodeURIComponent(ownerSlug[1]);
+
+  return null;
+}
 
 // Supported forms:
 // - github:owner/repo@<rev>[#sub/dir]                      (legacy pinned)
@@ -175,12 +192,117 @@ async function resolvePackAliases(root: string, aliases: string[]): Promise<stri
   return paths;
 }
 
+function findPackRoot(root: string): string {
+  const direct = join(root, "pack.json");
+  if (existsSync(direct)) return root;
+
+  const stack = [root];
+  while (stack.length > 0) {
+    const cur = stack.pop()!;
+    const entries = readdirSync(cur, { withFileTypes: true });
+    for (const ent of entries) {
+      const p = join(cur, ent.name);
+      if (ent.isDirectory()) {
+        stack.push(p);
+        continue;
+      }
+      if (ent.isFile() && ent.name === "pack.json") {
+        return cur;
+      }
+    }
+  }
+
+  throw new Error(`downloaded ClawHub source has no pack.json: ${root}`);
+}
+
+function ensurePackFromSingleSkill(root: string, slug: string): string {
+  const skillPath = join(root, "SKILL.md");
+  if (!existsSync(skillPath)) {
+    throw new Error(`downloaded ClawHub source has no pack.json or SKILL.md: ${root}`);
+  }
+
+  const packRoot = join(root, ".replix-pack");
+  const skillDir = join(packRoot, "skills", slug);
+  rmSync(packRoot, { recursive: true, force: true });
+  mkdirSync(skillDir, { recursive: true });
+
+  for (const name of readdirSync(root)) {
+    if (name === ".replix-pack") continue;
+    cpSync(join(root, name), join(skillDir, name), { recursive: true, force: true });
+  }
+
+  const packJson = {
+    id: `clawhub-${slug}`,
+    version: "1.0.0",
+    imports: [],
+    specVersion: "replix.canonical.v1",
+    references: {
+      skills: [`skills/${slug}/SKILL.md`],
+    },
+  };
+  writeFileSync(join(packRoot, "pack.json"), JSON.stringify(packJson, null, 2) + "\n", "utf8");
+
+  return packRoot;
+}
+
+async function resolveClawhubSourceToPath(source: string): Promise<string> {
+  const slug = parseClawhubSlug(source);
+  if (!slug) {
+    throw new Error(`invalid clawhub source: ${source}`);
+  }
+
+  const root = join(cacheRoot(), "replix", "clawhub", slug);
+  const zipPath = join(root, "pack.zip");
+  const extractDir = join(root, "extracted");
+
+  mkdirSync(root, { recursive: true });
+
+  const downloadUrl = `https://clawhub.ai/api/v1/download?slug=${encodeURIComponent(slug)}`;
+  const r = await fetch(downloadUrl);
+  if (r.ok) {
+    const bytes = await r.arrayBuffer();
+    await Bun.write(zipPath, new Uint8Array(bytes));
+
+    rmSync(extractDir, { recursive: true, force: true });
+    mkdirSync(extractDir, { recursive: true });
+    execFileSync(
+      "python",
+      [
+        "-c",
+        "import sys, zipfile; z=zipfile.ZipFile(sys.argv[1]); z.extractall(sys.argv[2]); z.close()",
+        zipPath,
+        extractDir,
+      ],
+      { stdio: ["ignore", "ignore", "pipe"] },
+    );
+  } else if (!existsSync(extractDir)) {
+    throw new Error(`failed to download ClawHub pack '${slug}' (${r.status})`);
+  }
+
+  let packRoot: string;
+  try {
+    packRoot = findPackRoot(extractDir);
+  } catch {
+    packRoot = ensurePackFromSingleSkill(extractDir, slug);
+  }
+
+  const s = statSync(join(packRoot, "pack.json"));
+  if (!s.isFile()) {
+    throw new Error(`resolved ClawHub pack root missing pack.json: ${packRoot}`);
+  }
+  return packRoot;
+}
+
 export async function resolveDotfilesSourceToPath(
   source: string,
   opts?: { allowUnpinned?: boolean },
 ): Promise<string> {
   if (source.startsWith("path:")) {
     return source.slice("path:".length);
+  }
+
+  if (source.startsWith("clawhub:") || /^https?:\/\/clawhub\.ai\//i.test(source)) {
+    return resolveClawhubSourceToPath(source);
   }
 
   if (source.startsWith("github:")) {
@@ -266,5 +388,5 @@ export async function resolveDotfilesSourceToPath(
     return resolved;
   }
 
-  throw new Error(`unsupported dotfiles source scheme: ${source} (expected path: or github:)`);
+  throw new Error(`unsupported dotfiles source scheme: ${source} (expected path:, github:, clawhub:, or https://clawhub.ai/...)`);
 }

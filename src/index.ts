@@ -86,9 +86,40 @@ async function loadConfig(configPath: string | null): Promise<ReplixConfigV1 | n
   return parseReplixConfig(JSON.parse(raw));
 }
 
+const ansi = {
+  reset: "\x1b[0m",
+  dim: "\x1b[2m",
+  bold: "\x1b[1m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
+};
+
+function c(text: string, color: string): string {
+  return `${color}${text}${ansi.reset}`;
+}
+
+function badgeStatus(status: "enabled" | "available"): string {
+  return status === "enabled" ? c("● enabled", ansi.green) : c("○ available", ansi.dim);
+}
+
+function badgeSecurity(security: "verified" | "warning" | "unknown"): string {
+  if (security === "verified") return c("✔ verified", ansi.green);
+  if (security === "warning") return c("! warning", ansi.yellow);
+  return c("? unknown", ansi.dim);
+}
+
+function badgeRisk(risk: "low" | "medium" | "high"): string {
+  if (risk === "low") return c("low", ansi.green);
+  if (risk === "medium") return c("medium", ansi.yellow);
+  return c("high", ansi.red);
+}
+
 function printListHeader(kind: "skills" | "mcp"): void {
   const title = kind === "skills" ? "Available skills" : "Available MCP servers";
-  console.log(`\n${title}\n`);
+  console.log(`\n${c(title, ansi.bold)}\n`);
 }
 
 async function listAvailable(kind: "skills" | "mcp", configPath: string | null): Promise<void> {
@@ -114,7 +145,7 @@ async function listAvailable(kind: "skills" | "mcp", configPath: string | null):
       const dotfilesSource = dotfiles.skills.get(id)?.source;
       const sourceHint = overridePath ? `override:${overridePath}` : dotfilesSource ? `dotfiles:${dotfilesSource}` : "unknown";
       const status = enable.skills.includes(id) ? "enabled" : "available";
-      console.log(`- ${id}\t${status}\t${sourceHint}`);
+      console.log(`${badgeStatus(status)} ${c(id, ansi.cyan)} ${c("→", ansi.dim)} ${c(sourceHint, ansi.dim)}`);
     }
     return;
   }
@@ -130,7 +161,7 @@ async function listAvailable(kind: "skills" | "mcp", configPath: string | null):
     const server = dotfiles.mcp.get(name);
     const sourceHint = server ? `${server.command}${server.args?.length ? ` ${server.args.join(" ")}` : ""}` : "unknown";
     const status = enable.mcp.includes(name) ? "enabled" : "available";
-    console.log(`- ${name}\t${status}\t${sourceHint}`);
+    console.log(`${badgeStatus(status)} ${c(name, ansi.magenta)} ${c("→", ansi.dim)} ${c(sourceHint, ansi.dim)}`);
   }
 }
 
@@ -181,7 +212,8 @@ async function main() {
         return;
       }
       for (const p of packs) {
-        console.log(`- ${p.source}${p.allowUnpinned ? " (allowUnpinned)" : ""}`);
+        const mode = p.allowUnpinned ? c("floating allowed", ansi.yellow) : c("pinned", ansi.green);
+        console.log(`• ${c(p.source, ansi.cyan)}  ${mode}`);
       }
       return;
     }
@@ -442,15 +474,17 @@ async function main() {
           return;
         }
 
-        console.log(`provider: ${provider.name}${cached ? " (cached)" : ""}`);
+        console.log(`\n${c(`Provider: ${provider.name}${cached ? " (cached)" : ""}`, ansi.bold)}`);
         if (results.length === 0) {
-          console.log("(no results)");
+          console.log(c("  (no results)", ansi.dim));
         } else {
           for (const r of results) {
-            const security = r.securityStatus ?? "unknown";
-            const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
+            const security = (r.securityStatus ?? "unknown") as "verified" | "warning" | "unknown";
             const trust = evaluateTrustPolicy({ provider: provider.name, sourceUrl: r.sourceUrl, securityStatus: security });
-            console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
+            console.log(`• ${c(r.id, ansi.cyan)}  ${badgeSecurity(security)}  trust:${badgeRisk(trust.riskLevel)} ${c(`(${trust.channel})`, ansi.dim)}`);
+            console.log(`  ${c(r.title, ansi.bold)}`);
+            console.log(`  ${c(r.sourceUrl, ansi.dim)}`);
+            if (r.securityReportUrl) console.log(`  ${c(`security: ${r.securityReportUrl}`, ansi.dim)}`);
           }
         }
         return;
@@ -477,16 +511,18 @@ async function main() {
           continue;
         }
 
-        console.log(`provider: ${p.name}${cached ? " (cached)" : ""}`);
+        console.log(`\n${c(`Provider: ${p.name}${cached ? " (cached)" : ""}`, ansi.bold)}`);
         if (results.length === 0) {
-          console.log("- (no results)");
+          console.log(c("  (no results)", ansi.dim));
           continue;
         }
         for (const r of results.slice(0, 5)) {
-          const security = r.securityStatus ?? "unknown";
-          const secUrl = r.securityReportUrl ? `\tsecurity:${r.securityReportUrl}` : "";
+          const security = (r.securityStatus ?? "unknown") as "verified" | "warning" | "unknown";
           const trust = evaluateTrustPolicy({ provider: p.name, sourceUrl: r.sourceUrl, securityStatus: security });
-          console.log(`- ${r.id}\t${r.title}\t${r.sourceUrl}\tsec:${security}\ttrust:${trust.channel}/${trust.riskLevel}${secUrl}`);
+          console.log(`• ${c(r.id, ansi.cyan)}  ${badgeSecurity(security)}  trust:${badgeRisk(trust.riskLevel)} ${c(`(${trust.channel})`, ansi.dim)}`);
+          console.log(`  ${c(r.title, ansi.bold)}`);
+          console.log(`  ${c(r.sourceUrl, ansi.dim)}`);
+          if (r.securityReportUrl) console.log(`  ${c(`security: ${r.securityReportUrl}`, ansi.dim)}`);
         }
       }
 

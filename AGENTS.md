@@ -54,6 +54,19 @@ nix flake check
 
 ## Current State (handoff)
 
+### Session Delta (2026-02-19, final concise)
+- Fixed ClawHub import flow end-to-end for resolver/list/emit:
+  - `resolveDotfilesSourceToPath` now accepts `clawhub:` + `https://clawhub.ai/...`
+  - resolves via `https://clawhub.ai/api/v1/download?slug=...`
+  - supports single-skill ClawHub zip payloads by adapting to synthetic canonical pack shape
+  - added cache fallback when ClawHub returns 429.
+- Added tests for ClawHub slug parsing (`test/sourceResolver.test.ts`).
+- Improved default CLI output readability (pretty default for list/search/pack list).
+- Opened and closed bd bug `replix-0j6` for this regression/fix cycle.
+- Established new packs repo via try clone:
+  - `/home/imrane/src/tries/2026-02-19-imrane-replix-packs`
+  - added `AGENTS.md` there to define role + relationship with replix core.
+
 ### Session Delta (2026-02-19, cleanup + hardening)
 - Closed stale epics in bd: `replix-1eb`, `replix-aju` (shipped previous session, not marked done).
 - `replix-ua7` — secret var propagation: `PackContractResolution` now exposes `secretVars: string[]`; doctor var matrix tags secret vars `[secret]` (no values ever printed).

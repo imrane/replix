@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseGithubSource } from "../src/resolver/sourceResolver";
+import { parseClawhubSlug, parseGithubSource } from "../src/resolver/sourceResolver";
 
 test("source resolver > parse github ?rev pinned", () => {
   const p = parseGithubSource("github:acme/humanizer?rev=abc123#skills/humanizer");
@@ -64,4 +64,10 @@ test("source resolver > parse github pack aliases", () => {
     packs: ["starter", "security", "content"],
     floating: false,
   });
+});
+
+test("source resolver > parse clawhub slug forms", () => {
+  expect(parseClawhubSlug("clawhub:openclaw-backup")).toBe("openclaw-backup");
+  expect(parseClawhubSlug("https://clawhub.ai/items/openclaw-backup")).toBe("openclaw-backup");
+  expect(parseClawhubSlug("https://clawhub.ai/alex3alex/openclaw-backup")).toBe("openclaw-backup");
 });

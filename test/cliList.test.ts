@@ -3,6 +3,10 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
 function setupFixture() {
   const dir = mkdtempSync(join(tmpdir(), "replix-cli-list-"));
 
@@ -66,12 +70,15 @@ test("cli list skills > shows status + source hints", () => {
     stderr: "pipe",
   });
 
-  const stdout = out.stdout.toString();
+  const stdout = stripAnsi(out.stdout.toString());
   expect(out.exitCode).toBe(0);
   expect(stdout).toContain("Available skills");
-  expect(stdout).toContain("alpha\tenabled\tdotfiles:path:/skills/alpha");
-  expect(stdout).toContain("beta\tavailable\tdotfiles:path:/skills/beta");
-  expect(stdout).toContain("gamma\tavailable\toverride:/skills/gamma");
+  expect(stdout).toContain("● enabled alpha");
+  expect(stdout).toContain("dotfiles:path:/skills/alpha");
+  expect(stdout).toContain("○ available beta");
+  expect(stdout).toContain("dotfiles:path:/skills/beta");
+  expect(stdout).toContain("gamma");
+  expect(stdout).toContain("override:/skills/gamma");
 });
 
 test("cli list mcp > shows status + command hints", () => {
@@ -89,10 +96,11 @@ test("cli list mcp > shows status + command hints", () => {
     stderr: "pipe",
   });
 
-  const stdout = out.stdout.toString();
+  const stdout = stripAnsi(out.stdout.toString());
   expect(out.exitCode).toBe(0);
   expect(stdout).toContain("Available MCP servers");
-  expect(stdout).toContain("filesystem\tenabled\tnpx -y @modelcontextprotocol/server-filesystem");
+  expect(stdout).toContain("● enabled filesystem");
+  expect(stdout).toContain("npx -y @modelcontextprotocol/server-filesystem");
 });
 
 test("cli snippet > renders mkRepo enable block for selected skills and mcp", () => {

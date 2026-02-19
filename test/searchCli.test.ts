@@ -3,6 +3,10 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
 test("replix search --provider mock-provider uses plugin module", () => {
   const root = mkdtempSync(join(tmpdir(), "replix-search-cli-"));
   try {
@@ -29,11 +33,11 @@ test("replix search --provider mock-provider uses plugin module", () => {
     });
 
     expect(out.exitCode).toBe(0);
-    const stdout = out.stdout.toString();
-    expect(stdout).toContain("provider: mock-provider");
+    const stdout = stripAnsi(out.stdout.toString());
+    expect(stdout).toContain("Provider: mock-provider");
     expect(stdout).toContain("mock-1");
-    expect(stdout).toContain("sec:verified");
-    expect(stdout).toContain("security:https://example.com/mock-1/security");
+    expect(stdout).toContain("verified");
+    expect(stdout).toContain("security: https://example.com/mock-1/security");
     expect(existsSync(join(repoRoot, ".replix", "import-index.json"))).toBe(true);
 
     const out2 = Bun.spawnSync({
@@ -55,7 +59,7 @@ test("replix search --provider mock-provider uses plugin module", () => {
       stderr: "pipe",
     });
     expect(out2.exitCode).toBe(0);
-    expect(out2.stdout.toString()).toContain("provider: mock-provider (cached)");
+    expect(stripAnsi(out2.stdout.toString())).toContain("Provider: mock-provider (cached)");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -105,10 +109,10 @@ test("replix search can load provider modules from --config", () => {
     });
 
     expect(out.exitCode).toBe(0);
-    const stdout = out.stdout.toString();
-    expect(stdout).toContain("provider: mock-provider");
+    const stdout = stripAnsi(out.stdout.toString());
+    expect(stdout).toContain("Provider: mock-provider");
     expect(stdout).toContain("mock-1");
-    expect(stdout).toContain("sec:verified");
+    expect(stdout).toContain("verified");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
