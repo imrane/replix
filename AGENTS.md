@@ -435,5 +435,11 @@ PRD.md remains source of truth for v2 goals.
 4. Re-run `bun run test:smoke:clients` with `REPLIX_CLIENT_SMOKE=1`.
 5. If all green, mark runtime smoke/auth tasks closed (`7o3`, `dqm`) and hand off as ship-ready.
 
-**Last updated:** 2026-02-18 21:44 UTC  
+**Last updated:** 2026-02-19 04:43 UTC  
 **Status:** Code/test pipeline is green and committed; release is blocked only on runtime auth/install checklist completion.
+
+## Notes (agent mistakes — 2026-02-19)
+
+- **`humanizer` is a skill, not a pack.** It lives inside `content-pack` (`fixtures/packs/examples/content/skills/humanizer/`). Never refer to it as a standalone installable pack.
+- **ClawHub is a skills marketplace, not a pack registry.** `clawhub:<id>` adds an individual skill. Replix packs (bundles of skills + commands + agents + hooks + MCP) are our own spec — no external publishers exist yet. Fixture packs (`starter`, `security`, `content`, `dataops`) are the only examples.
+- **`bash -lc` on Nix causes test timeouts.** Use `sh -c` for subprocess command execution in tests and source files (login shell startup is too slow in Nix environments).
