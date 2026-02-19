@@ -54,7 +54,7 @@ export function runAiFallbackNormalizer(params: {
   };
 
   const out = Bun.spawnSync({
-    cmd: ["bash", "-lc", cmd],
+    cmd: ["sh", "-c", cmd],
     env: {
       ...process.env,
       REPLIX_IMPORT_NORMALIZE_PAYLOAD: JSON.stringify(payload),

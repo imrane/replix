@@ -54,6 +54,15 @@ nix flake check
 
 ## Current State (handoff)
 
+### Session Delta (2026-02-19, cleanup + hardening)
+- Closed stale epics in bd: `replix-1eb`, `replix-aju` (shipped previous session, not marked done).
+- `replix-ua7` — secret var propagation: `PackContractResolution` now exposes `secretVars: string[]`; doctor var matrix tags secret vars `[secret]` (no values ever printed).
+- `replix-bd9` — cleanup sweep: removed deprecated env-based plugin loading from `loadExternal.ts` (dotfiles-only now); deduplicated Claude artifact map construction in `compile/plan.ts`; typed import search results (`ImportSearchResult[]`), killed `any` casts in index.ts search/browse paths.
+- `replix-l58` — smoke test hardening: replaced presence-only check with timed `Bun.spawn` probe (3s hard timeout); hang → `timeout` (skip, not fail); missing → `skip`; responds → `pass`; deterministic summary printed per run.
+- `replix-68h` — shape snapshot refresh: `validateShapeSnapshot` now returns `{ok, errors, warnings, checklist}`; warning zone at 20d (before 30d expiry); checklist includes source URLs + step-by-step refresh instructions; CLI exits 1 on warnings, 2 on errors.
+- **Test baseline: 216 pass, 0 fail** (was 207 at session start).
+- All commits pushed to main (`ca04bc0` → `95188b7`).
+
 ### Session Delta (2026-02-18, concise)
 - Shipped import-anything baseline with TDD-first loop (write failing test → implement → pass):
   - `replix add` alias + `--dry-run`
@@ -63,10 +72,7 @@ nix flake check
   - friendly add inputs (provider:id, ClawHub/Playbooks links, plain search terms)
   - security/trust output + trust policy guardrail (`--allow-risky` override)
   - persistent provider index cache (`.replix/import-index.json`) with stale-while-revalidate behavior
-- New queued conversion tasks were added to beads (must keep in critical path):
-  - `replix-1eb.10` deterministic adapters (Claude/Codex/MCP → replix draft spec)
-  - `replix-1eb.11` AI fallback normalizer (strict schema output)
-  - `replix-1eb.12` convert verify gate (validate + compile smoke before install)
+- Conversion path for import-anything critical path shipped: `1eb.10`, `1eb.11`, `1eb.12` (all closed).
 
 
 **Repo:** `~/code/try/2026-02-14-replix`  
@@ -244,20 +250,12 @@ nix flake check
 
 ## Next Agent Tasks
 
-**Current priority queue (ship-first):**
-1. `2026-02-14-replix-9h1` — Client artifact compiler: canonical metadata → client-native schemas (**in_progress**)
-2. `2026-02-14-replix-k6i` — Canonical hook trigger model + per-client emission (**in_progress**)
-3. `2026-02-14-replix-3tv` — AI-assisted spec extraction pipeline (docs/repo → typed schema) (**in_progress**)
-4. `2026-02-14-replix-m1i` — Upstream drift detection + release sync automation (**in_progress**)
-5. `2026-02-14-replix-7o3` — Runtime smoke: Claude/Codex auth (deferred: tomorrow)
-6. `2026-02-14-replix-dqm` — Runtime smoke: OpenCode install + ingestion (deferred: tomorrow)
+**Current priority queue:**
+1. `replix-7o3` — Runtime smoke: Claude/Codex auth 🔒 *blocked: needs manual CLI setup*
+2. `replix-dqm` — Runtime smoke: OpenCode install + ingestion 🔒 *blocked: needs manual CLI setup*
+3. `replix-m1i` — Upstream drift detection + release sync automation (**in_progress**, no runtime dependency)
 
-**Recently closed (this session):**
-- `2026-02-14-replix-och` (pack-first dotfiles registry `programs.replix.packs`)
-- `2026-02-14-replix-1qi` (native output sequence validated end-to-end in sample repo)
-- `2026-02-14-replix-0uk` (selective github source includes via `?include=` + deterministic cache)
-- `2026-02-14-replix-6pg` (OpenCode native outputs parity)
-- `2026-02-14-replix-fu5` (test matrix simplified to high-signal/gated suites)
+**bd note:** always use `bd --no-daemon --db .beads/beads.db` in the replix dir (daemon runs against nexus).
 
 **Remember:**
 - No new markdown files (use bd for notes when healthy)
