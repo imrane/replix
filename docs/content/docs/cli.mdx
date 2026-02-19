@@ -1,0 +1,402 @@
+---
+title: CLI Reference
+description: Every Replix command with flags and expected output.
+---
+
+## replix (apply)
+
+Generate or update client-native files from your enabled packs.
+
+```bash
+npx replix [--config <path>]
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--config` | auto-discover | Path to `.replix/repo.json` |
+
+**Output (changes emitted):**
+```
+🔧 Replix: loading config...
+📦 Replix: emitting outputs...
+✅ Replix: done
+```
+
+**Output (no changes):**
+```
+✅ Replix: no changes (state hash matches), skipping emit
+```
+
+---
+
+## replix check
+
+Detect drift between config and generated files. Non-mutating, CI-safe.
+
+```bash
+npx replix check --config <path>
+```
+
+**Output (in sync):**
+```
+✅ outputs in sync
+```
+
+**Output (drift):**
+```
+❌ outputs drifted from config
+  ADD    .claude/skills/humanizer/SKILL.md
+  MODIFY .mcp.json
+  REMOVE .claude/skills/old-skill/SKILL.md
+Run `replix` to regenerate.
+```
+
+Exit code: `0` (in sync), non-zero (drift).
+
+---
+
+## replix doctor
+
+Diagnose config health: missing vars, lock drift, pack readiness.
+
+```bash
+npx replix doctor [--config <path>]
+```
+
+**Output:**
+```
+✅ config: ok
+✅ lock: in sync (rev=abc1234)
+variable matrix:
+  [ok] pack=config var=PROJECT_ROOT source=builtin usedBy=filesystem
+  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
+  [missing] pack=humanizer var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
+    fix: write secret to .replix/vars/WEBHOOK_SECRET (recommended), or set WEBHOOK_SECRET_FILE, or export WEBHOOK_SECRET
+✅ pack humanizer: ready
+```
+
+Exit code: `0` (ok), `2` (blocking issues).
+
+---
+
+## replix init
+
+Scaffold `.replix/repo.json` and a vars example file.
+
+```bash
+npx replix init [--client claude] [--with-lock] [--force]
+```
+
+| Flag | Description |
+|---|---|
+| `--client` | Target client (claude, opencode, codex) |
+| `--with-lock` | Also write an empty `replix.lock.json` |
+| `--force` | Overwrite existing files |
+
+**Output:**
+```
+✅ Wrote .replix/repo.json
+✅ Wrote .replix/vars/.example
+```
+
+---
+
+## replix add
+
+Add a pack by source, name, URL, or search term.
+
+```bash
+npx replix add <source> [pack-name] [--dry-run] [--allow-risky]
+```
+
+**Examples:**
+
+```bash
+# By shorthand name
+npx replix add github:blader/ai-packs humanizer
+
+# By direct source
+npx replix add "github:blader/humanizer?rev=abc1234"
+
+# From ClawHub
+npx replix add clawhub:humanizer
+
+# Plain search term
+npx replix add "plain language writer"
+
+# Preview without writing
+npx replix add github:blader/humanizer --dry-run
+```
+
+**Output:**
+```
+✅ replix add: added
+   source: github:blader/humanizer@abc1234
+```
+
+---
+
+## replix pack list
+
+List all registered packs.
+
+```bash
+npx replix pack list
+```
+
+```
+Installed packs (2):
+  github:blader/humanizer        rev:abc1234  added:2026-02-19
+  github:myorg/security-pack     rev:def5678  added:2026-02-10
+```
+
+---
+
+## replix pack install
+
+Alias for `replix add` with explicit source syntax.
+
+```bash
+npx replix pack install "github:blader/humanizer?rev=abc1234"
+```
+
+---
+
+## replix pack uninstall
+
+Remove a pack from `.replix/packs.json`.
+
+```bash
+npx replix pack uninstall github:blader/humanizer
+```
+
+```
+✅ pack uninstall: removed github:blader/humanizer
+Run `replix` to remove generated files.
+```
+
+---
+
+## replix pack upgrade
+
+Upgrade all registered packs to their latest revisions.
+
+```bash
+npx replix pack upgrade
+```
+
+```
+🔄 Checking for updates...
+  humanizer: abc1234 → def5678
+✅ pack upgrade: done. Run `replix` to apply.
+```
+
+---
+
+## replix pack list-aliases
+
+List all pack name aliases available from a source repo.
+
+```bash
+npx replix pack list-aliases github:blader/ai-packs
+```
+
+```
+Available aliases:
+  starter    → fixtures/packs/examples/starter
+  security   → fixtures/packs/examples/security
+  humanizer  → fixtures/packs/examples/humanizer
+```
+
+---
+
+## replix search
+
+Search across all registered providers.
+
+```bash
+npx replix search "writing assistant" [--provider clawhub]
+```
+
+```
+provider: clawhub
+- humanizer   Humanize AI output for real humans   https://...   sec:verified   trust:trusted/low
+- tone-fix    Fix tone in generated docs            https://...   sec:unknown    trust:review/medium
+```
+
+---
+
+## replix browse
+
+Interactive TUI for searching and installing packs.
+
+```bash
+npx replix browse ["query"] [--provider clawhub]
+```
+
+Controls: `j`/`k` navigate · `Space` select · `Enter` install · `/` filter · `q` quit
+
+---
+
+## replix snippet
+
+Generate a quick enable snippet for skills and MCP.
+
+```bash
+npx replix snippet --skills humanizer,reviewer --mcp filesystem
+```
+
+---
+
+## replix list skills
+
+List available skills from your dotfiles or config.
+
+```bash
+npx replix list skills [--config <path>]
+```
+
+```
+Available skills:
+  humanizer    github:blader/humanizer@abc1234
+  reviewer     github:myorg/reviewer@def5678
+```
+
+---
+
+## replix list mcp
+
+List available MCP servers.
+
+```bash
+npx replix list mcp [--config <path>]
+```
+
+```
+Available MCP servers:
+  filesystem   npx -y @modelcontextprotocol/server-filesystem /home/user
+```
+
+---
+
+## replix lock update
+
+Pin all packs to current revs + checksums.
+
+```bash
+npx replix lock update
+```
+
+```
+🔒 Lock updated: replix.lock.json
+  humanizer: rev=abc1234  checksum=sha256:deadbeef...
+```
+
+---
+
+## replix registry build
+
+Generate a static pack registry site.
+
+```bash
+npx replix registry build [--out <dir>]
+```
+
+```
+✅ registry built: .replix/registry/index.html + index.json
+```
+
+---
+
+## replix support bundle
+
+Collect diagnostics for bug reports.
+
+```bash
+npx replix support bundle
+```
+
+```
+✅ support bundle: .replix/support/bundle-2026-02-19.json
+```
+
+---
+
+## replix compile canonical
+
+Compile a canonical pack to client-native outputs.
+
+```bash
+npx replix compile canonical --client <claude|opencode|codex> [--pack <path>] [--fail-on-warn]
+```
+
+```
+📦 Compile plan for claude:
+  skills: humanizer → .claude/skills/humanizer/SKILL.md
+  commands: humanize → .claude/commands/humanize.md
+  warnings: 0
+✅ compile canonical: done
+```
+
+---
+
+## replix compile self-heal
+
+Bounded self-healing compile loop with an AI fix script.
+
+```bash
+npx replix compile self-heal \
+  --config .replix/repo.json \
+  --max-attempts 3 \
+  --client claude \
+  --ai-fix-ts scripts/fix.ts
+```
+
+---
+
+## replix spec validate-canonical-pack
+
+Validate a pack against the canonical v1 spec.
+
+```bash
+npx replix spec validate-canonical-pack [--pack <path>]
+```
+
+```
+✅ pack.json: specVersion ok
+✅ references: all files present and valid
+✅ canonical pack: valid
+```
+
+---
+
+## replix spec validate-client-shapes
+
+Check client-shape snapshots for freshness and emit refresh checklists.
+
+```bash
+npx replix spec validate-client-shapes [--max-age-days N]
+```
+
+```
+✅ src/clientPlugins/claude/client-shape.snapshot.json
+⚠️  src/clientPlugins/opencode/client-shape.snapshot.json
+    warn: snapshot approaching expiry (22d old, expires at 30d)
+
+📋 Refresh checklist for opencode (22d old):
+  1. Review current opencode docs at the source URLs below
+     - https://opencode.ai/docs/config
+  ...
+```
+
+Exit code: `0` (all ok), `1` (warnings only), `2` (errors).
+
+---
+
+## replix spec compile
+
+Compile a client spec snapshot to a schema file.
+
+```bash
+npx replix spec compile --in <snapshot.json> --out <schema.json>
+```

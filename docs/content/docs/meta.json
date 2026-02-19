@@ -4,10 +4,11 @@
     "quickstart",
     "beginner-path",
     "success-checks",
-    "troubleshooting",
     "concepts",
     "packs",
+    "cli",
     "safety",
-    "advanced"
+    "advanced",
+    "troubleshooting"
   ]
 }

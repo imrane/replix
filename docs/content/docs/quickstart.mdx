@@ -1,20 +1,81 @@
 ---
 title: Quickstart (No Nix)
-description: Install Replix, add a pack by name, apply, and verify in under 3 minutes.
+description: Install Replix, add the humanizer skill pack, apply it to your repo, and verify — in under 3 minutes.
 ---
 
-## Copy-paste (macOS/Linux)
+## What you'll do
+
+You'll install Replix, pull a pack called `humanizer` that gives your AI agent a plain-English writing skill, apply it to your repo, and confirm it worked.
+
+## Step 1 — Install Replix
 
 ```bash
 cd /path/to/your/repo
-npm i -D replix
-npx replix add github:owner/rpacks starter
+npm install -D replix
+```
+
+## Step 2 — Add a pack
+
+```bash
+npx replix add github:blader/humanizer
+```
+
+Expected output:
+
+```
+🔍 Resolving github:blader/humanizer...
+✅ replix add: added
+   source: github:blader/humanizer@abc1234
+   pack: humanizer
+```
+
+This registers the pack in `.replix/packs.json`. Nothing is written to your repo yet.
+
+## Step 3 — Apply
+
+```bash
 npx replix
+```
+
+Expected output:
+
+```
+🔧 Replix: loading config...
+📦 Replix: emitting outputs...
+✅ Replix: done
+```
+
+Replix has now written the pack's files into your repo:
+
+```
+.claude/skills/humanizer/
+.opencode/skills/humanizer/
+.mcp.json          ← if the pack includes MCP servers
+```
+
+## Step 4 — Verify
+
+```bash
 npx replix check
 ```
 
-## Why this is the best first flow
+Expected output (all in sync):
 
-- You see value fast.
-- You avoid advanced flags at the start.
-- You still get a verification step.
+```
+✅ outputs in sync
+```
+
+Expected output (drift detected):
+
+```
+❌ outputs drifted from config
+  ADD    .claude/skills/humanizer/SKILL.md
+  MODIFY .mcp.json
+Run `replix` to regenerate.
+```
+
+## You're done
+
+Your AI agent now has the humanizer skill available. Open your editor, start a coding session, and the skill shows up automatically.
+
+**Next:** [Beginner Path →](./beginner-path) to build the day-one habit that keeps things clean.

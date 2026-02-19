@@ -1,26 +1,134 @@
 ---
 title: Troubleshooting
-description: Fix the most common first-run issues quickly.
+description: The most common errors and exactly how to fix them.
 ---
 
-## Unknown provider
-
-Use a direct source first:
-
-```bash
-npx replix add github:owner/rpacks starter
-```
-
-## Verifier blocked install
-
-Your input is unsafe or incomplete. Use a known pack source and retry.
-
-## Missing required variables
-
-Run doctor and follow the fix hint:
+## Start here
 
 ```bash
 npx replix doctor
 ```
 
-Usually you need to add secrets under `.replix/vars/`.
+Doctor diagnoses everything in one shot. Read its output before anything else.
+
+```
+✅ config: ok
+✅ lock: in sync
+⚠️  vars: missing required variable API_TOKEN
+    fix: write secret to .replix/vars/API_TOKEN (recommended), or set API_TOKEN_FILE, or export API_TOKEN
+❌ pack blader/humanizer: blocked (missing required variable)
+```
+
+---
+
+## Missing required variable
+
+**Symptom:**
+```
+❌ pack vars contract unresolved: missing required variable API_TOKEN
+```
+
+**Fix:**
+
+Option 1 — write to file (recommended, never leaks to env):
+```bash
+echo "your-token-here" > .replix/vars/API_TOKEN
+```
+
+Option 2 — point to a secrets file:
+```bash
+export API_TOKEN_FILE=/run/secrets/API_TOKEN
+```
+
+Option 3 — set the env var directly (least preferred):
+```bash
+export API_TOKEN=your-token-here
+```
+
+Then re-run `replix`.
+
+---
+
+## Outputs drifted
+
+**Symptom:**
+```
+❌ outputs drifted from config
+  ADD    .claude/skills/humanizer/SKILL.md
+  MODIFY .mcp.json
+```
+
+**Fix:**
+```bash
+npx replix          # regenerate
+npx replix check    # confirm clean
+```
+
+---
+
+## Lock drift
+
+**Symptom:**
+```
+❌ lock drift: pack github:blader/humanizer changed since lock was written
+    fix: run replix lock update
+```
+
+**Fix:**
+```bash
+npx replix lock update
+npx replix
+```
+
+---
+
+## Unknown provider
+
+**Symptom:**
+```
+❌ replix search: unknown provider 'clawhub'
+```
+
+**Fix:** Use a direct source instead:
+```bash
+npx replix add github:blader/humanizer
+```
+
+Or install the provider module if you have one configured.
+
+---
+
+## Verifier blocked install
+
+**Symptom:**
+```
+❌ replix add: verifier gate failed — could not normalize input to a valid pack draft
+```
+
+**Fix:** The source couldn't be auto-detected. Use a direct, pinned source:
+```bash
+npx replix add "github:blader/humanizer?rev=abc1234"
+```
+
+---
+
+## Codex .codex/config.toml injection blocked
+
+**Symptom:**
+```
+❌ codex .codex/config.toml is generated from canonical mcp/skills; do not inject it via clients.codex.files
+```
+
+**Fix:** Remove `clients.codex.files` entries targeting `.codex/config.toml` from your dotfiles config. Codex config is auto-generated from your MCP and skill definitions.
+
+---
+
+## Binary not found after install
+
+If `replix` isn't found after `npm install -D replix`, check your path:
+
+```bash
+npx replix --help
+# or
+./node_modules/.bin/replix --help
+```

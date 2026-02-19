@@ -1,13 +1,108 @@
 ---
 title: Concepts
-description: What Replix does in plain language.
+description: What Replix does and why each piece exists — explained with a real example.
 ---
 
-Replix helps you apply reusable packs to a repo safely.
+## The core idea
 
-- **Pack**: a reusable set of skills, commands, agents, hooks, or MCP config.
-- **Add**: register a pack source in your repo.
-- **Apply**: generate/update files from enabled packs.
-- **Check**: confirm generated files are in sync.
+You define AI tooling once (in a pack), enable it per repo, and Replix generates the client-native files your AI agent expects. No copy-paste, no drift.
 
-Benefit: repeatable setup without copy-paste drift.
+---
+
+## Pack
+
+A pack is a versioned bundle of skills, commands, agents, hooks, and/or MCP server configs. Packs live in git repos and are referenced by source URL.
+
+```bash
+# Add a pack by shorthand name
+npx replix add github:blader/humanizer
+
+# Or add a specific pack folder from a multi-pack repo
+npx replix add github:blader/ai-packs writing
+```
+
+Packs are stored in `.replix/packs.json`:
+
+```json
+{
+  "packs": [
+    { "source": "github:blader/humanizer", "rev": "abc1234", "addedAt": "2026-02-19" }
+  ]
+}
+```
+
+---
+
+## Skills
+
+Skills are markdown files that inject context into your AI coding agent (Claude, OpenCode, Codex). They explain tools, conventions, or domain knowledge.
+
+The humanizer skill might contain instructions like: "When writing user-facing copy, prefer short sentences and active voice."
+
+After `replix` runs, the skill lands at:
+
+```
+.claude/skills/humanizer/SKILL.md     ← Claude Code reads this
+.opencode/skills/humanizer/SKILL.md   ← OpenCode reads this
+.agents/skills/humanizer/             ← Codex reads this
+```
+
+---
+
+## Commands
+
+Slash commands your AI agent can invoke. Example: `/humanize` might trigger a rewrite pass on selected text.
+
+After `replix` runs:
+
+```
+.claude/commands/humanize.md     ← available as /humanize in Claude
+.opencode/command/humanize.md    ← available in OpenCode
+```
+
+---
+
+## Agents
+
+Specialized AI modes or sub-agents. A pack can ship an agent definition that the AI loads for a specific workflow.
+
+```
+.claude/agents/reviewer.md
+.opencode/agent/reviewer.md
+```
+
+---
+
+## Hooks
+
+Lifecycle triggers — run before/after tool calls, on file save, etc. Replix maps hook definitions to each client's native format.
+
+---
+
+## MCP
+
+MCP (Model Context Protocol) server configs. Define once in a pack, emit to `.mcp.json`, `opencode.json`, and `.codex/config.toml` automatically.
+
+Example: a pack ships an MCP server for filesystem access:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"]
+    }
+  }
+}
+```
+
+---
+
+## Apply, Check, Lock
+
+| Command | What it does |
+|---|---|
+| `replix` | Generates/updates client-native files from enabled packs |
+| `replix check` | Detects drift between config and generated files (non-mutating) |
+| `replix lock update` | Pins pack revisions + checksums into `replix.lock.json` |
+| `replix doctor` | Diagnoses config health: missing vars, lock drift, pack readiness |

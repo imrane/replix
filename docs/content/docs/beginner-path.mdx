@@ -1,23 +1,84 @@
 ---
 title: Beginner Path
-description: The simple habit for day one users.
+description: The simple habit that keeps your AI agent tooling clean and up to date.
 ---
 
-## 1) Install in your repo
+## The habit (3 commands, 30 seconds)
 
-Use your normal toolchain (`npm`, `pnpm`, or `bun`).
-
-## 2) Add one pack by name
+Run these after adding a new pack or pulling from a teammate:
 
 ```bash
-npx replix add github:owner/rpacks starter
+npx replix          # apply (generate files)
+npx replix check    # verify (nothing drifted)
 ```
 
-## 3) Apply and verify
+If `check` is clean, you're done.
+
+---
+
+## Day 1: get your first skill
 
 ```bash
+# Install once per repo
+npm install -D replix
+
+# Add the humanizer skill pack
+npx replix add github:blader/humanizer
+
+# Apply it
+npx replix
+
+# Confirm
+npx replix check
+```
+
+You should see:
+
+```
+✅ outputs in sync
+```
+
+Your `.claude/skills/humanizer/` folder now exists. Open your AI agent and the skill is live.
+
+---
+
+## Day 2+: keeping things fresh
+
+When a teammate adds a new pack or you pull new commits:
+
+```bash
+npx replix          # re-apply (idempotent — safe to run any time)
+npx replix check    # confirm
+```
+
+`replix` is idempotent. If nothing changed, it skips emit entirely:
+
+```
+✅ Replix: no changes (state hash matches), skipping emit
+```
+
+---
+
+## When to add more packs
+
+- You want a new AI skill, command, agent, or MCP server
+- A teammate shares a pack source URL
+- You found something on [ClawHub](https://clawhub.com)
+
+```bash
+npx replix add github:org/packs security
 npx replix
 npx replix check
 ```
 
-If check is in sync, you are good.
+---
+
+## When things go wrong
+
+Run doctor first:
+
+```bash
+npx replix doctor
+```
+
+It tells you exactly what's missing and how to fix it. See [Troubleshooting →](./troubleshooting).

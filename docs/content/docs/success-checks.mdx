@@ -1,11 +1,97 @@
 ---
 title: Success Checks
-description: How to confirm your first run worked.
+description: How to confirm your first run worked — and what each signal means.
 ---
 
-You should see all of these:
+## The three green lights
 
-- `replix add` says `added` (or `already present`).
-- `replix` finishes without errors.
-- `replix check` reports outputs are in sync.
-- `.replix/packs.json` includes your pack source.
+After running the quickstart, you want all three:
+
+### 1. Add succeeded
+
+```bash
+npx replix add github:blader/humanizer
+```
+
+✅ Look for:
+```
+✅ replix add: added
+```
+
+❌ If you see `already present`, the pack was already registered — that's fine, just run `replix` next.
+
+---
+
+### 2. Apply succeeded
+
+```bash
+npx replix
+```
+
+✅ Look for:
+```
+✅ Replix: done
+```
+
+Or if nothing changed:
+```
+✅ Replix: no changes (state hash matches), skipping emit
+```
+
+❌ If you see errors about missing vars, run `replix doctor` — it tells you exactly what to set and where.
+
+---
+
+### 3. Check is clean
+
+```bash
+npx replix check
+```
+
+✅ Look for:
+```
+✅ outputs in sync
+```
+
+❌ If you see drift:
+```
+❌ outputs drifted from config
+  ADD    .claude/skills/humanizer/SKILL.md
+```
+
+Run `replix` again and re-check. If it persists, run `replix doctor`.
+
+---
+
+## Confirm the files exist
+
+After a successful apply, these should be present (humanizer example):
+
+```bash
+ls .claude/skills/humanizer/
+# → SKILL.md
+
+ls .opencode/skills/humanizer/
+# → SKILL.md
+```
+
+---
+
+## Confirm the lock is written (if you ran lock update)
+
+```bash
+cat replix.lock.json
+```
+
+```json
+{
+  "packs": {
+    "github:blader/humanizer": {
+      "rev": "abc1234",
+      "checksum": "sha256:...",
+      "requiredVars": [],
+      "lockedAt": "2026-02-19T00:00:00Z"
+    }
+  }
+}
+```

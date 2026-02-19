@@ -1,11 +1,191 @@
 ---
 title: Advanced
-description: Narrow features for power users.
+description: Power features for teams, CI pipelines, and pack authors.
 ---
 
-- Pin lockfile revisions for reproducibility.
-- Add custom provider modules.
-- Use AI fallback normalizer for unknown formats.
-- Use doctor/check in CI for drift prevention.
+## Doctor — full config health check
 
-Start here only after the quickstart flow is working.
+```bash
+npx replix doctor
+```
+
+Sample output:
+
+```
+✅ config: ok
+✅ lock: in sync (rev=abc1234)
+variable matrix:
+  [ok] pack=config var=PROJECT_ROOT source=builtin usedBy=filesystem
+  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
+  [missing] pack=humanizer var=WEBHOOK_SECRET source=missing usedBy=pack.vars.optional
+    fix: write secret to .replix/vars/WEBHOOK_SECRET (recommended), or set WEBHOOK_SECRET_FILE, or export WEBHOOK_SECRET
+✅ pack humanizer: ready
+```
+
+Doctor exits `2` on blocking issues (missing required vars, lock drift).
+
+---
+
+## Check in CI
+
+```bash
+npx replix check --config .replix/repo.json
+```
+
+Detects drift between your config and generated files without writing anything. Use as a CI gate:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Check replix outputs
+  run: npx replix check --config .replix/repo.json
+```
+
+Exits `0` if in sync, non-zero with a diff on drift.
+
+---
+
+## Lockfile management
+
+```bash
+# Pin all packs to current revs
+npx replix lock update
+```
+
+```
+🔒 Lock updated: replix.lock.json
+  humanizer: rev=abc1234 → def5678 (rev changed)
+  new required vars: WEBHOOK_SECRET
+```
+
+Commit `replix.lock.json`. Teammates and CI get exact rev + checksum matches.
+
+---
+
+## Vars and secrets
+
+Replix resolves vars in this order (highest wins):
+
+1. repo config `vars`
+2. dotfiles `programs.replix.vars`
+3. file-backed: `.replix/vars/<NAME>`, `/run/secrets/<NAME>`, `<NAME>_FILE` env pointers
+4. process env
+
+Set a secret without leaking it to environment logs:
+
+```bash
+echo "sk-live-..." > .replix/vars/API_TOKEN
+chmod 600 .replix/vars/API_TOKEN
+```
+
+Add `.replix/vars/` to `.gitignore`.
+
+---
+
+## Nix / dotfiles mode
+
+Define packs once in your home-manager config:
+
+```nix
+programs.replix = {
+  enable = true;
+  skills.humanizer.source = "github:blader/humanizer?rev=abc1234";
+  mcp.filesystem = {
+    command = "npx";
+    args = ["-y" "@modelcontextprotocol/server-filesystem" "/home/user"];
+  };
+};
+```
+
+Enable per-repo in your flake:
+
+```nix
+replix.lib.mkRepo {
+  system = "x86_64-linux";
+  clients = [ "claude" "opencode" ];
+  enable.skills = [ "humanizer" ];
+  enable.mcp = [ "filesystem" ];
+}
+```
+
+Run `nix develop` — Replix applies automatically.
+
+---
+
+## Canonical pack authoring
+
+To publish a pack others can install:
+
+1. Create a repo with this structure:
+   ```
+   pack.json          ← required (specVersion + references)
+   skills/humanizer/SKILL.md
+   commands/humanize.md
+   ```
+
+2. `pack.json` must declare `specVersion` and `references`:
+   ```json
+   {
+     "specVersion": "replix.canonical.v1-draft",
+     "references": {
+       "skills": ["skills/humanizer/SKILL.md"],
+       "commands": ["commands/humanize.md"]
+     }
+   }
+   ```
+
+3. Validate the pack:
+   ```bash
+   npx replix spec validate-canonical-pack --pack .
+   ```
+
+4. Compile to client outputs:
+   ```bash
+   npx replix compile canonical --client claude --pack .
+   npx replix compile canonical --client opencode --pack .
+   ```
+
+---
+
+## Shape snapshot freshness
+
+Client-shape snapshots track what each AI client supports. Check and refresh:
+
+```bash
+npx replix spec validate-client-shapes
+```
+
+```
+✅ src/clientPlugins/claude/client-shape.snapshot.json
+⚠️  src/clientPlugins/opencode/client-shape.snapshot.json
+    warn: snapshot approaching expiry (22d old, expires at 30d)
+
+📋 Refresh checklist for opencode (22d old):
+  1. Review current opencode docs at the source URLs below
+     - https://opencode.ai/docs/config
+     - https://opencode.ai/docs/agents
+  2. Note any new fields, changed paths, or removed features
+  3. Update src/clientPlugins/opencode/client-shape.snapshot.json
+     - Set "capturedAt" to today's ISO date
+     - Update "versionNote" with the current client version/note
+  4. Run: replix spec validate-client-shapes
+  5. If shape changed, update corresponding emitter/adapter for opencode
+```
+
+Use `--max-age-days N` to adjust the expiry threshold.
+
+---
+
+## Self-healing compile loop
+
+When compilation hits issues that can be fixed programmatically:
+
+```bash
+npx replix compile self-heal \
+  --config .replix/repo.json \
+  --max-attempts 3 \
+  --client claude \
+  --client-log .replix/logs/claude.log \
+  --ai-fix-ts scripts/my-fix.ts
+```
+
+On failure, Replix calls your fix script, retries, and escalates to a human after `--max-attempts`. Escalation report at `.replix/self-heal/last-report.json`.

@@ -1,12 +1,98 @@
 ---
 title: Safety
-description: Trust, verification, and safe install behavior.
+description: How Replix protects you from bad packs, leaked secrets, and config drift.
 ---
 
-Replix includes guardrails before install:
+## Trust levels
 
-- **Trust policy** can block high-risk sources.
-- **Verifier gate** blocks invalid converted drafts.
-- **Check/doctor** helps you confirm healthy state.
+Every pack source gets a trust rating before install:
 
-This keeps first-run errors low and makes behavior predictable.
+| Level | Meaning | What happens |
+|---|---|---|
+| `trusted/low` | Known provider, low risk | Installs normally |
+| `review/medium` | Unknown or unverified source | Warning shown, requires confirmation |
+| `untrusted/high` | High-risk signal detected | Blocked unless you pass `--allow-risky` |
+
+```bash
+npx replix search "humanizer"
+# → sec:verified   trust:trusted/low   ← safe to add
+```
+
+---
+
+## Preview before you install
+
+Always available, no side effects:
+
+```bash
+npx replix add github:blader/humanizer --dry-run
+```
+
+```
+🧪 DRY RUN replix add: would add
+   source: github:blader/humanizer
+   (no files written)
+```
+
+---
+
+## Verifier gate
+
+When Replix converts an unfamiliar source to a pack draft, it validates the result before writing anything. If validation fails, the install is blocked:
+
+```
+❌ replix add: verifier gate failed — draft.kind is invalid
+```
+
+Use a direct, well-formed source URL and retry.
+
+---
+
+## Pinning with lockfile
+
+The lock pins every pack to an exact rev + checksum:
+
+```bash
+npx replix lock update
+```
+
+```
+🔒 Lock updated: replix.lock.json
+  humanizer: rev=abc1234  checksum=sha256:deadbeef...
+```
+
+At runtime, Replix validates the checksum before applying. If a pack changes without a lock update, you get a hard error:
+
+```
+❌ lock drift: pack github:blader/humanizer changed since lock was written
+    fix: run replix lock update
+```
+
+This prevents supply-chain substitution from silently taking effect.
+
+---
+
+## Secrets never leak
+
+Pack vars marked `secret: true` are handled safely:
+
+- Values are read from `.replix/vars/<NAME>` or `*_FILE` pointers — never from process env logs
+- `replix doctor` shows the **source** (file/env/config), never the **value**
+- Doctor output:
+  ```
+  [ok][secret] pack=humanizer var=API_TOKEN source=file usedBy=pack.vars.required
+  ```
+
+---
+
+## Check in CI
+
+```bash
+npx replix check --config .replix/repo.json
+```
+
+Exits `0` if in sync, non-zero if drifted. Use in CI to catch uncommitted regeneration drift:
+
+```yaml
+- run: npx replix check --config .replix/repo.json
+```

@@ -1,18 +1,149 @@
 ---
 title: Packs
-description: How to add packs quickly and safely.
+description: How to find, add, upgrade, and remove packs. Full lifecycle with real examples.
 ---
 
-## Easy mode
+## Add a pack
+
+**By shorthand name** (easiest):
 
 ```bash
-npx replix add github:owner/rpacks starter
+npx replix add github:blader/ai-packs humanizer
 ```
 
-## Advanced mode (pinned)
+```
+🔍 Resolving github:blader/ai-packs humanizer...
+✅ replix add: added
+   source: github:blader/ai-packs?pack=humanizer@abc1234
+```
+
+**By direct source URL** (pinned):
 
 ```bash
-npx replix add github:owner/rpacks?rev=<sha-or-tag>#path/to/pack
+npx replix add "github:blader/humanizer?rev=abc1234"
 ```
 
-Use pinned mode for reproducible installs.
+**From ClawHub** (community registry):
+
+```bash
+npx replix add clawhub:humanizer
+# or paste the URL
+npx replix add https://clawhub.ai/items/humanizer
+```
+
+**Plain search term** (Replix finds the best match):
+
+```bash
+npx replix add "plain language writer"
+```
+
+```
+🔍 Searching providers for: plain language writer
+  [1] blader/humanizer  "Humanize AI output for real humans"  trust:trusted/low
+Add this? (y/N): y
+✅ replix add: added
+```
+
+---
+
+## Preview before adding
+
+```bash
+npx replix add github:blader/humanizer --dry-run
+```
+
+```
+🧪 DRY RUN replix add: would add
+   source: github:blader/humanizer
+   (no files written)
+```
+
+---
+
+## Search and browse
+
+```bash
+# Search across all providers
+npx replix search "writing assistant"
+```
+
+```
+provider: clawhub
+- humanizer   Humanize AI output for real humans   https://...   sec:verified   trust:trusted/low
+- tone-fix    Fix tone in generated docs            https://...   sec:unknown    trust:review/medium
+```
+
+**Interactive browser** (filter, select, install):
+
+```bash
+npx replix browse "writing"
+```
+
+Use `j`/`k` to navigate, `Space` to select, `Enter` to install, `/` to filter.
+
+---
+
+## List installed packs
+
+```bash
+npx replix pack list
+```
+
+```
+Installed packs (1):
+  github:blader/humanizer  rev:abc1234  added:2026-02-19
+```
+
+---
+
+## Upgrade packs
+
+```bash
+npx replix pack upgrade
+```
+
+```
+🔄 Checking for updates...
+  humanizer: abc1234 → def5678 (new version available)
+  Updating lock...
+✅ pack upgrade: done. Run `replix` to apply.
+```
+
+---
+
+## Remove a pack
+
+```bash
+npx replix pack uninstall github:blader/humanizer
+```
+
+```
+✅ pack uninstall: removed github:blader/humanizer
+Run `replix` to remove generated files.
+```
+
+---
+
+## Apply after any change
+
+Always run `replix` after adding, upgrading, or removing:
+
+```bash
+npx replix
+npx replix check   # confirm outputs are in sync
+```
+
+---
+
+## Lock your packs (recommended for teams)
+
+```bash
+npx replix lock update
+```
+
+```
+🔒 Lock updated: replix.lock.json
+  humanizer: rev=abc1234 checksum=sha256:... requiredVars=[]
+```
+
+Commit `replix.lock.json`. Teammates get the exact same pack revisions on `replix`.
